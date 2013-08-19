@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HvZClient", "HvZClient\HvZClient.csproj", "{6888148B-7C80-439F-A1E3-55E457A56BB9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HvZCommon", "HvZCommon\HvZCommon.csproj", "{6DB1E57E-5CDD-4D83-9E25-A931FA0F0B7E}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "HvZServer", "HvZServer\HvZServer.fsproj", "{CF62EB5B-B8AA-4935-BD6E-AA315C91B794}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6888148B-7C80-439F-A1E3-55E457A56BB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6888148B-7C80-439F-A1E3-55E457A56BB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6888148B-7C80-439F-A1E3-55E457A56BB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6888148B-7C80-439F-A1E3-55E457A56BB9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6DB1E57E-5CDD-4D83-9E25-A931FA0F0B7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6DB1E57E-5CDD-4D83-9E25-A931FA0F0B7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6DB1E57E-5CDD-4D83-9E25-A931FA0F0B7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6DB1E57E-5CDD-4D83-9E25-A931FA0F0B7E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CF62EB5B-B8AA-4935-BD6E-AA315C91B794}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF62EB5B-B8AA-4935-BD6E-AA315C91B794}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF62EB5B-B8AA-4935-BD6E-AA315C91B794}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF62EB5B-B8AA-4935-BD6E-AA315C91B794}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
