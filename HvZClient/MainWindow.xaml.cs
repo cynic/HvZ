@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,15 +17,22 @@ using HvZCommon;
 
 namespace HvZClient
 {
-   /// <summary>
-   /// Interaction logic for MainWindow.xaml
-   /// </summary>
-   public partial class MainWindow : Window
-   {
-      public MainWindow()
-      {
-         InitializeComponent();
-         Zombie z = new Zombie();
-      }
-   }
+    /// <summary>
+    /// Interaction logic for MainWindow.xaml
+    /// </summary>
+    public partial class MainWindow : Window
+    {
+        public MainWindow()
+        {
+            InitializeComponent();
+
+            Zombie z = new Zombie();
+            GUIMap.Children.Add(new Image()
+            {
+                Source = Resource.getResourceByName(z.TextureName).Image,
+                Width = 45,
+                Height = 45
+            });
+        }
+    }
 }
