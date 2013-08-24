@@ -1,5 +1,4 @@
 ﻿A rough idea of how I think the messages could work.
-Unless we could send the Map through the connection.
 
 C = CLIENT
 A = ACTION
@@ -14,10 +13,11 @@ Client Outgoing
 6. A_turn_{turner}_{degrees}
 7. A_eat_{eater}_{eatee}
 8. A_take_{taker}_{place}
-9. A_consume_{consumer} //used by humans
+9. A_consume_{consumer} //used by Humans
 
 Client Incoming
 1. S_spawnwalker_{X}_{Y}_{head}_{speed}
+ // eg: S_spawnwalker_2.1_4.0_120_0.3
 2. S_spawnplace_{X}_{Y}
 3. S_refresh_{x1}_{y}_{x2}_{y2}_..._{xn}_{yn}
 4. S_load

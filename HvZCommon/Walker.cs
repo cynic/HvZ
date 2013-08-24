@@ -30,7 +30,7 @@ namespace HvZCommon {
         public double Heading { get; set; }
         public double Speed { get; set; }
         public string Owner { get; set; }
-        bool isHuman { get { return true; } }
+        public bool isHuman { get { return true; } }
 
         public event Killed OnKilled;
 
@@ -46,7 +46,7 @@ namespace HvZCommon {
         public double Heading { get; set; }
         public double Speed { get; set; }
         public string Owner { get; set; }
-        bool isHuman { get { return false; } }
+        public bool isHuman { get { return false; } }
 
         public event Killed OnKilled;
 

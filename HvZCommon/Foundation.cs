@@ -5,14 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace HvZCommon {
-    private enum TakeSpaceType {
-        ZOMBIE, HUMAN, POINT
-    }
-
     public interface ITakeSpace {
         Position Position { get; set; } // center of the object
         double Radius { get; set; }
-        TakeSpaceType type { get; }
     }
 
     public class Map {
@@ -32,20 +27,21 @@ namespace HvZCommon {
         public Human[] Humans { get; private set; }
         public Zombie[] Zombies { get; private set; }
         public ResupplyPoint[] SupplyPoints { get; private set; }
+        public Obstacle[] Obstacles { get; private set; }
 
         public Groupes(List<ITakeSpace> items) {
             List<Human> humans = new List<Human>();
             List<Zombie> zombies = new List<Zombie>();
             List<ResupplyPoint> points = new List<ResupplyPoint>();
+            List<Obstacle> obstacles = new List<Obstacle>();
 
             foreach (ITakeSpace i in items) {
-                switch (i.type) {
-                    case TakeSpaceType.HUMAN: humans.Add((Human)i);
-                        break;
-                    case TakeSpaceType.ZOMBIE: zombies.Add((Zombie)i);
-                        break;
-                    case TakeSpaceType.POINT: points.Add((ResupplyPoint)i);
-                        break;
+                if (i is Human) {
+                    humans.Add((Human)i);
+                } else if (i is Zombie) {
+                    zombies.Add((Zombie)i);
+                } else if (i is Obstacle) {
+                    obstacles.Add((Obstacle)i);
                 }
             }
 

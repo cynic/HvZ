@@ -8,23 +8,22 @@ using HvZCommon;
 namespace HvZClient {
     public class Game {
         internal static AI userAIInstance;
-        internal static TakeSpaceType userAIType;
+        internal static AIType userAIType;
 
         internal static GameState clientWorld = new GameState();
 
         public static void Start(HumanAI e) {
-            userAIInstance = e;
-            userAIType = TakeSpaceType.HUMAN;
-            StartProcesses();
+            userAIType = AIType.HUMAN;
+            StartProcesses(e);
         }
 
         public static void Start(ZombieAI e) {
-            userAIInstance = e;
-            userAIType = TakeSpaceType.ZOMBIE;
-            StartProcesses();
+            userAIType = AIType.ZOMBIE;
+            StartProcesses(e);
         }
 
-        internal static void StartProcesses() {
+        internal static void StartProcesses(AI e) {
+            userAIInstance = e;
             //stub
         }
 
@@ -186,17 +185,21 @@ namespace HvZClient {
     }
 
     //event delegates
-    delegate void Spawned(IWalker me);
-    delegate void Hungering(IWalker me);
-    delegate void Hit(IWalker me, IWalker attacker);
-    delegate void Walk(IWalker me, double distance);
+    public delegate void Spawned(IWalker me);
+    public delegate void Hungering(IWalker me);
+    public delegate void Hit(IWalker me, IWalker attacker);
+    public delegate void Walk(IWalker me, double distance);
 
     public interface AI {
-        Spawned OnSpawned;
-        Hungering OnHungry;
-        Killed OnKilled;
-        Hit OnHit;
-        Walk OnWalking;
+        event Spawned OnSpawned;
+        event Hungering OnHungry;
+        event Killed OnKilled;
+        event Hit OnHit;
+        event Walk OnWalking;
+    }
+
+    public enum AIType {
+        ZOMBIE, HUMAN
     }
     
     public interface HumanAI : AI {
