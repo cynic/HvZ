@@ -18,5 +18,9 @@ namespace HvZCommon {
         public void Remove(SupplyItem item) {
             throw new NotImplementedException();
         }
+
+        public ResupplyPoint(double x, double y) {
+            Position = new Position(x, y);
+        }
     }
 }
