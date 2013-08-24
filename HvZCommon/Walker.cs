@@ -4,63 +4,45 @@ using System.Linq;
 using System.Text;
 
 namespace HvZCommon {
-    public abstract class Walker : ITakeSpace {
-        public Position Position { get; set; }
-        public double Radius { get; set; }
+    [Flags]
+    public enum WalkerType {
+        /// <summary>Value is not set</summary>
+        NULL,
+        /// <summary>Exploding Zombie</summary>
+        EXPLODING,
+        /// <summary>Controlled by player AI</summary>
+        SMART
+    }
 
+    public delegate void Killed(Walker x);
+
+    public interface Walker : ITakeSpace {
         /// <summary>heading is in degrees, 0 is directly upwards</summary>
-        public double Heading { get; set; }
-        public double Speed { get; set; }
-
-        public abstract string TextureName { get; }
-
-        public WalkerType type { get; set; }
-
-        private string _owner = "computer";
-        public string Owner {
-            get {
-                return _owner;
-            }
-            set {
-                if (value != _owner) {
-                    _owner = value;
-                    if (!isPlayerControlled()) {
-                        type |= WalkerType.SMART;
-                    }
-                }
-            }
-        }
-
-        public bool isExploding() {
-            return type.HasFlag(WalkerType.EXPLODING);
-        }
-
-        public bool isPlayerControlled() {
-            return type.HasFlag(WalkerType.SMART);
-        }
-
-        public abstract void onKilled(Walker other);
+        double Heading { get; set; }
+        double Speed { get; set; }
+        string Owner { get; set; }
+        event Killed OnKilled;
     }
 
     public class Human : Walker {
-        public override string TextureName {
-            get { return "human"; }
-        }
+        public double Heading { get; set; }
+        public double Speed { get; set; }
+        public string Owner { get; set; }
 
-        public override void onKilled(Walker other) {
-            //turn into a zombie
-        }
-        //does human things
+        public event Killed OnKilled;
+
+        public Position Position { get; set; }
+        public double Radius { get; set; }
     }
 
     public class Zombie : Walker {
-        public override string TextureName {
-            get { return "zombie"; }
-        }
+        public double Heading { get; set; }
+        public double Speed { get; set; }
+        public string Owner { get; set; }
 
-        public override void onKilled(Walker other) {
-            //turn to something else. Maybe dirt
-        }
-        //does zombie things
+        public event Killed OnKilled;
+
+        public Position Position { get; set; }
+        public double Radius { get; set; }
     }
 }
