@@ -25,5 +25,31 @@ namespace HvZCommon {
     public class Position {
         public double X { get; set; }
         public double Y { get; set; }
+
+        /// <summary>Calculates straight line distance between two Positions (untested)</summary>
+        public double distanceFrom(Position other) {
+            double distX = X - other.X;
+            double distY = Y - other.Y;
+
+            return Math.Sqrt(distX * distX + distY * distY);
+        }
+
+        /// <summary>Calculates heading needed to face one Position from another (untested)</summary>
+        public double angleFrom(Position other) {
+            double distX = X - other.X;
+            double distY = Y - other.Y;
+            double angle = Math.Asin(distX / distanceFrom(other));
+
+            if (distX > 0) {
+                angle = 360 - angle;
+                if (distY < 0) {
+                    angle -= 90;
+                }
+            } else if (distY < 0) {
+                angle = 180 - angle;
+            }
+            
+            return angle;
+        }
     }
 }
