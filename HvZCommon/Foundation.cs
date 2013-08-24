@@ -8,7 +8,6 @@ namespace HvZCommon {
     public interface ITakeSpace {
         Position Position { get; set; } // center of the object
         double Radius { get; set; }
-        string TextureName { get; }
     }
 
     public class Map {

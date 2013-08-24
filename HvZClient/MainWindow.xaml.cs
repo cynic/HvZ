@@ -25,7 +25,7 @@ namespace HvZClient {
 
             Zombie z = new Zombie();
             GUIMap.Children.Add(new Image() {
-                Source = Resource.getResourceByName(z.TextureName).Image,
+                Source = Resource.getResourceByName("zombie").Image,
                 Width = 45,
                 Height = 45,
             });
