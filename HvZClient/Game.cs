@@ -23,7 +23,7 @@ namespace HvZClient {
             //stub
         }
 
-        private void Hit(Walker who) {
+        private void Hit(IWalker who) {
             //stub
         }
     }

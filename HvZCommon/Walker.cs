@@ -14,9 +14,9 @@ namespace HvZCommon {
         SMART
     }
 
-    public delegate void Killed(Walker x);
+    public delegate void Killed(IWalker x);
 
-    public interface Walker : ITakeSpace {
+    public interface IWalker : ITakeSpace {
         /// <summary>heading is in degrees, 0 is directly upwards</summary>
         double Heading { get; set; }
         double Speed { get; set; }
@@ -24,7 +24,7 @@ namespace HvZCommon {
         event Killed OnKilled;
     }
 
-    public class Human : Walker {
+    public class Human : IWalker {
         public double Heading { get; set; }
         public double Speed { get; set; }
         public string Owner { get; set; }
@@ -35,7 +35,7 @@ namespace HvZCommon {
         public double Radius { get; set; }
     }
 
-    public class Zombie : Walker {
+    public class Zombie : IWalker {
         public double Heading { get; set; }
         public double Speed { get; set; }
         public string Owner { get; set; }
