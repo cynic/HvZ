@@ -45,7 +45,11 @@ module Regex =
    let eat = prefix + """eat (?<target>\d+)"""
    let take = prefix + """take (?<itemtype>\d{1,2}) (?<target>\d+)"""
 
-let handleRequest (s : string) = ()
+let handleRequest (s : string) = printfn "Command: '%s'" s
+
+type ParseCommandResult =
+| Corrupt
+| OK of int // int = offset for new command reception
 
 let handle (client : TcpClient) =
    let stream = client.GetStream()
@@ -61,30 +65,34 @@ let handle (client : TcpClient) =
                printfn "Connection closed (%s)" clientId // and die.
                client.Close()
                stream.Close()
-            | n when n+offset < 3 ->
-               printfn "%s felt like sending me an invalid packet.  I felt like killing that connection.  Terminated." clientId // and die.
-               client.Close();
-               stream.Close()
+            | n when n+offset < 3 -> do! receive (n+offset) // trickling? Ah, well.  Keep receiving.
             | _ ->
-               match Array.sub buffer 0 3 |> Encoding.ASCII.GetString |> System.Int32.TryParse with
-               | false, _ ->
-                  printfn "%s sending a corrupt packet.  Goodbye, client." clientId
-                  client.Close()
+               let rec parseCommands offset remaining =
+                  if remaining >= 3 then
+                     match Array.sub buffer offset 3 |> Encoding.ASCII.GetString |> System.Int32.TryParse with
+                     | false, _ -> Corrupt
+                     | _, n when n < 0 -> Corrupt
+                     | true, expectedLen ->
+                        if remaining-3 >= expectedLen then // ok, received it all.
+                           let s = Encoding.ASCII.GetString (Array.sub buffer (offset+3) expectedLen)
+                           handleRequest s // should really be a POST to a game-agent...
+                           //printfn "parse-local Offset %d, remaining %d, expected %d" offset remaining expectedLen
+                           parseCommands (offset+expectedLen+3) (remaining-(expectedLen+3))
+                        else // continue receiving.
+                           OK remaining
+                  else OK remaining
+               match parseCommands 0 (offset+n) with
+               | OK 0 -> do! receive 0 // I expect this path to be taken in most cases.
+               | OK remaining ->
+                  let used = (offset+n)-remaining
+                  //printfn "used: %d, remaining: %d" used remaining
+                  for i = 0 to (buffer.Length-used)-1 do
+                     buffer.[i] <- buffer.[i+used] // sloooooooooooooooooooooooooooooow
+                  do! receive remaining
+               | Corrupt ->
+                  printfn "Client %s sent corrupt packet.  Goodbye, client." clientId
                   stream.Close()
-               | _, n when n < 0 ->
-                  printfn "%s sending a corrupt packet.  Goodbye, client." clientId
                   client.Close()
-                  stream.Close()
-               | true, expectedLen ->
-                  if n+offset >= expectedLen-3 then // ok, received it all.
-                     let s = Encoding.ASCII.GetString (Array.sub buffer 3 expectedLen)
-                     printfn "%s: '%s'" clientId s
-                     handleRequest s
-                     printfn "Offset %d, len %d, expected %d" offset n expectedLen
-                     {0..buffer.Length-(expectedLen+4)} |> Seq.iter (fun i -> buffer.[i] <- buffer.[i+expectedLen+3]) // sloooooooooooooooooooooooooow
-                     do! receive ((offset+n)-(expectedLen+3))
-                  else // continue receiving.
-                     do! receive (offset+n)
          with
          | e -> // Client's sending me crap.  To save myself from resync-to-stream annoyances, I'm going to kill the client connection.
             printfn "Error'd (%s): %A" clientId e
