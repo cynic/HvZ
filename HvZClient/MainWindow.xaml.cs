@@ -23,7 +23,7 @@ namespace HvZClient {
         public MainWindow() {
             InitializeComponent();
 
-            Zombie z = new Zombie();
+            Zombie z = new Zombie(0,0);
             GUIMap.Children.Add(new Image() {
                 Source = Resource.getResourceByName("zombie").Image,
                 Width = 45,
