@@ -37,15 +37,39 @@ open System.Net.Sockets
 open System.Text.RegularExpressions
 open System.Text
 
-module Regex =
-   let prefix = """(?<game>.{1,8})-(?<who>\d+) """
-   let forward = prefix + """forward"""
-   let turnRight = prefix + """right (?<degrees>\d{1,3}\.\d{2})"""
-   let turnLeft = prefix + """left (?<degrees>\d{1,3}\.\d{2})"""
-   let eat = prefix + """eat (?<target>\d+)"""
-   let take = prefix + """take (?<itemtype>\d{1,2}) (?<target>\d+)"""
+let mapRequest, routeRequest =
+   // heh, YAGNI. Should be an agent, but init should only happen at start; so, no multithreading worries.
+   // 'course, if this is ever not true, Bad Things will happen :D.
+   let matchers = System.Collections.Generic.List<_>()
+   let adder matcher f =
+      let reString = sprintf """^(?<game>.{1,8})-(?<who>\d+) %s$""" matcher
+      let re = Regex(reString, RegexOptions.Compiled ||| RegexOptions.ExplicitCapture ||| RegexOptions.IgnoreCase ||| RegexOptions.Singleline)
+      matchers.Add((re, re.GetGroupNames() |> Array.filter ((<>) "0"), f))
+   let mapper req =
+      let canHazMatch (re : Regex, names : string[], f) =
+         let m = re.Match req
+         if m.Success then
+            let args = names |> Array.map (fun name -> name, m.Groups.[name].Value) |> Map.ofArray
+            Some (f, args)
+         else None
+      match matchers |> Seq.tryPick canHazMatch with
+      | None -> printfn "Couldn't figure out what to do with request '%s'" req
+      | Some (f, args) -> f args
+   mapper, adder
 
-let handleRequest (s : string) = printfn "Command: '%s'" s
+let printParams args =
+   args |> Seq.iter (printfn "%A")
+
+do
+   routeRequest """forward""" printParams
+   routeRequest """right (?<degrees>\d{1,3}\.\d{2})""" printParams
+   routeRequest """left (?<degrees>\d{1,3}\.\d{2})""" printParams
+   routeRequest """eat (?<target>\d+)""" printParams
+   routeRequest """take (?<itemtype>\d{1,2}) (?<target>\d+)""" printParams
+
+let handleRequest (s : string) =
+   printfn "Command: '%s'" s
+   mapRequest s
 
 type ParseCommandResult =
 | Corrupt
