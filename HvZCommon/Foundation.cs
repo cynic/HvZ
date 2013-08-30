@@ -8,9 +8,16 @@ namespace HvZCommon {
     public interface ITakeSpace {
         Position Position { get; set; } // center of the object
         double Radius { get; set; }
+        string Texture { get; }
     }
 
     public class Map {
+        public Map(int width, int height) {
+            Width = width;
+            Height = height;
+            Children = new List<ITakeSpace>();
+        }
+
         public int Width { get; set; }
         public int Height { get; set; }
         public List<ITakeSpace> Children;
@@ -52,12 +59,22 @@ namespace HvZCommon {
     }
 
     public class GameState {
+        public GameState() {
+            Dirty = false;
+            Map = new Map(200,200);
+            GameTime = 0;
+        }
+
         public bool Dirty { get; set; }
 
         public void Spawn(ITakeSpace item) {
             if (Dirty) {
                 Map.Children.Clear();
                 Dirty = false;
+            }
+
+            if (item.Position == null || !Map.isInBounds(item)) {
+                item.Position = Utils.randPosition(Map.Width, Map.Height);
             }
 
             Map.Children.Add(item);

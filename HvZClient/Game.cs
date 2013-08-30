@@ -98,7 +98,7 @@ namespace HvZClient {
                 Double.TryParse(data[1], out posX);
                 Double.TryParse(data[2], out posY);
 
-                clientWorld.Spawn(new ResupplyPoint(posX, posY));
+                clientWorld.Spawn(new ResupplyPoint() { Position = new Position(posX, posY) });
                 SendMessage("C_success", "spawnplace");
             }
         }
@@ -120,11 +120,12 @@ namespace HvZClient {
                 }
 
                 if (data[0] == "zombie") {
-                    item = new Zombie(posX, posY);
+                    item = new Zombie();
                 } else if (data[0] == "human") {
-                    item = new Human(posX, posY);
+                    item = new Human();
                 }
-                
+                item.Position = new Position(posX, posY);
+
                 if (item != null) {
                     item.Heading = head;
                     item.Speed = speed;

@@ -23,7 +23,6 @@ namespace HvZClient {
         static readonly Resource humanTex = new Resource("human", "human");
         static readonly Resource zombieTex = new Resource("zombie", "zombie");
         static readonly Resource supplyPointTex = new Resource("supply", "supplyP");
-        static readonly Resource sockDepoTex = new Resource("depo", "sockDepo");
 
         /// <summary>
         /// Container for client resources

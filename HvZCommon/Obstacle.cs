@@ -7,5 +7,6 @@ namespace HvZCommon {
     public class Obstacle : ITakeSpace {
         public Position Position { get; set; } // center of the object
         public double Radius { get; set; }
+        public string Texture { get { return ""; } }
     }
 }

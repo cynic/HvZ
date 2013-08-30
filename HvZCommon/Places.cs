@@ -15,12 +15,10 @@ namespace HvZCommon {
         public Position Position { get; set; }
         public double Radius { get; set; }
         public SupplyItem[] Available { get; set; }
+        public string Texture { get { return "supplyP"; } }
+
         public void Remove(SupplyItem item) {
             throw new NotImplementedException();
-        }
-
-        public ResupplyPoint(double x, double y) {
-            Position = new Position(x, y);
         }
     }
 }

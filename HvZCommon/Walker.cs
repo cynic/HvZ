@@ -31,15 +31,12 @@ namespace HvZCommon {
         public double Speed { get; set; }
         public string Owner { get; set; }
         public bool isHuman { get { return true; } }
+        public string Texture { get { return "human"; } }
 
         public event Killed OnKilled;
 
         public Position Position { get; set; }
         public double Radius { get; set; }
-
-        public Human(double x, double y) {
-            Position = new Position(x, y);
-        }
     }
 
     public class Zombie : IWalker {
@@ -47,14 +44,11 @@ namespace HvZCommon {
         public double Speed { get; set; }
         public string Owner { get; set; }
         public bool isHuman { get { return false; } }
+        public string Texture { get { return "zombie"; } }
 
         public event Killed OnKilled;
 
         public Position Position { get; set; }
         public double Radius { get; set; }
-
-        public Zombie(double x, double y) {
-            Position = new Position(x, y);
-        }
     }
 }
