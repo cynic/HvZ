@@ -18,7 +18,7 @@ using HvZCommon;
 
 namespace HvZClient {
     /// <summary>Interaction logic for MainWindow.xaml</summary>
-    public partial class MainWindow : Window {
+    public partial class GameWindow : Window {
         private static readonly List<Key> pressedKeys = new List<Key>();
 
         public double RenderMultiplier { get; private set; }
@@ -27,12 +27,10 @@ namespace HvZClient {
             Interval = TimeSpan.FromMilliseconds(300),
         };
 
-        public MainWindow() {
+        public GameWindow() {
             InitializeComponent();
 
-            ticker.Tick += gameLoop;
-
-            ticker.Start();
+            StartGame();
 
             Zombie z = new Zombie();
             z.Position = new Position(0, 0);
@@ -47,7 +45,23 @@ namespace HvZClient {
             GUIMap.Children.Add(img);
         }
 
-        void gameLoop(object sender, EventArgs e) {
+        public void StartGame() {
+            GUIMap.Visibility = Visibility.Visible;
+            HideDialog();
+            ticker.Tick += gameLoop;
+            ticker.Start();
+        }
+
+        public void ShowDialog(string message) {
+            Dialog_message.Content = message;
+            Dialog_message.Visibility = Visibility.Visible;
+        }
+
+        public void HideDialog() {
+            Dialog.Visibility = Visibility.Collapsed;
+        }
+
+        private void gameLoop(object sender, EventArgs e) {
 
         #region temporary test code
             //Hold down space to spawn zombies

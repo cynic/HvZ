@@ -2,29 +2,43 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using System.Threading;
 using HvZCommon;
 
 namespace HvZClient {
     public class Game {
-        internal static AI userAIInstance;
+        internal static ZombieAI zombieAIInstance;
+        internal static HumanAI humanAIInstance;
         internal static AIType userAIType;
+
+        internal const string STARTUP_ARG = "--game";
+
+        public static string ClientID { get; private set; }
 
         internal static GameState clientWorld = new GameState();
 
         public static void Start(HumanAI e) {
             userAIType = AIType.HUMAN;
-            StartProcesses(e);
+            humanAIInstance = e;
+            StartProcesses();
         }
 
         public static void Start(ZombieAI e) {
             userAIType = AIType.ZOMBIE;
-            StartProcesses(e);
+            zombieAIInstance = e;
+            StartProcesses();
         }
 
-        internal static void StartProcesses(AI e) {
-            userAIInstance = e;
-            //stub
+        internal static void StartProcesses() {
+            Thread.CurrentThread.IsBackground = true;
+            Process p = new Process() {
+                EnableRaisingEvents = true,
+                StartInfo = new ProcessStartInfo(Assembly.GetEntryAssembly().Location, STARTUP_ARG)
+            };
+            p.Start();
+            p.WaitForExit();
         }
 
         internal static void SendMessage(string pack, params object[] arguments) {
@@ -80,9 +94,13 @@ namespace HvZClient {
             int index = 0;
 
             foreach (ITakeSpace i in clientWorld.Map.Children) {
+                Position oldPos = i.Position;
                 if (!i.Position.newPosition(args[index + 1], args[index + 2])) {
                     SendMessage("C_failed", "refresh");
                     return;
+                }
+                if (i is IWalker) {
+                    OnWalk((IWalker)i, oldPos.distanceFrom(i.Position));
                 }
                 index += 3;
             }
@@ -131,6 +149,7 @@ namespace HvZClient {
                     item.Speed = speed;
                     clientWorld.Spawn(item);
                     SendMessage("C_success", "spawnwalker");
+                    OnSpawn(item);
                 }
             }
         }
@@ -145,47 +164,62 @@ namespace HvZClient {
             }
         }
 
+        internal void requestJoin() {
+            SendMessage("C_hello");
+        }
+
+        private void JoinGame(string id) {
+            ClientID = id;
+            OnGamestart();
+        }
+
         private void EndGame() {
-            //stub
+            SendMessage("C_quit", ClientID);
         }
 
         public static void Throw(IWalker who) {
-            //stub
+            SendMessage("C_throw", who);
         }
 
         public static void Walk(IWalker who, double dist) {
-            //stub
+            SendMessage("C_walk", who, dist);
         }
 
         private void Hit(IWalker who, IWalker attacker) {
-            //stub
+            SendMessage("C_hit", who, attacker);
         }
 
         public static void Turn(IWalker who, double degrees) {
-            //stub
+            SendMessage("C_turn", who, degrees);
         }
 
         public static void Eat(IWalker who, IWalker victim) {
-            //stub
+            SendMessage("C_eat", who, victim);
         }
 
         public static void Take(IWalker who, ITakeSpace where) {
-            //stub
+            SendMessage("C_take", who, where);
         }
 
         public static void Consume(Human who) {
-            //stub
+            SendMessage("C_consume", who);
         }
 
         public static Groupes ThingsOnMap {
             get {
-                //stub
-                throw new NotImplementedException();
+                return new Groupes(clientWorld.Map.Children);
             }
         }
+
+        public event GameStarted OnGamestart;
+        public event Hit OnHit;
+        public event Hungering OnHungry;
+        public event Spawned OnSpawn;
+        public event Walk OnWalk;
     }
 
     //event delegates
+    public delegate void GameStarted();
     public delegate void Spawned(IWalker me);
     public delegate void Hungering(IWalker me);
     public delegate void Hit(IWalker me, IWalker attacker);

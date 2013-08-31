@@ -1,0 +1,8 @@
+﻿<Window x:Class="HvZClient.ClientWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ClientWindow" ResizeMode="NoResize" WindowStyle="ToolWindow" Height="90" Width="189">
+    <Grid>
+        <Label Content="Starting Game" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    </Grid>
+</Window>
