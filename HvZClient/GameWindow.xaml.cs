@@ -31,18 +31,6 @@ namespace HvZClient {
             InitializeComponent();
 
             StartGame();
-
-            Zombie z = new Zombie();
-            z.Position = new Position(0, 0);
-            z.Radius = 15;
-            Image img = new Image() {
-                Source = Resource.getResourceByName(z.Texture).Image,
-                Width = z.Radius * 2,
-                Height = z.Radius * 2
-            };
-            Canvas.SetLeft(img, z.Position.X);
-            Canvas.SetTop(img, z.Position.Y);
-            GUIMap.Children.Add(img);
         }
 
         public void StartGame() {
@@ -89,7 +77,6 @@ namespace HvZClient {
                     Canvas.SetTop(img, RenderMultiplier * (i.Position.Y - i.Radius));
                     GUIMap.Children.Add(img);
                 }
-                //i.Position.X ++;
             }
         }
 

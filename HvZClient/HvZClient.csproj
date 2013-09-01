@@ -72,6 +72,7 @@
     <Compile Include="ClientWindow.xaml.cs">
       <DependentUpon>ClientWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="DefaultAI.cs" />
     <Compile Include="Game.cs" />
     <Compile Include="Resource.cs" />
     <Page Include="ClientWindow.xaml">

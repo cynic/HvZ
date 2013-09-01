@@ -9,11 +9,11 @@ using HvZCommon;
 
 namespace HvZClient {
     public class Game {
-        internal static ZombieAI zombieAIInstance;
-        internal static HumanAI humanAIInstance;
-        internal static AIType userAIType;
+        internal static ZombieAI zombieAIInstance = new ZombieAI();
+        internal static HumanAI humanAIInstance = new HumanAI();
+        internal static AIType userAIType = AIType.DEFAULT;
 
-        internal const string STARTUP_ARG = "--game";
+        internal static Game theGame;
 
         public static string ClientID { get; private set; }
 
@@ -32,13 +32,13 @@ namespace HvZClient {
         }
 
         internal static void StartProcesses() {
-            Thread.CurrentThread.IsBackground = true;
-            Process p = new Process() {
-                EnableRaisingEvents = true,
-                StartInfo = new ProcessStartInfo(Assembly.GetEntryAssembly().Location, STARTUP_ARG)
-            };
-            p.Start();
-            p.WaitForExit();
+            theGame = new Game();
+            theGame.requestJoin();
+
+            GameWindow window = new GameWindow();
+            theGame.OnGamestart += window.StartGame;
+            
+            window.Show();
         }
 
         internal static void SendMessage(string pack, params object[] arguments) {
@@ -50,7 +50,7 @@ namespace HvZClient {
             string[] data = pack.Split('_');
 
             if (data.Length > 1) {
-                string[] argument = data.Skip(1).ToArray();
+                string[] argument = data.Tail();
                 switch (data[0]) {
                     case "S": Debug.Print("the server is talking to me!");
                         HandleServerMessage(argument);
@@ -68,13 +68,13 @@ namespace HvZClient {
 
         private void HandleServerMessage(string[] args) {
             switch (args[0]) {
-                case "spawnwalker": SpawnWalker(args.Skip(1).ToArray());
+                case "spawnwalker": SpawnWalker(args.Tail());
                     break;
-                case "spawnplace": SpawnPlace(args.Skip(1).ToArray());
+                case "spawnplace": SpawnPlace(args.Tail());
                     break;
-                case "refresh": RefreshPositions(args.Skip(1).ToArray());
+                case "refresh": RefreshPositions(args.Tail());
                     break;
-                case "load": LoadWorld(args.Skip(1).ToArray());
+                case "load": LoadWorld(args.Tail());
                     break;
                 default: Debug.Print(args[0] + " is not a recognized command.");
                     break;
@@ -178,31 +178,31 @@ namespace HvZClient {
         }
 
         public static void Throw(IWalker who) {
-            SendMessage("C_throw", who);
+            SendMessage("A_throw", who);
         }
 
         public static void Walk(IWalker who, double dist) {
-            SendMessage("C_walk", who, dist);
+            SendMessage("A_walk", who, dist);
         }
 
         private void Hit(IWalker who, IWalker attacker) {
-            SendMessage("C_hit", who, attacker);
+            SendMessage("A_hit", who, attacker);
         }
 
         public static void Turn(IWalker who, double degrees) {
-            SendMessage("C_turn", who, degrees);
+            SendMessage("A_turn", who, degrees);
         }
 
         public static void Eat(IWalker who, IWalker victim) {
-            SendMessage("C_eat", who, victim);
+            SendMessage("A_eat", who, victim);
         }
 
         public static void Take(IWalker who, ITakeSpace where) {
-            SendMessage("C_take", who, where);
+            SendMessage("A_take", who, where);
         }
 
         public static void Consume(Human who) {
-            SendMessage("C_consume", who);
+            SendMessage("A_consume", who);
         }
 
         public static Groupes ThingsOnMap {
@@ -224,24 +224,4 @@ namespace HvZClient {
     public delegate void Hungering(IWalker me);
     public delegate void Hit(IWalker me, IWalker attacker);
     public delegate void Walk(IWalker me, double distance);
-
-    public interface AI {
-        event Spawned OnSpawned;
-        event Hungering OnHungry;
-        event Killed OnKilled;
-        event Hit OnHit;
-        event Walk OnWalking;
-    }
-
-    public enum AIType {
-        ZOMBIE, HUMAN
-    }
-    
-    public interface HumanAI : AI {
-        void update(Human me);
-    }
-
-    public interface ZombieAI : AI {
-        void update(Zombie me);
-    }
 }

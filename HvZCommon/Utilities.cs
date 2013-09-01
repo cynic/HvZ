@@ -18,5 +18,21 @@ namespace HvZCommon {
                 str = str.Replace(i.ToString(), "_");
             return str;
         }
+
+        public static T PickOne<T>(this T[] array) {
+            return array[rand.Next(array.Length)];
+        }
+
+        public static T PickOne<T>(this IEnumerable<T> list) {
+            return list.ElementAt(rand.Next(list.Count()));
+        }
+
+        public static T[] Tail<T>(this T[] array) {
+            return array.Skip(1).ToArray();
+        }
+
+        public static IEnumerable<T> Tail<T>(this IEnumerable<T> array) {
+            return array.Skip(1);
+        }
     }
 }
