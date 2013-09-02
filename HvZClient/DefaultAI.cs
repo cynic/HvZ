@@ -8,12 +8,6 @@ namespace HvZClient {
     
     /// <summary>Do not use this class. Your AI class must extend either HumanAI or ZombieAI</summary>
     public class BaseAI {
-        public BaseAI() {
-            OnSpawned += Spawn;
-        }
-
-        public void Spawn(IWalker me) {}
-
         public event Spawned OnSpawned;
         public event Hungering OnHungry;
         public event Killed OnKilled;
@@ -26,7 +20,7 @@ namespace HvZClient {
     }
 
     public class HumanAI : BaseAI {
-        public override void Spawn(IWalker me) {
+        public HumanAI() {
             OnHungry += imHungry;
         }
 
@@ -36,7 +30,7 @@ namespace HvZClient {
     }
 
     public class ZombieAI : BaseAI {
-        public override void Spawn(IWalker me) {
+        public ZombieAI() {
             OnHungry += imHungry;
         }
 

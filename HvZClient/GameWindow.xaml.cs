@@ -71,8 +71,11 @@ namespace HvZClient {
                     Image img = new Image() {
                         Source = Resource.getResourceByName(i.Texture).Image,
                         Width = RenderMultiplier * i.Radius * 2,
-                        Height = RenderMultiplier * i.Radius * 2
+                        Height = RenderMultiplier * i.Radius * 2,
                     };
+                    if (i is IWalker) {
+                        img.RenderTransform = new RotateTransform(((IWalker)i).Heading);
+                    }
                     Canvas.SetLeft(img, RenderMultiplier * (i.Position.X - i.Radius));
                     Canvas.SetTop(img, RenderMultiplier * (i.Position.Y - i.Radius));
                     GUIMap.Children.Add(img);
