@@ -15,7 +15,7 @@ namespace HvZCommon {
         public Position Position { get; set; }
         public double Radius { get; set; }
         public SupplyItem[] Available { get; set; }
-        public string Texture { get { return "supplyP"; } }
+        public string Texture { get { return "supply"; } }
 
         public void Remove(SupplyItem item) {
             throw new NotImplementedException();

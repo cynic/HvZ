@@ -56,19 +56,22 @@ namespace HvZCommon {
                     zombies.Add((Zombie)i);
                 } else if (i is Obstacle) {
                     obstacles.Add((Obstacle)i);
+                } else if (i is ResupplyPoint) {
+                    points.Add((ResupplyPoint)i);
                 }
             }
 
             Humans = humans.ToArray();
             Zombies = zombies.ToArray();
             SupplyPoints = points.ToArray();
+            Obstacles = obstacles.ToArray();
         }
     }
 
     public class GameState {
         public GameState() {
             Dirty = false;
-            Map = new Map(200,200);
+            Map = new Map(800,800);
             GameTime = 0;
         }
 

@@ -114,14 +114,16 @@ namespace HvZClient {
         }
 
         private void SpawnPlace(string[] data) {
-            if (data.Length >= 3) {
+            if (data.Length >= 2) {
                 double posX = 0;
                 double posY = 0;
-                double rad = 16;
+                double rad = 70;
 
                 Double.TryParse(data[0], out posX);
                 Double.TryParse(data[1], out posY);
-                Double.TryParse(data[2], out rad);
+                if (data.Length >= 3) {
+                    Double.TryParse(data[2], out rad);
+                }
 
                 clientWorld.Spawn(new ResupplyPoint() { Position = new Position(posX, posY), Radius = rad });
                 SendMessage("C_success", "spawnplace");

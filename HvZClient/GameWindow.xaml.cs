@@ -52,12 +52,22 @@ namespace HvZClient {
         private void gameLoop(object sender, EventArgs e) {
 
         #region temporary test code
-            //Hold down space to spawn zombies
-            if (hasKeys(Key.Space)) {
+            //Hold down A to spawn zombies
+            if (hasKeys(Key.A)) {
                 Position pos = Utils.randPosition(Game.clientWorld.Map.Width, Game.clientWorld.Map.Height);
                 Game.theGame.HandleMessage("S_spawnwalker_zombie_" + pos.X.ToString() + "_" + pos.Y.ToString() + "_0_0");
             }
-            //Hold down shift to move zombies
+            //Hold down B to spawn humans
+            if (hasKeys(Key.B)) {
+                Position pos = Utils.randPosition(Game.clientWorld.Map.Width, Game.clientWorld.Map.Height);
+                Game.theGame.HandleMessage("S_spawnwalker_human_" + pos.X.ToString() + "_" + pos.Y.ToString() + "_0_0");
+            }
+            //Hold down C to spawn supply points
+            if (hasKeys(Key.C)) {
+                Position pos = Utils.randPosition(Game.clientWorld.Map.Width, Game.clientWorld.Map.Height);
+                Game.theGame.HandleMessage("S_spawnplace_" + pos.X.ToString() + "_" + pos.Y.ToString());
+            }
+            //Hold down shift to move things
             if (hasKeys(Key.LeftShift)) {
                 string message = "S_refresh";
                 foreach (ITakeSpace item in Game.clientWorld.Map.Children) {
@@ -72,21 +82,38 @@ namespace HvZClient {
 
         private void renderPass() {
             GUIMap.Children.Clear();
+            Groupes things = Game.ThingsOnMap;
 
-            foreach (ITakeSpace i in Game.clientWorld.Map.Children) {
-                if (Game.clientWorld.Map.isInBounds(i)) {
-                    Image img = new Image() {
-                        Source = Resource.getResourceByName(i.Texture).Image,
-                        Width = RenderMultiplier * i.Radius * 2,
-                        Height = RenderMultiplier * i.Radius * 2,
-                    };
-                    if (i is IWalker) {
-                        img.RenderTransform = new RotateTransform(((IWalker)i).Heading);
-                    }
-                    Canvas.SetLeft(img, RenderMultiplier * (i.Position.X - i.Radius));
-                    Canvas.SetTop(img, RenderMultiplier * (i.Position.Y - i.Radius));
-                    GUIMap.Children.Add(img);
+            foreach (ITakeSpace i in things.Obstacles) {
+                renderItem(i);
+            }
+
+            foreach (ITakeSpace i in things.SupplyPoints) {
+                renderItem(i);
+            }
+
+            foreach (IWalker i in things.Zombies) {
+                renderItem(i);
+            }
+
+            foreach (IWalker i in things.Humans) {
+                renderItem(i);
+            }
+        }
+
+        private void renderItem(ITakeSpace item) {
+            if (Game.clientWorld.Map.isInBounds(item)) {
+                Image img = new Image() {
+                    Source = Resource.getResourceByName(item.Texture).Image,
+                    Width = RenderMultiplier * item.Radius * 2,
+                    Height = RenderMultiplier * item.Radius * 2,
+                };
+                if (item is IWalker) {
+                    img.RenderTransform = new RotateTransform(((IWalker)item).Heading);
                 }
+                Canvas.SetLeft(img, RenderMultiplier * (item.Position.X - item.Radius));
+                Canvas.SetTop(img, RenderMultiplier * (item.Position.Y - item.Radius));
+                GUIMap.Children.Add(img);
             }
         }
 
@@ -123,6 +150,10 @@ namespace HvZClient {
 
                 renderPass();
             }
+        }
+
+        private void Window_Closed(object sender, EventArgs e) {
+            App.Current.Shutdown();
         }
     }
 }
