@@ -12,6 +12,9 @@ namespace HvZCommon {
     /// Supply point provides food + health care.
     /// </summary>
     public class ResupplyPoint : ITakeSpace {
+
+        private DateTime CreationTime { get; set; }
+
         public Position Position { get; set; }
         public double Radius { get; set; }
         public SupplyItem[] Available { get; set; }
@@ -19,6 +22,12 @@ namespace HvZCommon {
 
         public void Remove(SupplyItem item) {
             throw new NotImplementedException();
+        }
+
+        public bool MustDespawn {
+            get {
+                return DateTime.Now.Subtract(CreationTime) == TimeSpan.FromMinutes(4);
+            }
         }
     }
 }

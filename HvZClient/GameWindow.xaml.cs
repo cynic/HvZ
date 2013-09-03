@@ -53,14 +53,25 @@ namespace HvZClient {
 
         #region temporary test code
             //Hold down A to spawn zombies
+            //Hold down A+S to spawn exploding zombies
             if (hasKeys(Key.A)) {
                 Position pos = Utils.randPosition(Game.clientWorld.Map.Width, Game.clientWorld.Map.Height);
-                Game.theGame.HandleMessage("S_spawnwalker_zombie_" + pos.X.ToString() + "_" + pos.Y.ToString() + "_0_0");
+                string message = "S_spawnwalker_zombie_" + pos.X.ToString() + "_" + pos.Y.ToString() + "_20_0_0";
+                if (hasKeys(Key.S)) {
+                    message += "_1";
+                }
+                Game.theGame.HandleMessage(message);
+            }
+            //Hold down E to trigger special abilities
+            if (hasKeys(Key.E)) {
+                for (int i = 0; i < Game.clientWorld.Map.Children.Count; i++) {
+                    Game.theGame.HandleMessage("S_special_" + i.ToString());
+                }
             }
             //Hold down B to spawn humans
             if (hasKeys(Key.B)) {
                 Position pos = Utils.randPosition(Game.clientWorld.Map.Width, Game.clientWorld.Map.Height);
-                Game.theGame.HandleMessage("S_spawnwalker_human_" + pos.X.ToString() + "_" + pos.Y.ToString() + "_0_0");
+                Game.theGame.HandleMessage("S_spawnwalker_human_" + pos.X.ToString() + "_" + pos.Y.ToString() + "_20_0_0");
             }
             //Hold down C to spawn supply points
             if (hasKeys(Key.C)) {
@@ -69,11 +80,19 @@ namespace HvZClient {
             }
             //Hold down shift to move things
             if (hasKeys(Key.LeftShift)) {
-                string message = "S_refresh";
                 foreach (ITakeSpace item in Game.clientWorld.Map.Children) {
-                    message += String.Format("_{0}_{1}", (item.Position.X + 1).ToString(), item.Position.Y);
+                    if (item is IWalker) {
+                        Game.Walk((IWalker)item, 1);
+                    }
                 }
-                Game.theGame.HandleMessage(message);
+            }
+            //Hold down T to turn things
+            if (hasKeys(Key.T)) {
+                foreach (ITakeSpace item in Game.clientWorld.Map.Children) {
+                    if (item is IWalker) {
+                        Game.Turn((IWalker)item, 1);
+                    }
+                }
             }
         #endregion
 
@@ -83,20 +102,15 @@ namespace HvZClient {
         private void renderPass() {
             GUIMap.Children.Clear();
             Groupes things = Game.ThingsOnMap;
+            renderItems(things.Obstacles);
+            renderItems(things.SupplyPoints);
+            renderItems(things.Zombies);
+            renderItems(things.Humans);
+            renderItems(things.Uncategorized);
+        }
 
-            foreach (ITakeSpace i in things.Obstacles) {
-                renderItem(i);
-            }
-
-            foreach (ITakeSpace i in things.SupplyPoints) {
-                renderItem(i);
-            }
-
-            foreach (IWalker i in things.Zombies) {
-                renderItem(i);
-            }
-
-            foreach (IWalker i in things.Humans) {
+        private void renderItems(ITakeSpace[] items) {
+            foreach (ITakeSpace i in items) {
                 renderItem(i);
             }
         }
@@ -109,8 +123,12 @@ namespace HvZClient {
                     Height = RenderMultiplier * item.Radius * 2,
                 };
                 if (item is IWalker) {
-                    img.RenderTransform = new RotateTransform(((IWalker)item).Heading);
+                    img.RenderTransform = new RotateTransform(((IWalker)item).Heading) {
+                        CenterX = img.Width / 2,
+                        CenterY = img.Height / 2
+                    };
                 }
+                
                 Canvas.SetLeft(img, RenderMultiplier * (item.Position.X - item.Radius));
                 Canvas.SetTop(img, RenderMultiplier * (item.Position.Y - item.Radius));
                 GUIMap.Children.Add(img);

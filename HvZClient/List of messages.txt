@@ -18,10 +18,12 @@ Client Outgoing
 9. A_consume_{consumer_index} //used by Humans
 
 Client Incoming
-1. S_spawnwalker_{X}_{Y}_{head}_{speed}
- // eg: S_spawnwalker_2.1_4.0_120_0.3
+1. S_spawnwalker_{X}_{Y}_{h}_{head}_{speed}_{zombie_Type}
+ // eg: S_spawnwalker_{human\zombie}_2.1_4.0_120_0.3_{0\1}
 2. S_spawnplace_{X}_{Y}_{Radius}
-3. S_refresh_{x1}_{y1}_{x2}_{y2}_..._{xn}_{yn}
-4. S_load
-5. S_hit_{hitten_index}_{hitter_index}
-6. S_hungry_{walker_index}
+3. S_refresh_pos_{x1}_{y1}_{h1}_{x2}_{y2}_{h2}_..._{xn}_{yn}_{hn}
+4. S_refresh_heal_{h1}_{h2}_..._{hn}
+5. S_load
+6. S_hit_{hitten_index}_{hitter_index}
+7. S_hungry_{walker_index}
+8. S_special_{walker_index} //trigger a walkers special ability

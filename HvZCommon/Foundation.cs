@@ -9,6 +9,7 @@ namespace HvZCommon {
         Position Position { get; set; } // center of the object
         double Radius { get; set; }
         string Texture { get; }
+        bool MustDespawn { get; }
     }
 
     public class Map {
@@ -37,27 +38,36 @@ namespace HvZCommon {
         }
     }
 
+    /// <summary>
+    /// Provides a filtered view of the world
+    /// </summary>
     public class Groupes {
         public Human[] Humans { get; private set; }
         public Zombie[] Zombies { get; private set; }
         public ResupplyPoint[] SupplyPoints { get; private set; }
         public Obstacle[] Obstacles { get; private set; }
+        public ITakeSpace[] Uncategorized { get; private set; }
 
         public Groupes(List<ITakeSpace> items) {
             List<Human> humans = new List<Human>();
             List<Zombie> zombies = new List<Zombie>();
             List<ResupplyPoint> points = new List<ResupplyPoint>();
             List<Obstacle> obstacles = new List<Obstacle>();
+            List<ITakeSpace> other = new List<ITakeSpace>();
 
             foreach (ITakeSpace i in items) {
-                if (i is Human) {
-                    humans.Add((Human)i);
-                } else if (i is Zombie) {
-                    zombies.Add((Zombie)i);
-                } else if (i is Obstacle) {
-                    obstacles.Add((Obstacle)i);
-                } else if (i is ResupplyPoint) {
-                    points.Add((ResupplyPoint)i);
+                if (!i.MustDespawn || (i is IWalker && !((IWalker)i).isDead)) {
+                    if (i is Human) {
+                        humans.Add((Human)i);
+                    } else if (i is Zombie) {
+                        zombies.Add((Zombie)i);
+                    } else if (i is Obstacle) {
+                        obstacles.Add((Obstacle)i);
+                    } else if (i is ResupplyPoint) {
+                        points.Add((ResupplyPoint)i);
+                    } else {
+                        other.Add(i);
+                    }
                 }
             }
 
@@ -65,6 +75,7 @@ namespace HvZCommon {
             Zombies = zombies.ToArray();
             SupplyPoints = points.ToArray();
             Obstacles = obstacles.ToArray();
+            Uncategorized = other.ToArray();
         }
     }
 
