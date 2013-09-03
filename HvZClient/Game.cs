@@ -76,6 +76,10 @@ namespace HvZClient {
                     break;
                 case "load": LoadWorld(args.Tail());
                     break;
+                case "hit": HandleHit(args.Tail());
+                    break;
+                case "hungry": HandleHungry(args.Tail());
+                    break;
                 default: Debug.Print(args[0] + " is not a recognized command.");
                     break;
             }
@@ -87,7 +91,7 @@ namespace HvZClient {
         }
 
         private void RefreshPositions(string[] args) {
-            if (clientWorld.Map.Children.Count != args.Length * 3) {
+            if (clientWorld.Map.Children.Count * 2 != args.Length) {
                 SendMessage("C_failed", "refresh");
             }
 
@@ -95,14 +99,15 @@ namespace HvZClient {
 
             foreach (ITakeSpace i in clientWorld.Map.Children) {
                 Position oldPos = i.Position;
-                if (!i.Position.newPosition(args[index + 1], args[index + 2])) {
+                if (!i.Position.newPosition(args[index], args[index + 1])) {
                     SendMessage("C_failed", "refresh");
                     return;
                 }
-                if (i is IWalker) {
-                    OnWalk((IWalker)i, oldPos.distanceFrom(i.Position));
+                double dist = oldPos.distanceFrom(i.Position);
+                if (i is IWalker && (dist > 0 || dist < 0)) {
+                    specificAI((IWalker)i).Walked((IWalker)i, dist);
                 }
-                index += 3;
+                index += 2;
             }
 
             SendMessage("C_success", "refresh");
@@ -112,11 +117,13 @@ namespace HvZClient {
             if (data.Length >= 3) {
                 double posX = 0;
                 double posY = 0;
+                double rad = 16;
 
-                Double.TryParse(data[1], out posX);
-                Double.TryParse(data[2], out posY);
+                Double.TryParse(data[0], out posX);
+                Double.TryParse(data[1], out posY);
+                Double.TryParse(data[2], out rad);
 
-                clientWorld.Spawn(new ResupplyPoint() { Position = new Position(posX, posY) });
+                clientWorld.Spawn(new ResupplyPoint() { Position = new Position(posX, posY), Radius = rad });
                 SendMessage("C_success", "spawnplace");
             }
         }
@@ -147,9 +154,42 @@ namespace HvZClient {
                 if (item != null) {
                     item.Heading = head;
                     item.Speed = speed;
+                    item.Radius = 15;
                     clientWorld.Spawn(item);
                     SendMessage("C_success", "spawnwalker");
-                    OnSpawn(item);
+                    specificAI(item).Spawned(item);
+                }
+            }
+        }
+
+        private void HandleHit(string[] args) {
+            if (args.Length == 2) {
+                int hitten = -1;
+                int hitter = -1;
+
+                Int32.TryParse(args[0], out hitten);
+                Int32.TryParse(args[1], out hitter);
+
+                ITakeSpace who = clientWorld.Map.ElementAt(hitten);
+                ITakeSpace attacker = clientWorld.Map.ElementAt(hitter);
+
+                if (who != null && attacker != null) {
+                    if (who is IWalker && attacker is IWalker) {
+                        specificAI((IWalker)who).Hit((IWalker)who, (IWalker)attacker);
+                    }
+                }
+            }
+        }
+
+        private void HandleHungry(string[] args) {
+            if (args.Length == 1) {
+                int walker = -1;
+
+                Int32.TryParse(args[0], out walker);
+
+                ITakeSpace hungerer = clientWorld.Map.ElementAt(walker);
+                if (hungerer != null && hungerer is IWalker) {
+                    specificAI((IWalker)hungerer).Hungering((IWalker)hungerer);
                 }
             }
         }
@@ -185,10 +225,6 @@ namespace HvZClient {
             SendMessage("A_walk", who, dist);
         }
 
-        private void Hit(IWalker who, IWalker attacker) {
-            SendMessage("A_hit", who, attacker);
-        }
-
         public static void Turn(IWalker who, double degrees) {
             SendMessage("A_turn", who, degrees);
         }
@@ -211,17 +247,16 @@ namespace HvZClient {
             }
         }
 
+        internal static BaseAI specificAI(IWalker item) {
+            if (item is Zombie) {
+                return zombieAIInstance;
+            }
+            return humanAIInstance;
+        }
+
         public event GameStarted OnGamestart;
-        public event Hit OnHit;
-        public event Hungering OnHungry;
-        public event Spawned OnSpawn;
-        public event Walk OnWalk;
     }
 
     //event delegates
     public delegate void GameStarted();
-    public delegate void Spawned(IWalker me);
-    public delegate void Hungering(IWalker me);
-    public delegate void Hit(IWalker me, IWalker attacker);
-    public delegate void Walk(IWalker me, double distance);
 }

@@ -28,6 +28,13 @@ namespace HvZCommon {
                 (item.Position.X + item.Radius) <= Width &&
                 (item.Position.Y + item.Radius) <= Height;
         }
+
+        public ITakeSpace ElementAt(int index) {
+            if (index >= 0 && index < Children.Count) {
+                return Children.ElementAt(index);
+            }
+            return null;
+        }
     }
 
     public class Groupes {
@@ -103,6 +110,9 @@ namespace HvZCommon {
             } catch  {
                 return false;
             }
+
+            X = x;
+            Y = y;
 
             return true;
         }

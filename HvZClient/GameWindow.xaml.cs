@@ -54,9 +54,16 @@ namespace HvZClient {
         #region temporary test code
             //Hold down space to spawn zombies
             if (hasKeys(Key.Space)) {
-                Game.clientWorld.Spawn(new Zombie() {
-                    Radius = 15,
-                });
+                Position pos = Utils.randPosition(Game.clientWorld.Map.Width, Game.clientWorld.Map.Height);
+                Game.theGame.HandleMessage("S_spawnwalker_zombie_" + pos.X.ToString() + "_" + pos.Y.ToString() + "_0_0");
+            }
+            //Hold down shift to move zombies
+            if (hasKeys(Key.LeftShift)) {
+                string message = "S_refresh";
+                foreach (ITakeSpace item in Game.clientWorld.Map.Children) {
+                    message += String.Format("_{0}_{1}", (item.Position.X + 1).ToString(), item.Position.Y);
+                }
+                Game.theGame.HandleMessage(message);
             }
         #endregion
 
