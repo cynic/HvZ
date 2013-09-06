@@ -40,6 +40,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Comm.cs" />
     <Compile Include="Foundation.cs" />
     <Compile Include="Obstacle.cs" />
     <Compile Include="Places.cs" />

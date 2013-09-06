@@ -9,13 +9,14 @@ Note: *_index refers to the index of an item in the Map.
 Client Outgoing
 1. C_failed_{failed message header eg. throw or walk}
 2. C_success_{succeeded message header}
-3. C_connect
+3. C_connect_{game_code}
 4. A_throw_{thrower_index}
 5. A_walk_{walker_index}_{distance}
 6. A_turn_{turner_index}_{degrees}
 7. A_eat_{eater_index}_{eatee}
 8. A_take_{taker_index}_{place_index}
 9. A_consume_{consumer_index} //used by Humans
+10. C_quit_{client_code}
 
 Client Incoming
 1. S_spawnwalker_{X}_{Y}_{h}_{head}_{speed}_{zombie_Type}
@@ -27,3 +28,6 @@ Client Incoming
 6. S_hit_{hitten_index}_{hitter_index}
 7. S_hungry_{walker_index}
 8. S_special_{walker_index} //trigger a walkers special ability
+9. S_list_add_{game_code}_{name}_{description}
+10. S_list_close_{game_code}
+11. S_list_lock_{game_code}_{true/false}

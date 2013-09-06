@@ -27,9 +27,10 @@ namespace HvZClient {
             Interval = TimeSpan.FromMilliseconds(300),
         };
 
-        public GameWindow() {
+        public GameWindow(string title) {
             InitializeComponent();
 
+            Title = "Playing on: " + title;
             StartGame();
         }
 
@@ -165,13 +166,17 @@ namespace HvZClient {
             if (GUIMap.Width != Game.clientWorld.Map.Width * RenderMultiplier || GUIMap.Height != Game.clientWorld.Map.Height) {
                 GUIMap.Width = Game.clientWorld.Map.Width * RenderMultiplier;
                 GUIMap.Height = Game.clientWorld.Map.Height * RenderMultiplier;
-
+                
                 renderPass();
             }
         }
 
-        private void Window_Closed(object sender, EventArgs e) {
-            App.Current.Shutdown();
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
+            if (MessageBox.Show("Are you shure you want to exit this game?", "Exit Game", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes) {
+                Game.theGame.EndGame();
+            } else {
+                e.Cancel = true;
+            }
         }
     }
 }

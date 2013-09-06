@@ -16,6 +16,7 @@ namespace HvZClient {
         internal static Game theGame;
 
         public static string ClientID { get; private set; }
+        public static string ServerID { get; private set; }
 
         internal static GameState clientWorld = new GameState();
 
@@ -33,11 +34,8 @@ namespace HvZClient {
 
         internal static void StartProcesses() {
             theGame = new Game();
-            theGame.requestJoin();
-
-            GameWindow window = new GameWindow();
-            theGame.OnGamestart += window.StartGame;
-            
+            JoinGameWindow window = new JoinGameWindow(theGame);
+            theGame.OnListItemRecieved += window.HandleListPacket;
             window.Show();
         }
 
@@ -54,6 +52,9 @@ namespace HvZClient {
         }
 
         private static void DoSend(string pack) {
+            //sends message to server located at ServerID
+
+
             //stub
             //test code
             if (pack.StartsWith("C_success")) {
@@ -137,6 +138,8 @@ namespace HvZClient {
                 case "hungry": HandleHungry(args.Tail());
                     break;
                 case "special": HandleSpecial(args.Tail());
+                    break;
+                case "list": OnListItemRecieved(args.Tail());
                     break;
                 default: Debug.Print(args[0] + " is not a recognized command.");
                     break;
@@ -342,7 +345,8 @@ namespace HvZClient {
             }
         }
 
-        internal void requestJoin() {
+        internal void requestJoin(string ip) {
+            ServerID = ip;
             SendMessage("C_hello");
         }
 
@@ -351,7 +355,7 @@ namespace HvZClient {
             OnGamestart();
         }
 
-        private void EndGame() {
+        public void EndGame() {
             SendMessage("C_quit", ClientID);
         }
 
@@ -393,8 +397,10 @@ namespace HvZClient {
         }
 
         public event GameStarted OnGamestart;
+        public event HandlePacket OnListItemRecieved;
     }
 
     //event delegates
     public delegate void GameStarted();
+    public delegate void HandlePacket(string[] args);
 }
