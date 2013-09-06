@@ -78,6 +78,7 @@
       <DependentUpon>JoinGameWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Resource.cs" />
+    <Compile Include="UI.cs" />
     <Page Include="ClientWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -95,6 +96,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Page Include="JoinGameWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="WindowStyle.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -169,6 +174,9 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\boom.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\butt.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

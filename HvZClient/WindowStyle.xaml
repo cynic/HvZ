@@ -1,0 +1,55 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ControlTemplate x:Key="ButtonTemplate" TargetType="{x:Type Button}">
+        <ContentPresenter>
+            <ContentPresenter.Content>
+                <Grid x:Name="backColor" Background="Transparent">
+                    <Canvas>
+                        <Canvas.Background>
+                            <ImageBrush x:Name="box" ImageSource="Images/butt.png" Viewport="12,9,11,11" ViewportUnits="Absolute"  Viewbox="88,0,44,44" ViewboxUnits="Absolute" Stretch="Uniform"/>
+                        </Canvas.Background>
+                        <Grid Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
+                            <TextBlock Margin="35,0,0,0" Text="{TemplateBinding Content}" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
+                        </Grid>
+                    </Canvas>
+                </Grid>
+            </ContentPresenter.Content>
+        </ContentPresenter>
+    </ControlTemplate>
+    <Style x:Key="FrameStyle" TargetType="Image">
+        <Setter Property="Width" Value="172" />
+        <Setter Property="Margin" Value="5" />
+    </Style>
+    <ControlTemplate x:Key="InsideButtonTemplate" TargetType="{x:Type Button}">
+        <ContentPresenter>
+            <ContentPresenter.Content>
+                <Grid x:Name="backColor" Background="SkyBlue">
+                    <Canvas>
+                        <Canvas.Background>
+                            <ImageBrush x:Name="box" ImageSource="Images/butt.png" Viewport="12,9,11,11" ViewportUnits="Absolute"  Viewbox="88,0,44,44" ViewboxUnits="Absolute" Stretch="Uniform"/>
+                        </Canvas.Background>
+                        <Grid Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
+                            <TextBlock Margin="35,0,0,0" Text="{TemplateBinding Content}" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
+                        </Grid>
+                    </Canvas>
+                </Grid>
+            </ContentPresenter.Content>
+        </ContentPresenter>
+    </ControlTemplate>
+    <ControlTemplate x:Key="EditButtonTemplate" TargetType="{x:Type Button}">
+        <ContentPresenter>
+            <ContentPresenter.Content>
+                <Grid x:Name="backColor" Background="SkyBlue">
+                    <Canvas>
+                        <Canvas.Background>
+                            <ImageBrush x:Name="box" ImageSource="Images/butt.png" Viewport="12,9,11,11" ViewportUnits="Absolute"  Viewbox="220,0,44,44" ViewboxUnits="Absolute" Stretch="Uniform"/>
+                        </Canvas.Background>
+                        <Grid Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
+                            <TextBlock Margin="35,0,0,0" Text="{TemplateBinding Content}" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
+                        </Grid>
+                    </Canvas>
+                </Grid>
+            </ContentPresenter.Content>
+        </ContentPresenter>
+    </ControlTemplate>
+</ResourceDictionary>
