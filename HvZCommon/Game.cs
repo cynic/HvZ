@@ -23,6 +23,7 @@ namespace HvZCommon {
 
         private ClientGame(string gameId) {
             connection = new HvZConnection();
+            connection.ConnectToServer("localhost");
             connection.Send(Command.NewJoin(gameId));
         }
 

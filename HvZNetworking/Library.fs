@@ -3,6 +3,22 @@
 open System.Net
 open System.Net.Sockets
 
+(*
+How to add new commands:
+
+1. Add a line for the command (including the parameters for it), to the Command type.
+2. Add a line for the command to the 'toProtocol' function.
+3. Add a line for the command to the 'fromString' function.
+4. (only necessary if the Client needs to send this command) Add a member to the HvZConnection class.
+
+aaand, that's it.  You've now successfully got a Brand Spanking New valid protocol command.  Congratulations.
+*)
+
+type IIdentified =
+   interface
+      abstract member Id : uint32 with get
+   end
+
 type Command =
 | Forward of uint32 * float // walkerId * distance
 | Left of uint32 * float // walkerId * degrees
@@ -235,4 +251,13 @@ type HvZConnection() as this =
          match conn with
          | Some conn -> (conn :> System.IDisposable).Dispose ()
          | None -> ()
-   
+
+   (* Here be members which hide the nasty details of Command interop *)
+
+   member __.Forward distance = send () (Forward (Option.get playerId, distance))
+   member __.Left degrees = send () (Left (Option.get playerId, degrees))
+   member __.Right degrees = send () (Right (Option.get playerId, degrees))
+   member __.Eat () = send () (Eat (Option.get playerId))
+   member __.TakeFoodFrom (r : IIdentified) = send () (TakeFood (Option.get playerId, r.Id))
+   member __.TakeSocksFrom (r : IIdentified) = send () (TakeSocks (Option.get playerId, r.Id))
+   member __.Throw heading = send () (Throw (Option.get playerId, heading))   
