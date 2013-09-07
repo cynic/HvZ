@@ -35,6 +35,21 @@ open System.Net.Sockets
 open System.Text.RegularExpressions
 open System.Text
 
+let joinGame _ _ _ = OutOfGame
+let createGame _ _ = "abc"
+let gameRequest _ _ _ = OutOfGame
+let handleRequest playerId status cmd send =
+   match status, cmd with
+   | OutOfGame, Join gameId -> joinGame gameId playerId cmd
+   | OutOfGame, Create (w, h) ->
+      let gameId = createGame w h
+      send (Game gameId)
+      InGame gameId
+   | OutOfGame, _ ->
+      send (No "You need to either create or join a game first.")
+      OutOfGame
+   | InGame gameId, _ -> gameRequest gameId playerId cmd
+
 [<EntryPoint>]
 let main argv = 
    let listener = TcpListener(IPAddress.Any, 2310)
@@ -45,7 +60,7 @@ let main argv =
          printfn "Server up, listening on 2310"
          while true do
             let! client = Async.FromBeginEnd(listener.BeginAcceptTcpClient, listener.EndAcceptTcpClient)
-            handle client
+            HvZNetworking.Internal.serverHandleTcp client handleRequest |> ignore
       } |> Async.RunSynchronously
    finally
       listener.Stop()

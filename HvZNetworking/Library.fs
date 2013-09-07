@@ -101,21 +101,6 @@ module Internal =
    | InGame of string // gameId
    | OutOfGame
 
-   let joinGame _ _ _ = OutOfGame
-   let createGame _ _ = "abc"
-   let gameRequest _ _ _ = OutOfGame
-   let handleRequest playerId status cmd send =
-      match status, cmd with
-      | OutOfGame, Join gameId -> joinGame gameId playerId cmd
-      | OutOfGame, Create (w, h) ->
-         let gameId = createGame w h
-         send (Game gameId)
-         InGame gameId
-      | OutOfGame, _ ->
-         send (No "You need to either create or join a game first.")
-         OutOfGame
-      | InGame gameId, _ -> gameRequest gameId playerId cmd
-
    type ShutdownReason =
    | CorruptStream
    | StreamClosed
@@ -183,7 +168,7 @@ module Internal =
          receive 0
       )
 
-   let serverHandleTcp (client : TcpClient) =
+   let serverHandleTcp (client : TcpClient) handleRequest =
       let stream = client.GetStream()
       let clientId = string client.Client.RemoteEndPoint
       let playerId = nextPlayerId ()
@@ -210,23 +195,17 @@ module Internal =
       connection client onClosed onCommandReceived onAbnormalCommand
       |> ignore
 
-type IPlayerMove =
-   interface
-      abstract member Order : Command -> unit
-   end
+type CommandEventArgs(player : uint32, command : Command) =
+   inherit System.EventArgs()
+   member __.Player with get () = player
+   member __.Command with get () = command
 
-type CommandEventArgs = {
-   Player : uint32
-   Command : Command
-   Response : IPlayerMove
-}
-
-type HvZConnection(server) =
+type HvZConnection() as this =
    let mutable status = OutOfGame
    let mutable playerId = None
-   let dataEvent = new Event<CommandEventArgs>()
+   let dataEvent = new Event<System.EventHandler<CommandEventArgs>,CommandEventArgs>()
    let closedEvent = new Event<_>()
-   let conn = new TcpClient(server, 2310, LingerState = LingerOption(false, 0))
+   let mutable conn : TcpClient option = None
    let onClosed () = closedEvent.Trigger ()
    let onCommandReceived cmd stream =
       match status, playerId, cmd with
@@ -234,22 +213,26 @@ type HvZConnection(server) =
       | _, Some _, Hello _ -> printfn "Why is the server sending me multiple hello-messages??"
       | _, None, _ -> printfn "Server shouldn't be sending me anything... very weird!"
       | _, Some pIayerId, cmd ->
-         let sender =
-            {
-               new IPlayerMove with
-                  member __.Order cmd = cmd |> writeTo stream
-            }
-         dataEvent.Trigger({Player=Option.get playerId;Command=cmd;Response=sender})
-   do clientHandleTcp conn onClosed onCommandReceived
-   let send =
-      let stream = conn.GetStream()
-      writeTo stream
-   member __.Send msg = send msg
+         dataEvent.Trigger (this, new CommandEventArgs(Option.get playerId, cmd))
+   let send () =
+      match conn with
+      | Some conn ->
+         let stream = conn.GetStream()
+         writeTo stream
+      | None -> failwith "You can't send messages to a server until you're connected to it."
+   member __.ConnectToServer server =
+      let client = new TcpClient(server, 2310, LingerState = LingerOption(false, 0))
+      conn <- Some client
+      clientHandleTcp client onClosed onCommandReceived
+   member __.Send msg = send () msg
    member __.IsInGame with get () = match status with OutOfGame -> false | InGame _ -> true
    [<CLIEvent>]
-   member __.CommandReceived = dataEvent.Publish
+   member __.OnCommandReceived = dataEvent.Publish
    [<CLIEvent>]
-   member __.ConnectionClosed = closedEvent.Publish
+   member __.OnConnectionClosed = closedEvent.Publish
    interface System.IDisposable with
-      member __.Dispose () = (conn :> System.IDisposable).Dispose ()
+      member __.Dispose () =
+         match conn with
+         | Some conn -> (conn :> System.IDisposable).Dispose ()
+         | None -> ()
    

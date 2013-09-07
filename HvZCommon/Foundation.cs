@@ -21,7 +21,7 @@ namespace HvZCommon {
 
         public int Width { get; set; }
         public int Height { get; set; }
-        public List<ITakeSpace> Children;
+        public List<ITakeSpace> Children { get; private set; }
 
         public bool isInBounds(ITakeSpace item) {
             return (item.Position.X - item.Radius) >= 0 &&
@@ -30,11 +30,13 @@ namespace HvZCommon {
                 (item.Position.Y + item.Radius) <= Height;
         }
 
-        public ITakeSpace ElementAt(int index) {
-            if (index >= 0 && index < Children.Count) {
-                return Children.ElementAt(index);
+        public ITakeSpace this[int index] {
+            get {
+                if (index >= 0 && index < Children.Count) {
+                    return Children.ElementAt(index);
+                }
+                return null;
             }
-            return null;
         }
     }
 
@@ -77,32 +79,6 @@ namespace HvZCommon {
             Obstacles = obstacles.ToArray();
             Uncategorized = other.ToArray();
         }
-    }
-
-    public class GameState {
-        public GameState() {
-            Dirty = false;
-            Map = new Map(800,800);
-            GameTime = 0;
-        }
-
-        public bool Dirty { get; set; }
-
-        public void Spawn(ITakeSpace item) {
-            if (Dirty) {
-                Map.Children.Clear();
-                Dirty = false;
-            }
-
-            if (item.Position == null || !Map.isInBounds(item)) {
-                item.Position = Utils.randPosition(Map.Width, Map.Height);
-            }
-
-            Map.Children.Add(item);
-        }
-
-        public Map Map { get; set; }
-        public UInt32 GameTime { get; set; }
     }
 
     public class Position {

@@ -18,7 +18,7 @@ namespace HvZClient {
         public static string ClientID { get; private set; }
         public static string ServerID { get; private set; }
 
-        internal static GameState clientWorld = new GameState();
+        internal static ClientGame clientWorld;
 
         public static void Start(HumanAI e) {
             userAIType = AIType.HUMAN;
@@ -147,7 +147,6 @@ namespace HvZClient {
         }
 
         private void LoadWorld(string[] args) {
-            clientWorld.Dirty = true;
             SendMessage("C_connect", "reload");
         }
 
@@ -222,7 +221,7 @@ namespace HvZClient {
                     Double.TryParse(data[2], out rad);
                 }
 
-                clientWorld.Spawn(new ResupplyPoint() { Position = new Position(posX, posY), Radius = rad });
+                //clientWorld.Spawn(new ResupplyPoint() { Position = new Position(posX, posY), Radius = rad });
                 SendMessage("C_success", "spawnplace");
             }
         }
@@ -262,7 +261,7 @@ namespace HvZClient {
                     item.Heading = head;
                     item.Speed = speed;
                     item.Radius = 15;
-                    clientWorld.Spawn(item);
+                    //clientWorld.Spawn(item);
                     SendMessage("C_success", "spawnwalker");
                     specificAI(item).Spawned(item);
                 }
@@ -275,7 +274,7 @@ namespace HvZClient {
 
                 Int32.TryParse(args[0], out index);
 
-                ITakeSpace walki = clientWorld.Map.ElementAt(index);
+                ITakeSpace walki = clientWorld.Map[index];
 
                 if (walki != null && walki is IWalker) {
                     ((IWalker)walki).TriggerSpecial();
@@ -288,7 +287,7 @@ namespace HvZClient {
 
             double explosionRadius = 60;
 
-            clientWorld.Spawn(new ExplosionEffect(me, explosionRadius));
+            //clientWorld.Spawn(new ExplosionEffect(me, explosionRadius));
 
             foreach (IWalker i in groups.Humans) {
                 if (me.Position.distanceFrom(i.Position) < explosionRadius) {
@@ -311,8 +310,8 @@ namespace HvZClient {
                 Int32.TryParse(args[0], out hitten);
                 Int32.TryParse(args[1], out hitter);
 
-                ITakeSpace who = clientWorld.Map.ElementAt(hitten);
-                ITakeSpace attacker = clientWorld.Map.ElementAt(hitter);
+                ITakeSpace who = clientWorld.Map[hitten];
+                ITakeSpace attacker = clientWorld.Map[hitter];
 
                 if (who != null && attacker != null) {
                     if (who is IWalker && attacker is IWalker) {
@@ -328,7 +327,7 @@ namespace HvZClient {
 
                 Int32.TryParse(args[0], out walker);
 
-                ITakeSpace hungerer = clientWorld.Map.ElementAt(walker);
+                ITakeSpace hungerer = clientWorld.Map[walker];
                 if (hungerer != null && hungerer is IWalker) {
                     specificAI((IWalker)hungerer).Hungering((IWalker)hungerer);
                 }
