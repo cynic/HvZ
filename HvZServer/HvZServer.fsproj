@@ -55,6 +55,11 @@
       <Project>{6db1e57e-5cdd-4d83-9e25-a931fa0f0b7e}</Project>
       <Private>True</Private>
     </ProjectReference>
+    <ProjectReference Include="..\HvZNetworking\HvZNetworking.fsproj">
+      <Name>HvZNetworking</Name>
+      <Project>{368b2f8b-c774-41c8-a2d0-78398242c9bc}</Project>
+      <Private>True</Private>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
