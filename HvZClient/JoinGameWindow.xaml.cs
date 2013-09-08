@@ -20,13 +20,13 @@ namespace HvZClient {
         public JoinGameWindow(Game theGame) {
             InitializeComponent();
 
-            games.Add(new GameListItem("test1", "000.000.000:00") {
+            /*games.Add(new GameListItem("test1", "000.000.000:00") {
                 Description = "Blah bhal"
             });
             games.Add(new GameListItem("test2", "000.000.000:00") {
                 Description = "Blah hahag",
                 Unlocked = true
-            });
+            });*/
 
             gamesList.ItemsSource = games;
         }
@@ -83,8 +83,11 @@ namespace HvZClient {
         }
 
         private void JoinGame(object sender, RoutedEventArgs e) {
-            GameListItem item = ((GameListItem)((Button)sender).DataContext);
-            Game.theGame.requestJoin(item.GameID);            
+            ConnectToGame(((GameListItem)((Button)sender).DataContext));
+        }
+
+        private void ConnectToGame(GameListItem item) {
+            Game.theGame.requestJoin(item.GameID);
             GameWindow win = new GameWindow(item.Name);
             Game.theGame.OnGamestart += win.StartGame;
             win.Owner = this;
@@ -93,10 +96,21 @@ namespace HvZClient {
 
         private void CreateGame(object sender, RoutedEventArgs e) {
             //TODO: create game
+            GameListItem CreatedGame = new GameListItem("test game", "000.000.000:00") {
+                Description = "Blah bhal",
+                Unlocked = true
+            };
+            games.Add(CreatedGame);
+            ConnectToGame(CreatedGame);
         }
 
         private void Window_Closed(object sender, EventArgs e) {
             App.Current.Shutdown();
+        }
+
+        protected override void OnContentRendered(EventArgs e) {
+            base.OnContentRendered(e);
+            ButtonUtils.setEditBoxes(newGame);
         }
     }
 }

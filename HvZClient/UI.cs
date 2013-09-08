@@ -5,22 +5,15 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using Cb = System.Windows.Media.Brushes;
+using System.Windows.Media.Imaging;
+using Cb = System.Windows.Media;
 
 namespace HvZClient {
-    static class Constants {
-        internal const int PORT_SIZE = 11;
-        internal const int TEX_SIZE = 44;
-        internal static readonly Rect port = new Rect(12, 9, PORT_SIZE, PORT_SIZE);
-    }
-
     public static class ButtonUtils {
-        private static System.Windows.Media.Brush savedBackground;
+        internal const int TEX_SIZE = 44;
+        internal const int MAX_COLUMNS = 7;
 
-        public static void setBoxes(Button r, Button m) {
-            setRestoreBoxes(r);
-            setMinimizeBoxes(m);
-        }
+        private static Cb.Brush savedBackground;
 
         public static void setEditBoxes(Button e) { setBoxesGen(5, e); }
         public static void setPinBoxes(Button p) { setBoxesGen(3, p); }
@@ -29,77 +22,116 @@ namespace HvZClient {
 
         public static void setBoxesGen(int left, Button m) { setBoxesGen(left, 0, m); }
         public static void setBoxesGen(int left, int top, Button m) {
-            while (left >= 7) {
+            while (left >= MAX_COLUMNS) {
                 top += 2;
-                left -= 7;
+                left -= MAX_COLUMNS;
             }
 
-            ImageBrush b = brushFromButton(m);
-            b.Viewbox = new Rect(Constants.TEX_SIZE * left, Constants.TEX_SIZE * top, Constants.TEX_SIZE, Constants.TEX_SIZE);
-            b.Viewport = Constants.port;
+            m.setImageRect(new Int32Rect(TEX_SIZE * left, TEX_SIZE * top, TEX_SIZE, TEX_SIZE));
         }
 
-        public static void ShiftVert(int top, Button m) {
-            ImageBrush b = ButtonUtils.brushFromButton(m);
-
-            int oldTop = (int)b.Viewbox.Y / Constants.TEX_SIZE;
-
-            if (oldTop % 2 != top % 2) {
-                if (oldTop % 2 == 1) {
-                    top = oldTop - 1;
-                } else {
-                    top = oldTop + 1;
+        public static void ShiftVert(this Button m, int top) {
+            CroppedBitmap b = (CroppedBitmap)m.brushFromButton().Source;
+            if (b != null) {
+                int oldTop = (int)b.SourceRect.Y / TEX_SIZE;
+                if (oldTop % 2 != top % 2) {
+                    if (oldTop % 2 == 1) {
+                        top = oldTop - 1;
+                    } else {
+                        top = oldTop + 1;
+                    }
                 }
-            }
 
-            b.Viewbox = new Rect(b.Viewbox.X, top * Constants.TEX_SIZE, b.Viewbox.Width, b.Viewbox.Height);
-        }
-
-        public static ImageBrush brushFromButton(Button obj) {
-            return ((ImageBrush)getElementFromButton(obj, "box"));
-        }
-
-        public static object getElementFromButton(Button obj, string name) {
-            object o = obj.Template.FindName(name, obj);
-            return o;
-        }
-
-        public static void RestoreButtonClicked(Window context, Button sender) {
-            if (context.WindowState == WindowState.Normal) {
-                context.WindowState = WindowState.Maximized;
-            } else {
-                context.WindowState = WindowState.Normal;
+                m.setImageRect(new Int32Rect(b.SourceRect.X, top * TEX_SIZE, b.SourceRect.Width, b.SourceRect.Height));
             }
         }
 
-        public static void WindowMinimized(Window context, Button res) {
-            buttonLostFocus(res);
+        public static void setImageRect(this Button obj, Int32Rect rect) {
+            Image brush = obj.brushFromButton();
+            if (brush != null) {
+                brush.Source = new CroppedBitmap(((CroppedBitmap)brush.Source).Source, rect);
+            }
+        }
+
+        public static Image brushFromButton(this Button obj) {
+            return ((Image)obj.getElementFromButton("box"));
+        }
+
+        public static object getElementFromButton(this Button obj, string name) {
+            return obj.Template.FindName(name, obj);
+        }
+
+        public static void repaintButton(this Button sender) {
+            if (sender.IsMouseOver) {
+                sender.buttonLostFocus();
+                sender.buttonGotFocus();
+            }
+        }
+
+        public static void buttonGotFocus(this Button sender) {
+            Grid g = ((Grid)ButtonUtils.getElementFromButton(sender, "backColor"));
+            savedBackground = g.Background;
+            g.Background = ((String)sender.Tag) == "close" ? Cb.Brushes.DarkRed : ((String)sender.Tag) == "open" ? Cb.Brushes.DarkGreen : Cb.Brushes.DarkBlue;
+        }
+
+        public static void buttonLostFocus(this Button sender) {
+            ((Grid)ButtonUtils.getElementFromButton(sender, "backColor")).Background = savedBackground;
+        }
+    }
+
+    public static class WindowUtils {
+        public static void RegisterWindow(this Window context) {
+            Button r = (Button)context.FindName("restore");
+            if (r != null) {
+                r.Click += delegate { context.RestoreButtonClicked(r); };
+                r.MouseEnter += delegate { r.buttonGotFocus(); };
+                r.MouseLeave += delegate { r.buttonLostFocus(); };
+                ButtonUtils.setRestoreBoxes(r);
+
+                context.StateChanged += delegate { context.WindowStateChanged(r); };
+            }
+
+            Button m = (Button)context.FindName("minimize");
+            if (m != null) {
+                m.Click += delegate { context.WindowMinimized(m); };
+                m.MouseEnter += delegate { m.buttonGotFocus(); };
+                m.MouseLeave += delegate { m.buttonLostFocus(); };
+                ButtonUtils.setMinimizeBoxes(m);
+            }
+
+            Button c = (Button)context.FindName("close");
+            if (c != null) {
+                c.Click += delegate { context.Close(); };
+                c.MouseEnter += delegate { c.buttonGotFocus(); };
+                c.MouseLeave += delegate { c.buttonLostFocus(); };
+                c.Tag = "close";
+            }
+
+            Canvas t = (Canvas)context.FindName("title");
+            if (t != null) {
+                t.MouseLeftButtonDown += delegate { context.DragMove(); };
+            }
+
+            Label tL = (Label)context.FindName("title2");
+            if (tL != null) {
+                tL.MouseLeftButtonDown += delegate { context.DragMove(); };
+                tL.MouseDoubleClick += delegate {
+                    context.RestoreButtonClicked(null);
+                };
+            }
+        }
+
+        public static void WindowMinimized(this Window context, Button minimizeButton) {
+            minimizeButton.buttonLostFocus();
             context.WindowState = WindowState.Minimized;
         }
 
-        public static void WindowStateChanged(Window context, Button res) {
-            if (context.WindowState == WindowState.Normal) {
-                ButtonUtils.brushFromButton(res).Viewbox = new Rect(44, 0, Constants.TEX_SIZE, Constants.TEX_SIZE);
-            } else {
-                ButtonUtils.brushFromButton(res).Viewbox = new Rect(44, Constants.TEX_SIZE, Constants.TEX_SIZE, Constants.TEX_SIZE);
-            }
+        public static void WindowStateChanged(this Window context, Button restoreButton) {
+            restoreButton.ShiftVert(context.WindowState == WindowState.Normal ? 0 : 1);
         }
 
-        public static void repaintButton(Button sender) {
-            if (sender.IsMouseOver) {
-                buttonLostFocus(sender);
-                buttonGotFocus(sender);
-            }
-        }
-
-        public static void buttonGotFocus(Button sender) {
-            Grid g = ((Grid)ButtonUtils.getElementFromButton(sender, "backColor"));
-            savedBackground = g.Background;
-            g.Background = ((String)sender.Tag) == "close" ? Cb.DarkRed : ((String)sender.Tag) == "open" ? Cb.DarkGreen : Cb.DarkBlue;
-        }
-
-        public static void buttonLostFocus(Button sender) {
-            ((Grid)ButtonUtils.getElementFromButton(sender, "backColor")).Background = savedBackground;
+        public static void RestoreButtonClicked(this Window context, Button sender) {
+            context.WindowState = context.WindowState == WindowState.Normal ? WindowState.Maximized : WindowState.Normal;
         }
     }
 }

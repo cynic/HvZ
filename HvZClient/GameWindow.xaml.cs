@@ -29,9 +29,7 @@ namespace HvZClient {
 
         public GameWindow(string title) {
             InitializeComponent();
-
             Title = "Playing on: " + title;
-            StartGame();
         }
 
         public void StartGame() {
@@ -159,21 +157,25 @@ namespace HvZClient {
         }
 
         private void Window_Resized(object sender, SizeChangedEventArgs e) {
-            double size = Math.Min(ActualWidth, ActualHeight);
-            double mapSize = Math.Min(Game.clientWorld.Map.Width, Game.clientWorld.Map.Height);
-            RenderMultiplier = size / mapSize;
+            //Added null check so it doesnt crash. How do you get a ClientGame?
+            if (Game.clientWorld != null) {
+                double size = Math.Min(ActualWidth, ActualHeight);
+                double mapSize = Math.Min(Game.clientWorld.Map.Width, Game.clientWorld.Map.Height);
+                RenderMultiplier = size / mapSize;
 
-            if (GUIMap.Width != Game.clientWorld.Map.Width * RenderMultiplier || GUIMap.Height != Game.clientWorld.Map.Height) {
-                GUIMap.Width = Game.clientWorld.Map.Width * RenderMultiplier;
-                GUIMap.Height = Game.clientWorld.Map.Height * RenderMultiplier;
-                
-                renderPass();
+                if (GUIMap.Width != Game.clientWorld.Map.Width * RenderMultiplier || GUIMap.Height != Game.clientWorld.Map.Height) {
+                    GUIMap.Width = Game.clientWorld.Map.Width * RenderMultiplier;
+                    GUIMap.Height = Game.clientWorld.Map.Height * RenderMultiplier;
+
+                    renderPass();
+                }
             }
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
-            if (MessageBox.Show("Are you shure you want to exit this game?", "Exit Game", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes) {
+            if (MessageBox.Show("Are you shure you want to leave this game?", "Leave Game", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes) {
                 Game.theGame.EndGame();
+                Owner.Focus();
             } else {
                 e.Cancel = true;
             }
