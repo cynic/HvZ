@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace HvZCommon {
+namespace HvZ.Common {
     public static class Utils {
         internal static readonly Random rand = new Random();
 

@@ -7,7 +7,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using HvZCommon;
+using HvZ.Common;
 
 namespace HvZClient {
     public class Resource  {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using HvZCommon;
+using HvZ.Common;
 
 namespace HvZClient {
     public delegate void Spawned(IWalker me);

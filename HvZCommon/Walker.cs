@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace HvZCommon {
+namespace HvZ.Common {
     [Flags]
     public enum SpecialAbility {
         /// <summary>Value is not set</summary>

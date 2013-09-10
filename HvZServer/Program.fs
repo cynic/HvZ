@@ -29,7 +29,8 @@ Planned:
 
 *)
 
-open HvZNetworking
+open HvZ.Networking
+open HvZ.Common
 open System.Net
 open System.Net.Sockets
 open System.Text.RegularExpressions
@@ -60,7 +61,7 @@ let main argv =
          printfn "Server up, listening on 2310"
          while true do
             let! client = Async.FromBeginEnd(listener.BeginAcceptTcpClient, listener.EndAcceptTcpClient)
-            HvZNetworking.Internal.serverHandleTcp client handleRequest |> ignore
+            HvZ.Networking.Internal.serverHandleTcp client handleRequest |> ignore
       } |> Async.RunSynchronously
    finally
       listener.Stop()

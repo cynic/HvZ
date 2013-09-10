@@ -133,6 +133,10 @@
       <Project>{6db1e57e-5cdd-4d83-9e25-a931fa0f0b7e}</Project>
       <Name>HvZCommon</Name>
     </ProjectReference>
+    <ProjectReference Include="..\HvZNetworking\HvZNetworking.fsproj">
+      <Project>{368b2f8b-c774-41c8-a2d0-78398242c9bc}</Project>
+      <Name>HvZNetworking</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\zombie.png" />

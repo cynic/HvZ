@@ -1,4 +1,4 @@
-﻿namespace HvZNetworking
+﻿namespace HvZ.Common
 
 open System.Net
 open System.Net.Sockets
@@ -38,8 +38,15 @@ type Command =
 | Zombie of uint32 * uint32 * uint32 * float // walkerId * x * y * heading
 | No of string // reason for rejection
 
+namespace HvZ.Networking
+
+open HvZ.Common
+open System.Net
+open System.Net.Sockets
+
 [<AutoOpen>]
 module Internal =
+   open HvZ.Common
    open System.Text
    open System.Text.RegularExpressions
 
@@ -210,6 +217,10 @@ module Internal =
          failwithf "The server sent me a weird command (%s).  Tell your lecturer." s
       connection client onClosed onCommandReceived onAbnormalCommand
       |> ignore
+
+namespace HvZ.Common
+open HvZ.Networking
+open System.Net.Sockets
 
 type CommandEventArgs(player : uint32, command : Command) =
    inherit System.EventArgs()

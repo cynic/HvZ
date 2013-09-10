@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HvZCommon {
+namespace HvZ.Common {
     public interface ITakeSpace {
         Position Position { get; set; } // center of the object
         double Radius { get; set; }

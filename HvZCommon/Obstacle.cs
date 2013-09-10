@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace HvZCommon {
+namespace HvZ.Common {
     public class Obstacle : ITakeSpace {
         public Position Position { get; set; } // center of the object
         public double Radius { get; set; }

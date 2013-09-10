@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
-using HvZCommon;
+using HvZ.Common;
 
 namespace HvZClient {
     public class Game {

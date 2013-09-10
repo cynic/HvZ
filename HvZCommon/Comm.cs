@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace HvZCommon {
+namespace HvZ.Common {
     public class GameListItem {
         public string Name { get; private set; }
         public string GameID { get; private set; }

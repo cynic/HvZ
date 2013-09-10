@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using HvZNetworking;
 
-namespace HvZCommon {
+namespace HvZ.Common {
     /* Constructors:
      * The client gets to start a game or join an existing game.  In the case
      * of starting a game, the client can choose parameters.  In the case of
