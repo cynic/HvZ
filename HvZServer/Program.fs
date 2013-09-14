@@ -133,7 +133,9 @@ module Internal =
                   try
                      let map = HvZ.Common.Map(map)
                      gamesList.Add(id, newGame id map gameOver)
-                     send (Game id)
+                     printfn "Sending game ID."
+                     send (CreateOK id)
+                     printfn "Game ID sent."
                      reply.Reply (id)
                   with
                   | e ->
@@ -148,8 +150,6 @@ module Internal =
          loop ()
       )
 
-let joinGame _ _ _ = OutOfGame
-let gameRequest _ _ _ = OutOfGame
 let handleRequest playerId status cmd send =
    printfn "Received %A from player %d" cmd playerId
    let send x =
@@ -159,13 +159,15 @@ let handleRequest playerId status cmd send =
    | OutOfGame, HumanJoin (gameId, _) | OutOfGame, ZombieJoin (gameId, _) ->
       Internal.gamesProcessor.Post (Internal.GamesMessage.Request(gameId, playerId, cmd, send))
       InGame gameId // WARNING: this is just wrong.  It *will* cause trouble.  Fix it up later.
-   | OutOfGame, Create (map) ->
+   | OutOfGame, Create map ->
       let gameId = Internal.gamesProcessor.PostAndReply(fun reply -> Internal.GamesMessage.Create(map.Split [|'\n';'\r'|], send, reply))
       if gameId = null then OutOfGame else InGame gameId
    | OutOfGame, _ ->
       send (No "You need to either create or join a game first.")
       OutOfGame
-   | InGame gameId, _ -> gameRequest gameId playerId cmd
+   | InGame gameId, _ ->
+      Internal.gamesProcessor.Post (Internal.GamesMessage.Request(gameId, playerId, cmd, send))
+      InGame gameId
 
 [<EntryPoint>]
 let main argv = 

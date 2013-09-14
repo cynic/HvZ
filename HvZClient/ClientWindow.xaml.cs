@@ -57,7 +57,7 @@ namespace HvZClient {
             }
             */
             var brush = new ImageBrush(i);
-            brush.Stretch = Stretch.None;
+            brush.Stretch = Stretch.Fill;
             return brush;
         }
 
@@ -100,7 +100,9 @@ namespace HvZClient {
                 return;
             }
             var m = new Map((string)Maps.SelectedValue);
-            var gameWindow = new GameWindow(Name.Text, (string)Role.SelectedValue, m);
+            var gameWindow = new GameWindow(Name.Text, (Role.SelectedItem as ComboBoxItem).Content.ToString(), m);
+            gameWindow.Owner = this;
+            gameWindow.Show();
         }
 
         private void JoinButton_Click(object sender, RoutedEventArgs e) {

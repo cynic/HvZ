@@ -17,10 +17,23 @@ using System.Windows.Threading;
 using HvZ.Common;
 
 namespace HvZClient {
+    public enum CGState {
+        Invalid,
+        CreateRequested,
+        CreationFailed,
+        CreationSucceeded,
+        JoinRequested,
+        JoinFailed,
+        JoinSucceeded
+    }
+
+    public enum Role {
+        Invalid, Human, Zombie
+    }
     /// <summary>Interaction logic for MainWindow.xaml</summary>
     public partial class GameWindow : Window {
         private static readonly List<Key> pressedKeys = new List<Key>();
-        ClientGame game = new ClientGame();
+        ClientGame game;
 
         public double RenderMultiplier { get; private set; }
 
@@ -30,12 +43,7 @@ namespace HvZClient {
 
         public GameWindow(string name, string role, Map m) {
             InitializeComponent();
-            game.CreateGame(m);
-            switch (role) {
-                case "Human": game.JoinGameAsHuman("", ""); break; // stub
-                case "Zombie": game.CreateGame(m); break;
-                default: throw new Exception("Not a human or a zombie; edit me to tell me what this is.");
-            }
+            game = new ClientGame(name, role, m);
         }
 
         public void StartGame() {

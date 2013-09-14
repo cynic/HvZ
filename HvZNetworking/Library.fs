@@ -37,6 +37,51 @@ type Command =
 | Move
 | No of string // reason for rejection
 
+type ICommandInterpreter =
+   abstract member Forward : walkerId:uint32 -> distance:float -> unit
+   abstract member Left : walkerId:uint32 -> degrees:float -> unit
+   abstract member Right : walkerId:uint32 -> degrees:float -> unit
+   abstract member Eat : walkerId:uint32 -> unit
+   abstract member TakeFood : walkerId:uint32 -> resupplyId:uint32 -> unit // who-takes-it -> taken-from-where
+   abstract member TakeSocks : walkerId:uint32 -> resupplyId:uint32 -> unit // who-takes-it -> taken-from-where
+   abstract member Throw : walkerId:uint32 -> heading:float -> unit // walkerId -> heading
+   abstract member ZombieJoin : gameId:string -> name:string -> unit // gameId -> name
+   abstract member HumanJoin : gameId:string -> name:string -> unit // gameId -> name
+   abstract member Hello : walkerId:uint32 -> unit // playerId
+   abstract member Create : mapdata:string -> unit // mapdata
+   abstract member ListStart : unit -> unit
+   abstract member CreateOK : gameId:string -> unit // gameId
+   abstract member Game : gameId:string -> unit // gameId
+   abstract member ListEnd : unit -> unit
+   abstract member Human : walkerId:uint32 -> x:float -> y:float -> heading:float -> unit // walkerId -> x -> y -> heading /// also functions as JoinOK
+   abstract member Zombie : walkerId:uint32 -> x:float -> y:float -> heading:float -> unit // walkerId -> x -> y -> heading /// also functions as JoinOK
+   abstract member Move : unit -> unit
+   abstract member No : reason:string -> unit // reason for rejection
+
+[<Extension>]
+type Command with
+   static member Dispatch cmd (x : ICommandInterpreter) =
+      match cmd with
+      | Forward (wId, dist) -> x.Forward wId dist
+      | Left (wId, degrees) -> x.Left wId degrees
+      | Right (wId, degrees) -> x.Right wId degrees
+      | Eat wId -> x.Eat wId
+      | TakeFood (wId, fromWhere) -> x.TakeFood wId fromWhere
+      | TakeSocks (wId, fromWhere) -> x.TakeSocks wId fromWhere
+      | Throw (wId, heading) -> x.Throw wId heading
+      | ZombieJoin (gameId, name) -> x.ZombieJoin gameId name
+      | HumanJoin (gameId, name) -> x.HumanJoin gameId name
+      | Hello playerId -> x.Hello playerId
+      | Create mapdata -> x.Create mapdata
+      | CreateOK gameId -> x.CreateOK gameId
+      | Game gameId -> x.Game gameId
+      | ListStart -> x.ListStart ()
+      | ListEnd -> x.ListEnd ()
+      | Human (walkerId, _x, y, heading) -> x.Human walkerId _x y heading
+      | Zombie (walkerId, _x, y, heading) -> x.Zombie walkerId _x y heading
+      | Move -> x.Move ()
+      | No why -> x.No why
+
 type ClientStatus =
 | InGame of string // gameId
 | OutOfGame
@@ -251,7 +296,7 @@ type CommandEventArgs(player : uint32, command : Command) =
    inherit System.EventArgs()
    member __.Player with get () = player
    member __.Command with get () = command
-
+       
 type HvZConnection() as this =
    let mutable status = OutOfGame
    let mutable playerId = None
