@@ -69,6 +69,7 @@ namespace HvZClient {
         }
 
         public void imHungry(IWalker me) {
+/*
             Human[] humans = Game.ThingsOnMap.Humans;
             Human closest = null;
             double close = 0;
@@ -86,9 +87,9 @@ namespace HvZClient {
             }
 
             double angleDif = me.Heading - closest.Position.angleFrom(me.Position);
-
-            Game.Turn(me, angleDif);
-            Game.Walk(me, close);
+*/
+            //Game.Turn(me, angleDif);
+            //Game.Walk(me, close);
         }
     }
 }

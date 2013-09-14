@@ -6,38 +6,10 @@ using System.Threading.Tasks;
 
 namespace HvZ.Common {
     public interface ITakeSpace {
-        Position Position { get; set; } // center of the object
-        double Radius { get; set; }
+        Position Position { get; } // center of the object
+        double Radius { get; }
         string Texture { get; }
-        bool MustDespawn { get; }
-    }
-
-    public class Map {
-        public Map(int width, int height) {
-            Width = width;
-            Height = height;
-            Children = new List<ITakeSpace>();
-        }
-
-        public int Width { get; set; }
-        public int Height { get; set; }
-        public List<ITakeSpace> Children { get; private set; }
-
-        public bool isInBounds(ITakeSpace item) {
-            return (item.Position.X - item.Radius) >= 0 &&
-                (item.Position.Y - item.Radius) >= 0 &&
-                (item.Position.X + item.Radius) <= Width &&
-                (item.Position.Y + item.Radius) <= Height;
-        }
-
-        public ITakeSpace this[int index] {
-            get {
-                if (index >= 0 && index < Children.Count) {
-                    return Children.ElementAt(index);
-                }
-                return null;
-            }
-        }
+        //bool MustDespawn { get; }
     }
 
     /// <summary>
@@ -57,6 +29,7 @@ namespace HvZ.Common {
             List<Obstacle> obstacles = new List<Obstacle>();
             List<ITakeSpace> other = new List<ITakeSpace>();
 
+            /*
             foreach (ITakeSpace i in items) {
                 if (!i.MustDespawn || (i is IWalker && !((IWalker)i).isDead)) {
                     if (i is Human) {
@@ -72,6 +45,7 @@ namespace HvZ.Common {
                     }
                 }
             }
+            */
 
             Humans = humans.ToArray();
             Zombies = zombies.ToArray();

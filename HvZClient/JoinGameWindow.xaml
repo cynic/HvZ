@@ -24,14 +24,14 @@
                             </Grid.ColumnDefinitions>
                             <Label Grid.Column="0" Grid.Row="0" Content="{Binding Name}" />
                             <Label Grid.Column="0" Grid.Row="1" Content="{Binding Description}" />
-                            <Button IsEnabled="{Binding Unlocked}" Grid.Column="1" Content="Join Game" Width="70" Margin="5" Grid.RowSpan="2" HorizontalAlignment="Left" Click="JoinGame" Template="{DynamicResource InsideButtonTemplateNoImage}" />
+                            <Button IsEnabled="{Binding Unlocked}" Grid.Column="1" Content="Join Game" Width="70" Margin="5" Grid.RowSpan="2" HorizontalAlignment="Left" Click="JoinGame" Template="{StaticResource InsideButtonTemplateNoImage}" />
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
         </ScrollViewer>
         <Grid Grid.Row="1" Background="Aqua">
-            <Button Name="newGame" Content="New Game" HorizontalAlignment="Center" Click="CreateGame" Template="{DynamicResource InsideButtonTemplate}" Width="113"  />
+            <Button Name="newGame" Content="New Game" HorizontalAlignment="Center" Click="CreateGame" Template="{StaticResource InsideButtonTemplateNoImage}" Width="113"  />
         </Grid>
     </Grid>
 </Window>

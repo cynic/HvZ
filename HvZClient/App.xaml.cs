@@ -13,7 +13,6 @@ namespace HvZClient {
         protected override void OnStartup(StartupEventArgs e) {
             ClientWindow win = new ClientWindow();
             win.Show();
-            Game.StartProcesses();
         }
     }
 }

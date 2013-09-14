@@ -87,11 +87,13 @@ namespace HvZClient {
         }
 
         private void ConnectToGame(GameListItem item) {
+            /*
             Game.theGame.requestJoin(item.GameID);
             GameWindow win = new GameWindow(item.Name);
             Game.theGame.OnGamestart += win.StartGame;
             win.Owner = this;
             win.Show();
+             */
         }
 
         private void CreateGame(object sender, RoutedEventArgs e) {

@@ -1,7 +1,9 @@
 ﻿namespace HvZ.Common
 
-open System.Net
-open System.Net.Sockets
+type IIdentified =
+   interface
+      abstract member Id : uint32 with get
+   end
 
 (*
 How to add new commands:
@@ -14,11 +16,6 @@ How to add new commands:
 aaand, that's it.  You've now successfully got a Brand Spanking New valid protocol command.  Congratulations.
 *)
 
-type IIdentified =
-   interface
-      abstract member Id : uint32 with get
-   end
-
 type Command =
 | Forward of uint32 * float // walkerId * distance
 | Left of uint32 * float // walkerId * degrees
@@ -27,16 +24,22 @@ type Command =
 | TakeFood of uint32 * uint32 // who-takes-it * taken-from-where
 | TakeSocks of uint32 * uint32 // who-takes-it * taken-from-where
 | Throw of uint32 * float // walkerId * heading
-| Join of string // gameId
-| JoinOK
+| ZombieJoin of string * string // gameId * name
+| HumanJoin of string * string // gameId * name
 | Hello of uint32 // playerId
-| Create of uint32 * uint32 // width * height
+| Create of string // mapdata
 | ListStart
-| Game of string // gameId /// also functions as CreateOK
+| CreateOK of string // gameId
+| Game of string // gameId
 | ListEnd
-| Human of uint32 * uint32 * uint32 * float // walkerId * x * y * heading
-| Zombie of uint32 * uint32 * uint32 * float // walkerId * x * y * heading
+| Human of uint32 * float * float * float // walkerId * x * y * heading /// also functions as JoinOK
+| Zombie of uint32 * float * float * float // walkerId * x * y * heading /// also functions as JoinOK
+| Move
 | No of string // reason for rejection
+
+type ClientStatus =
+| InGame of string // gameId
+| OutOfGame
 
 namespace HvZ.Networking
 
@@ -49,7 +52,21 @@ module Internal =
    open HvZ.Common
    open System.Text
    open System.Text.RegularExpressions
+   (*
+   let smoosh (xs : byte[]) =
+      let len = xs.Length / 2 + xs.Length % 2
+      let arr = Array.zeroCreate len
+      for i = 0 to arr.Length-1 do
+         arr.[i] <- (xs.[i*2] <<< 4) ||| (if i = arr.Length-1 && xs.Length % 2 = 1 then 0uy else xs.[i*2+1])
+      System.Convert.ToBase64String arr
 
+   let unsmoosh xs =
+      seq {
+         for x in System.Convert.FromBase64String xs do
+            yield x >>> 4
+            yield x &&& 0xFuy
+      } |> Seq.toArray
+   *)
    let toProtocol cmd =
       let s =
          match cmd with
@@ -60,17 +77,27 @@ module Internal =
          | TakeFood (wId, fromWhere) -> sprintf "takefood %d %d" wId fromWhere
          | TakeSocks (wId, fromWhere) -> sprintf "takesocks %d %d" wId fromWhere
          | Throw (wId, heading) -> sprintf "throw %d %.2f" wId heading
-         | Join gameId -> sprintf "join %s" gameId
-         | JoinOK -> sprintf "joinok"
+         | ZombieJoin (gameId, name) ->
+            if name = null || name.Length = 0 then failwith "No name supplied for this Zombie"
+            else sprintf "zjoin %s %s" gameId name
+         | HumanJoin (gameId, name) ->
+            if name = null || name.Length = 0 then failwith "No name supplied for this Human"
+            else sprintf "hjoin %s %s" gameId name
          | Hello playerId -> sprintf "hello %d" playerId
-         | Create (width, height) -> sprintf "create %d %d" width height
+         | Create mapdata -> sprintf "create %s" mapdata
+         | CreateOK gameId -> sprintf "createok %s" gameId
          | Game gameId -> sprintf "game %s" gameId
          | ListStart -> sprintf "begin"
          | ListEnd -> sprintf "end"
-         | Human (walkerId, x, y, heading) -> sprintf "human %d %d %d %.2f" walkerId x y heading
-         | Zombie (walkerId, x, y, heading) -> sprintf "zombie %d %d %d %.2f" walkerId x y heading
+         | Human (walkerId, x, y, heading) -> sprintf "human %d %.2f %.2f %.2f" walkerId x y heading
+         | Zombie (walkerId, x, y, heading) -> sprintf "zombie %d %.2f %.2f %.2f" walkerId x y heading
+         | Move -> "move"
          | No why -> sprintf "no %s" why // reason for rejection
-      Encoding.UTF8.GetBytes (sprintf "%3d%s" (Encoding.UTF8.GetByteCount s) s)
+      let byteCount = Encoding.UTF8.GetByteCount s
+      if byteCount > 99999 then
+         failwith "Sorry, the data you're sending the server is too large.  I won't send it."
+      else
+         Encoding.UTF8.GetBytes (sprintf "%5d%s" byteCount s)
 
    let fromString =
       let makeMatcher reString (f : _[] -> Command) = 
@@ -83,16 +110,18 @@ module Internal =
          makeMatcher @"^eat (\d+)$" (fun m -> Eat(uint32 m.[1]))
          makeMatcher @"^takefood (\d+) (\d+)$" (fun m -> TakeFood(uint32 m.[1], uint32 m.[2]))
          makeMatcher @"^takesocks (\d+) (\d+)$" (fun m -> TakeSocks(uint32 m.[1], uint32 m.[2]))
-         makeMatcher @"^throw (\d+) (\d+\.\d{2}$" (fun m -> Throw(uint32 m.[1], float m.[2]))
-         makeMatcher @"^join (.{1,8})$" (fun m -> Join(m.[1]))
-         makeMatcher @"^joinok$" (fun _ -> JoinOK)
+         makeMatcher @"^throw (\d+) (\d+\.\d{2})$" (fun m -> Throw(uint32 m.[1], float m.[2]))
+         makeMatcher @"^zjoin (.{20}) (.+)$" (fun m -> ZombieJoin(m.[1], m.[2]))
+         makeMatcher @"^hjoin (.{20}) (.+)$" (fun m -> HumanJoin(m.[1], m.[2]))
          makeMatcher @"^hello (\d+)$" (fun m -> Hello(uint32 m.[1]))
-         makeMatcher @"^create (\d+) (\d+)$" (fun m -> Create(uint32 m.[1], uint32 m.[2]))
-         makeMatcher @"^game (.{1,8})$" (fun m -> Game(m.[1]))
+         makeMatcher @"^create (.+)$" (fun m -> Create(m.[1]))
+         makeMatcher @"^createok (.{20})$" (fun m -> CreateOK(m.[1]))
+         makeMatcher @"^game (.{20})$" (fun m -> Game(m.[1]))
          makeMatcher @"^begin$" (fun _ -> ListStart)
          makeMatcher @"^end$" (fun _ -> ListEnd)
-         makeMatcher @"^human (\d+) (\d+) (\d+) (\d+\.\d{2}$" (fun m -> Human(uint32 m.[1], uint32 m.[2], uint32 m.[3], float m.[4]))
-         makeMatcher @"^zombie (\d+) (\d+) (\d+) (\d+\.\d{2}$" (fun m -> Zombie(uint32 m.[1], uint32 m.[2], uint32 m.[3], float m.[4]))
+         makeMatcher @"^human (\d+) (\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})$" (fun m -> Human(uint32 m.[1], float m.[2], float m.[3], float m.[4]))
+         makeMatcher @"^zombie (\d+) (\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})$" (fun m -> Zombie(uint32 m.[1], float m.[2], float m.[3], float m.[4]))
+         makeMatcher @"^move$" (fun _ -> Move)
          makeMatcher @"^no (.+)$" (fun m -> No(m.[1]))
       |]
       fun txt ->
@@ -120,10 +149,6 @@ module Internal =
    | Corrupt
    | OK of int // int = offset for new command reception
    
-   type ClientStatus =
-   | InGame of string // gameId
-   | OutOfGame
-
    type ShutdownReason =
    | CorruptStream
    | StreamClosed
@@ -142,7 +167,7 @@ module Internal =
       )
 
    let connection (client : TcpClient) onClosed onCommandReceived onAbnormalCommand =
-      let buffer = Array.zeroCreate 1020
+      let buffer = Array.zeroCreate (100 * 1024) // enough space for any 5-digit messages.
       let stream = client.GetStream ()
       MailboxProcessor.Start(fun inbox ->
          let rec receive offset =
@@ -151,16 +176,16 @@ module Internal =
                //printfn "Received %d bytes" n
                match n with
                | 0 -> onClosed StreamClosed // shutdown.
-               | n when n+offset < 3 -> do! receive (n+offset) // trickling? Ah, well.  Keep receiving.
+               | n when n+offset < 5 -> do! receive (n+offset) // trickling? Ah, well.  Keep receiving.
                | _ ->
                   let rec parseCommands offset remaining =
-                     if remaining >= 3 then
-                        match safeGetInt (Array.sub buffer offset 3) with
+                     if remaining >= 5 then
+                        match safeGetInt (Array.sub buffer offset 5) with
                         | None -> Corrupt
                         | Some n when n < 0 -> Corrupt
                         | Some expectedLen ->
-                           if remaining-3 >= expectedLen then // ok, received it all.
-                              let s = safeGetString (Array.sub buffer (offset+3) expectedLen)
+                           if remaining-5 >= expectedLen then // ok, received it all.
+                              let s = safeGetString (Array.sub buffer (offset+5) expectedLen)
                               match s with
                               | None -> Corrupt
                               | Some s ->
@@ -171,7 +196,7 @@ module Internal =
                                  with
                                  | e -> printfn "Got an error in client code: %A" e
                                  //printfn "parse-local Offset %d, remaining %d, expected %d" offset remaining expectedLen
-                                 parseCommands (offset+expectedLen+3) (remaining-(expectedLen+3))
+                                 parseCommands (offset+expectedLen+5) (remaining-(expectedLen+5))
                            else // continue receiving.
                               OK remaining
                      else OK remaining
@@ -271,4 +296,5 @@ type HvZConnection() as this =
    member __.Eat () = send () (Eat (Option.get playerId))
    member __.TakeFoodFrom (r : IIdentified) = send () (TakeFood (Option.get playerId, r.Id))
    member __.TakeSocksFrom (r : IIdentified) = send () (TakeSocks (Option.get playerId, r.Id))
-   member __.Throw heading = send () (Throw (Option.get playerId, heading))   
+   member __.Throw heading = send () (Throw (Option.get playerId, heading))
+   member __.CreateGame mapData = send () (Create mapData)
