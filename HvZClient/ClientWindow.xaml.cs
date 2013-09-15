@@ -29,6 +29,7 @@ namespace HvZClient {
         }
 
         protected override void OnContentRendered(EventArgs e) {
+            quote.Content = QuoteGenerator.NextQuote();
             base.OnContentRendered(e);
             this.RegisterWindow();
         }

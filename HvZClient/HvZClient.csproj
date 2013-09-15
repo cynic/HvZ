@@ -49,6 +49,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="PresentationFramework.Aero" />
     <Reference Include="System" />
@@ -184,6 +187,7 @@
     <Resource Include="Images\splash.png" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="icon.ico" />
     <Content Include="Maps\Another map.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

@@ -18,6 +18,7 @@
         </Grid.ColumnDefinitions>
         <Canvas Name="title" Background="#4CF0F8FF" Height="30" VerticalAlignment="Top" Grid.ColumnSpan="2" Margin="10,0">
             <Label Name="title2" Content="{Binding Title,RelativeSource={RelativeSource FindAncestor,AncestorType=Window}}" Canvas.Left="0" Height="24" Width="232" Canvas.Top="6" />
+            <Label Name="quote" Height="26" Width="780" Canvas.Top="19" />
             <Button x:Name="close" Canvas.Right="0" Width="30" Height="30" Template="{DynamicResource ButtonTemplate}"/>
             <Button x:Name="minimize" Height="30" Canvas.Right="35" Width="30" Background="White" Template="{DynamicResource ButtonTemplate}" />
         </Canvas>
@@ -36,7 +37,7 @@
                 <ListBox Name="Maps" SelectionChanged="Maps_SelectionChanged"/>
             </ScrollViewer>
         </Canvas>
-        <Label TextBlock.FontSize="28" Foreground="White" Grid.Row="2" Margin="351,39,352,92" Grid.ColumnSpan="2" FontSize="48" >OR</Label>
+        <Label TextBlock.FontSize="28" Foreground="White" Grid.Row="2" Margin="362,47,356,87" Grid.ColumnSpan="2" FontSize="48" >OR</Label>
         <Canvas Background="#99F0F8FF" Grid.Column="1" Grid.Row="1" Width="262" Height="146" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="82,44,52,46">
             <Label Canvas.Left="10" Canvas.Top="6" Width="55">Name:</Label>
             <TextBox Width="150" Name="Name" Canvas.Left="70" Canvas.Top="10"></TextBox>

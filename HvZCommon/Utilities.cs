@@ -6,7 +6,7 @@ using System.Text;
 
 namespace HvZ.Common {
     public static class Utils {
-        internal static readonly Random rand = new Random();
+        public static readonly Random rand = new Random();
 
         public static Position randPosition(int maxWidth, int maxHeight) {
             return new Position(rand.Next(maxWidth), rand.Next(maxHeight));
