@@ -11,10 +11,10 @@ namespace HvZ.Common {
 
     public class Map {
         Terrain[] terrain;
-        Dictionary<uint, Zombie> zombies = new Dictionary<uint, Zombie>();
-        Dictionary<uint, Human> humans = new Dictionary<uint, Human>();
-        Dictionary<uint, IWalker> walkers = new Dictionary<uint, IWalker>();
-        List<ResupplyPoint> resupply = new List<ResupplyPoint>();
+        internal Dictionary<uint, Zombie> zombies = new Dictionary<uint, Zombie>();
+        internal Dictionary<uint, Human> humans = new Dictionary<uint, Human>();
+        internal Dictionary<uint, IWalker> walkers = new Dictionary<uint, IWalker>();
+        internal List<ResupplyPoint> resupply = new List<ResupplyPoint>();
         public int PlayersAllowed { get; private set; }
         public int PlayersInGame { get; private set; }
 
@@ -69,6 +69,8 @@ namespace HvZ.Common {
             var idstart = UInt32.MaxValue;
             for (int row = 0; row < Height; ++row) {
                 for (int column = 0; column < lines[row].Length; ++column) {
+                    uint id = 0;
+                    IWalker w = null;
                     switch (lines[row][column]) {
                         case '.':
                         case 's': terrain[row * Width + column] = Terrain.Ground; break;
@@ -78,20 +80,32 @@ namespace HvZ.Common {
                             terrain[row * Width + column] = Terrain.Ground;
                             PlayersAllowed++;
                             // now throw in a player.
-                            var id = idstart--;
+                            id = idstart--;
                             if (PlayersAllowed % 2 == 0) {
-                                var w = new Human(id, null, this, column, row, 0);
-                                humans.Add(id, w);
+                                w = new Human(id, null, this, column, row, 0);
+                                humans.Add(id, (Human)w);
                                 walkers.Add(id, w);
                             } else {
-                                var w = new Zombie(id, null, this, column, row, 0);
-                                zombies.Add(id, w);
+                                w = new Zombie(id, null, this, column, row, 0);
+                                zombies.Add(id, (Zombie)w);
                                 walkers.Add(id, w);
                             }
                             break;
                         case 'r':
                             terrain[row * Width + column] = Terrain.Ground;
                             resupply.Add(new ResupplyPoint(column, row));
+                            break;
+                        case 'h':
+                            id = idstart--;
+                            w = new Human(id, null, this, column, row, 0);
+                            humans.Add(id, (Human)w);
+                            walkers.Add(id, w);
+                            break;
+                        case 'z':
+                            id = idstart--;
+                            w = new Zombie(id, null, this, column, row, 0);
+                            zombies.Add(id, (Zombie)w);
+                            walkers.Add(id, w);
                             break;
                         default:
                             throw new System.NotImplementedException(String.Format("There's something wrong with the map: I don't know how to handle '{0}' characters.", lines[row][column]));

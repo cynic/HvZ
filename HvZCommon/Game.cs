@@ -37,6 +37,11 @@ namespace HvZ.Common {
         Map map;
         string playerName;
 
+        public Groupes MapContents { get { return new Groupes(map); } }
+
+        public int Width { get { return map.Width; } }
+        public int Height { get { return map.Height; } }
+
         /// <summary>
         /// Create a new game, using the given map.
         /// </summary>

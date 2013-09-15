@@ -19,6 +19,10 @@ namespace HvZ.Common {
             return str;
         }
 
+        public static T PickNext<T>(this T[] array) {
+            return array[DateTime.Now.Second%array.Length];
+        }
+
         public static T PickOne<T>(this T[] array) {
             return array[rand.Next(array.Length)];
         }

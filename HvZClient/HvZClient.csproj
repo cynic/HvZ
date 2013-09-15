@@ -78,6 +78,7 @@
     <Compile Include="JoinGameWindow.xaml.cs">
       <DependentUpon>JoinGameWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="QuoteGenerator.cs" />
     <Compile Include="Resource.cs" />
     <Compile Include="UI.cs" />
     <Page Include="ClientWindow.xaml">

@@ -44,6 +44,8 @@ namespace HvZClient {
         public GameWindow(string name, string role, Map m) {
             InitializeComponent();
             game = new ClientGame(name, role, m);
+            GUIMap.Background = ClientWindow.ImageFromMap(m);
+            StartGame();
         }
 
         public void StartGame() {
@@ -68,14 +70,13 @@ namespace HvZClient {
 
         private void renderPass() {
             GUIMap.Children.Clear();
-/*
-            Groupes things = Game.ThingsOnMap;
+
+            Groupes things = game.MapContents;
             renderItems(things.Obstacles);
             renderItems(things.SupplyPoints);
             renderItems(things.Zombies);
             renderItems(things.Humans);
             renderItems(things.Uncategorized);
- */
         }
 
         private void renderItems(ITakeSpace[] items) {
@@ -126,19 +127,18 @@ namespace HvZClient {
 
         private void Window_Resized(object sender, SizeChangedEventArgs e) {
             //Added null check so it doesnt crash. How do you get a ClientGame?
-            if (Game.clientWorld != null) {
+            if (game != null) {
                 double size = Math.Min(ActualWidth, ActualHeight);
-/*
-                double mapSize = Math.Min(Game.clientWorld.Map.Width, Game.clientWorld.Map.Height);
+                
+                double mapSize = Math.Min(game.Width, game.Height);
                 RenderMultiplier = size / mapSize;
 
-                if (GUIMap.Width != Game.clientWorld.Map.Width * RenderMultiplier || GUIMap.Height != Game.clientWorld.Map.Height) {
-                    GUIMap.Width = Game.clientWorld.Map.Width * RenderMultiplier;
-                    GUIMap.Height = Game.clientWorld.Map.Height * RenderMultiplier;
+                if (GUIMap.Width != game.Width * RenderMultiplier || GUIMap.Height != game.Height) {
+                    GUIMap.Width = game.Width * RenderMultiplier;
+                    GUIMap.Height = game.Height * RenderMultiplier;
 
                     renderPass();
                 }
- */
             }
         }
 
@@ -155,7 +155,7 @@ namespace HvZClient {
                 "You're lucky I don't smack you for thinking about leaving.",
                 "Don't leave now - there's a dimensional shambler waiting for you in Windows!"
             };
-            if (MessageBox.Show(messages[DateTime.Now.Second%messages.Length], "Leave Game", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes) {
+            if (MessageBox.Show(messages.PickNext(), "Leave Game", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes) {
                 //Game.theGame.EndGame();
                 Owner.Focus();
             } else {

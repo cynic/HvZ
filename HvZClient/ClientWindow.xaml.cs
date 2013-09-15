@@ -28,8 +28,16 @@ namespace HvZClient {
             }
         }
 
-        private ImageBrush ImageFromMap(string filename) {
-            var m = new HvZ.Common.Map(filename);
+        protected override void OnContentRendered(EventArgs e) {
+            base.OnContentRendered(e);
+            this.RegisterWindow();
+        }
+
+        public static ImageBrush ImageFromMap(string filename) {
+            return ImageFromMap(new Map(filename));
+        }
+
+        public static ImageBrush ImageFromMap(Map m) {
             var arr = new byte[3 * m.Width * m.Height];
             var imgW = m.Width;
             var imgH = m.Height;
@@ -48,7 +56,10 @@ namespace HvZClient {
                     arr[idx + 2] = rgb.B;
                 }
             }
-            var i = BitmapImage.Create(imgW, imgH, 96, 96, PixelFormats.Rgb24, null, arr, 3 * m.Width);
+
+            int mult = 6;
+            arr = amplifyResolution(arr, mult, m.Width);
+            var i = BitmapImage.Create(mult * imgW, mult * imgH, 96, 96, PixelFormats.Rgb24, null, arr, mult * 3 * m.Width);
             /*
             PngBitmapEncoder encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(i));
@@ -59,6 +70,42 @@ namespace HvZClient {
             var brush = new ImageBrush(i);
             brush.Stretch = Stretch.Fill;
             return brush;
+        }
+
+        public static byte[] amplifyResolution(byte[] data, int mult, int width) {
+            if (mult <= 1) {
+                return data;
+            }
+
+            List<byte[][]> lines = new List<byte[][]>();
+            List<byte[]> line = new List<byte[]>();
+
+            for (int i = 0; i < data.Length; i += 3) {
+                byte[] pixel = new byte[3];
+                pixel[0] = data[i];
+                pixel[1] = data[i + 1];
+                pixel[2] = data[i + 2];
+
+                for (int p = 0; p < mult; p++) {
+                    line.Add(pixel);
+                }
+
+                if (line.Count == width * mult) {
+                    for (int p = 0; p < mult; p++) {
+                        lines.Add(line.ToArray());
+                    }
+                    line.Clear();
+                }
+            }
+
+            List<byte> result = new List<byte>();
+            foreach (byte[][] i in lines) {
+                foreach (byte[] k in i) {
+                    result.AddRange(k);
+                }
+            }
+
+            return result.ToArray();
         }
 
         private void Maps_SelectionChanged(object sender, SelectionChangedEventArgs e) {
