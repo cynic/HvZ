@@ -125,7 +125,7 @@ namespace HvZClient {
             var t = new System.Threading.Tasks.Task(new Action(() => {
                 try {
                     connection.ConnectToServer("localhost");
-                } catch (Exception exc) {
+                } catch (Exception) {
                     Dispatcher.Invoke(new Action(() =>
                         MessageBox.Show("I couldn't connect to the server.  Maybe you're not on the Rhodes internal network?  You won't be able to play the game unless you can connect to the server...")
                     ));
@@ -135,7 +135,7 @@ namespace HvZClient {
         }
 
         private void CreateButton_Click(object sender, RoutedEventArgs e) {
-            if (String.IsNullOrWhiteSpace(Name.Text)) {
+            if (String.IsNullOrWhiteSpace(Name_textBox.Text)) {
                 MessageBox.Show("You need to type in a name first.");
                 return;
             }
@@ -148,7 +148,7 @@ namespace HvZClient {
                 return;
             }
             var m = new Map((string)Maps.SelectedValue);
-            var gameWindow = new GameWindow(Name.Text, (Role.SelectedItem as ComboBoxItem).Content.ToString(), m);
+            var gameWindow = new GameWindow(Name_textBox.Text, (Role.SelectedItem as ComboBoxItem).Content.ToString(), m);
             gameWindow.Owner = this;
             gameWindow.Show();
         }

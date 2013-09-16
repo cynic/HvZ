@@ -46,7 +46,7 @@
         <Label TextBlock.FontSize="28" Foreground="White" Grid.Row="2" Margin="362,47,356,87" Grid.ColumnSpan="2" FontSize="48" >OR</Label>
         <Canvas Background="#99F0F8FF" Grid.Column="1" Grid.Row="1" Width="262" Height="146" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="82,44,52,46">
             <Label Canvas.Left="10" Canvas.Top="6" Width="55">Name:</Label>
-            <TextBox Width="150" Name="Name" Canvas.Left="70" Canvas.Top="10"></TextBox>
+            <TextBox Width="150" Name="Name_textBox" Canvas.Left="70" Canvas.Top="10"></TextBox>
             <Label Canvas.Left="10" Canvas.Top="48">Play as a</Label>
             <ComboBox Width="150" Canvas.Left="70" Canvas.Top="52" Name="Role">
                 <ComboBox.Items>

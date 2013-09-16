@@ -9,71 +9,100 @@ namespace HvZClient {
     /// Having a little fun here. Feel free to add as many quotes as you like.
     /// 
     /// Format for forming plurals:
-    ///     format 1: "{plain}" //an s is appended to the end
-    ///     format 2: "{0}", "{1}" // 1 is appended on to 0
-    ///     format 3: "{0}", "{1}", "{2}" // the end of 0 is replace with 1 and 2 is appended onto the end
+    ///     format 1: "{plain}" - an s is appended to the end
+    ///     format 2: "{0}", "{1}" - 1 is appended on to 0
+    ///     format 3: "{0}", "{1}", "{2}" - the end of 0 is replace with 1 and 2 is appended onto the end
     ///     
-    /// 
-    /// Variable keys:
-    ///     0 = quote
-    ///     1 = conjunction
-    ///     2 = prefix
-    ///     3 = source
-    ///     4 = name
-    ///     5 = object
-    ///     
-    /// Names and objects can be reffered to from quotes and sources.
-    ///     
-    ///Only usable in quotes and sources:
-    ///     5s = forced plural object
     /// </summary>
     static class QuoteGenerator {
+        // Variable keys:
+        private enum QKey {
+            q,  // = quote
+            c,  // = conjunction
+            p,  // = prefix
+            s,  // = source
+            n,  // = name
+            o,  // = object
+            r,  // = random positive integer (0 - 900)
+            R,  // = random positive double (0 - 1)
+
+            rR, // = the sum of r and R
+            os, // = source - forced plural
+            ss  // = object - forced plural
+        }
+        // Variable keys can be used from anywhere but must be used sparingly.
+        //  Keys only work in sets other than the one they refer to, to prevent circular references
+        //  and keys refering to one of it parent's sets will also not be applied.
+
         private static object[]
         sources = new object[] {
+            new string[] { "The Doctor", "", "" },
+            new string[] { "spiderman", "en", "" },
+            new string[] { "Yoda", "", " the padawan master" },
+            "doctor",
             "news stand",
             "hulk",
+            "officer",
+            new string[] { "policeman", "en", "" },
+            new string[] { "fireman", "en", "" },
             "scientist",
+            "artist",
             "expert",
             "Drug addict",
             new string[] { "celebrity", "i", "es" },
-            "space {5}",
+            "space {o}",
             "zombie",
+            "human",
             "school teacher",
             "lunatic",
             "Individual",
-            "person",
+            new string[] { "person", "ople" , ""},
+            new string[] { "elderly", "i", "es" },
             new string[] { "family", "i", "es" },
-            "Ape"},
+            "Ape"
+        },
         objects = new object[] {
+            new string[] { "force", "arce", "" },
             "bannana",
+            new string[] { "fiber", "", "" },
             "grandma",
             "alien",
             "carrot",
+            "vegetable",
             "badingadink",
-            new string[] { "people", "" },
+            new string[] { "people", "", "" },
             new string[] {"snow", "" },
             "piano"
         };
-        //I had many more but they are gone :(
+
         private static string[]
         quotes = new string[] {
-            "Don't eat the yellow {5}",
+            "Don't eat the yellow {o}",
             "Uuugh",
             "Smash!!",
+            "Eating {rR} kilos of {o} is good for zombie bites",
+            "Zombies love {o}",
+            "Resupply points are the best place to get food",
+            "Becoming a zombie was the best desition I've ever made",
             "You must not think about THE GAME",
-            "The {5s} are not to be trusted",
+            "The {os} are not to be trusted",
             "I remember what it was like to be human",
-            "Brains taste alot like {5}",
+            "Brains taste alot like {o}",
             "You'll know what it means when you need it",
+            "Use the {o} Luke",
             "Zombie are the main cause of zombies",
-            "Zombies are your friends!"
+            "Zombies are your friends!",
+            "Terrible! astounding! Fantastic!",
+            "Lookout for the {os}!"
         },
         conjunc = new string[] {
-            "say", "reveal", "tell", "believe", "estimate", "report"
+            "say", "reveal", "tell", "believe", "estimate", "report", "state"
         },
         prefixes = new string[] {
             "world renound",
             "celebrated",
+            "young",
+            "fresh",
             "famous",
             "respected",
             "beloved",
@@ -87,49 +116,65 @@ namespace HvZClient {
             "Shabalala",
             "Obama"
         },
-        //The format used to compile quotes:
         formats = new string[] {
-            "{0} ~{2} {3}",
-            "\"{0}\", {1} {3}",
-            "{3}: {0}",
-            "Some friendly advice: \"{0}\", brought to you by your friendly neighbourhood {3}"
+            //The formats used to compile quotes:
+            "{q} ~{p} {s}",
+            "\"{q}\", {c} {s}",
+            "{s}: {q}",
+            "Some friendly advice: \"{q}\", brought to you by your friendly neighbourhood {s}"
         };
 
         private static bool plural = false;
 
         public static string NextQuote() {
             plural = Utils.rand.Next(1) == 0;
-            string quote = String.Format(formats.PickNext(),
-                getQuote(),
-                getConjunc(),
-                prefixes.PickOne(),
-                getSource(),
-                names.PickOne(),
-                getObject());
+            string quote = formattedString(formats.PickNext(), new List<QKey>());
             return Char.ToUpper(quote[0]) + quote.Substring(1, quote.Length - 1);
         }
 
-        private static string formattedString(string s) {
-            return s
-                .Replace("{4}", names.PickOne())
-                .Replace("{5}", getObject())
-                .Replace("{5s}", getPlural(objects, true));
+        private static string formattedString(string s, List<QKey> exclude) {
+            foreach (QKey key in Enum.GetValues(typeof(QKey))) {
+                if (s.Contains("{" + key + "}") && !exclude.Contains(key)) {
+                    s = s.Replace("{" + key.ToString() + "}", formattedString(getComponentSafe(key), exclude.chain(key)));
+                }
+            }
+            return s;
         }
 
-        private static string getObject() {
-            return getPlural(objects, Utils.rand.Next(5) == 0);
+        private static string getComponentSafe(QKey c) {
+            string result = "";
+            do {
+                result = getComponent(c);
+            } while (result.Contains("{" + c.ToString() + "}"));
+
+            return result;
         }
 
-        private static string getConjunc() {
-            return formattedString(getPlural(conjunc, !plural));
+        private static string getComponent(QKey c) {
+            switch (c) {
+                case QKey.q: return quotes.PickNext();
+                case QKey.c: return getPlural(conjunc, !plural);
+                case QKey.p: return prefixes.PickOne();
+                case QKey.s: return getPlural(sources, plural);
+                case QKey.n: return names.PickOne();
+                case QKey.o: return getPlural(objects, Utils.rand.Next(5) == 0);
+                case QKey.os: return getPlural(objects, true);
+                case QKey.ss: return getPlural(sources, true);
+                case QKey.r: return Utils.rand.Next(0, 901).ToString();
+                case QKey.R: return Utils.rand.NextDouble().ToString();
+                case QKey.rR: return (((double)Utils.rand.Next(0, 901)) + Utils.rand.NextDouble()).ToString();
+
+                default: throw new NotSupportedException("Edit me so I know what to do with " + c.ToString() + " ...PLEASE!!!");
+            }
         }
 
-        private static string getSource() {
-            return formattedString(getPlural(sources, plural));
-        }
-
-        private static string getQuote() {
-            return formattedString(quotes.PickNext());
+        private static List<T> chain<T>(this List<T> list, T link) {
+            List<T> newList = new List<T>();
+            newList.AddRange(list);
+            if (!newList.Contains(link)) {
+                newList.Add(link);
+            }
+            return newList;
         }
 
         private static string getPlural(object[] collection, bool plur) {
@@ -137,24 +182,19 @@ namespace HvZClient {
             string result = item is string ? (string)item : (string)((object[])item)[0];
 
             if (plur) {
-                if (item is string) {
-                    result += "s";
-                } else {
+                string app = "s";
+                if (item is string[]) {
                     string[] items = (string[])item;
-
                     if (items.Length > 1) {
-                        string app = items[1];
-
+                        app = items[1];
                         if (items.Length > 2) {
                             app = items[2];
-                            string repl = items[1];
-
-                            result = result.Substring(0, result.Length - repl.Length) + repl;
+                            result = result.Substring(0, result.Length - items[1].Length) + items[1];
                         }
-
-                        result += app;
                     }
                 }
+
+                result += app;
             }
 
             return result;
