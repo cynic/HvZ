@@ -115,9 +115,11 @@ namespace HvZClient {
             Label tL = (Label)context.FindName("title2");
             if (tL != null) {
                 tL.MouseLeftButtonDown += delegate { try { context.DragMove(); } catch (Exception) { } };
-                tL.MouseDoubleClick += delegate {
-                    context.RestoreButtonClicked(null);
-                };
+                if (context.ResizeMode != ResizeMode.NoResize) {
+                    tL.MouseDoubleClick += delegate {
+                        context.RestoreButtonClicked(null);
+                    };
+                }
             }
         }
 
