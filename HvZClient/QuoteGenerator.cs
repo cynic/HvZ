@@ -53,6 +53,8 @@ namespace HvZClient {
             "space {o}",
             "zombie",
             "human",
+            "Mr Willy Wonka",
+            "specialist",
             "school teacher",
             "lunatic",
             "Individual",
@@ -86,6 +88,11 @@ namespace HvZClient {
             "Becoming a zombie was the best desition I've ever made",
             "You must not think about THE GAME",
             "The {os} are not to be trusted",
+            "The only way to survive is to die",
+            "If you can't beat em...",
+            "They are the master race",
+            "Unicorns, deal with it.",
+            "Wonka bars are made from <sensored> and <sensored> from monkeys <sensored>, but only after they've been washed.",
             "I remember what it was like to be human",
             "Brains taste alot like {o}",
             "You'll know what it means when you need it",
@@ -96,7 +103,7 @@ namespace HvZClient {
             "Lookout for the {os}!"
         },
         conjunc = new string[] {
-            "say", "reveal", "tell", "believe", "estimate", "report", "state"
+            "say", "reveal", "tell", "believe", "estimate", "report", "state", "unimpressed", "sweaty"
         },
         prefixes = new string[] {
             "world renound",
