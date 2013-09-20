@@ -36,7 +36,7 @@ namespace HvZ.Common {
 
     public class Human : IWalker {
         private Map map;
-        public double Heading { get; set; }
+        public double Heading { get; internal set; }
         //public double Speed { get; set; }
         //public int Health { get; set; }
         public uint Id { get; private set; }
@@ -53,7 +53,7 @@ namespace HvZ.Common {
 
         //public event Killed OnKilled;
 
-        public Position Position { get; private set; }
+        public Position Position { get; set; }
         public double Radius { get; private set; }
 
         //public void TriggerSpecial() {
@@ -75,6 +75,7 @@ namespace HvZ.Common {
             map = m;
             Position = new Position(x, y);
             Heading = heading;
+            Radius = 5;
             //Health = health >= 0 ? health : 20;
             //ability = SpecialAbility.NULL;
             //OnKilled += Human_OnKilled;
@@ -108,7 +109,7 @@ namespace HvZ.Common {
 
     public class Zombie : IWalker {
         private Map map;
-        public double Heading { get; private set; }
+        public double Heading { get; internal set; }
         //public double Speed { get; set; }
         public uint Id { get; private set; }
         public string Name { get; private set; }
@@ -128,7 +129,7 @@ namespace HvZ.Common {
         */
 
         public Position Position { get; set; }
-        public double Radius { get; set; }
+        public double Radius { get; private set; }
 
         /*
         public void TriggerSpecial() {

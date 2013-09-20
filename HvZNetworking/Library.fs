@@ -21,6 +21,7 @@ type Command =
 | Left of uint32 * float // walkerId * degrees
 | Right of uint32 * float // walkerId * degrees
 | Eat of uint32 // walkerId
+| Bite of uint32 * uint32 // biter * bitten
 | TakeFood of uint32 * uint32 // who-takes-it * taken-from-where
 | TakeSocks of uint32 * uint32 // who-takes-it * taken-from-where
 | Throw of uint32 * float // walkerId * heading
@@ -32,8 +33,8 @@ type Command =
 | CreateOK of string // gameId
 | Game of string // gameId
 | ListEnd
-| Human of uint32 * float * float * float // walkerId * x * y * heading /// also functions as JoinOK
-| Zombie of uint32 * float * float * float // walkerId * x * y * heading /// also functions as JoinOK
+| Human of uint32 * float * float * float * string // walkerId * x * y * heading * name /// also functions as JoinOK
+| Zombie of uint32 * float * float * float * string // walkerId * x * y * heading * name /// also functions as JoinOK
 | Move
 | No of string // reason for rejection
 
@@ -42,19 +43,18 @@ type ICommandInterpreter =
    abstract member Left : walkerId:uint32 -> degrees:float -> unit
    abstract member Right : walkerId:uint32 -> degrees:float -> unit
    abstract member Eat : walkerId:uint32 -> unit
+   abstract member Bite : walkerId:uint32 -> target:uint32 -> unit
    abstract member TakeFood : walkerId:uint32 -> resupplyId:uint32 -> unit // who-takes-it -> taken-from-where
    abstract member TakeSocks : walkerId:uint32 -> resupplyId:uint32 -> unit // who-takes-it -> taken-from-where
    abstract member Throw : walkerId:uint32 -> heading:float -> unit // walkerId -> heading
-   abstract member ZombieJoin : gameId:string -> name:string -> unit // gameId -> name
-   abstract member HumanJoin : gameId:string -> name:string -> unit // gameId -> name
    abstract member Hello : walkerId:uint32 -> unit // playerId
    abstract member Create : mapdata:string -> unit // mapdata
    abstract member ListStart : unit -> unit
    abstract member CreateOK : gameId:string -> unit // gameId
    abstract member Game : gameId:string -> unit // gameId
    abstract member ListEnd : unit -> unit
-   abstract member Human : walkerId:uint32 -> x:float -> y:float -> heading:float -> unit // walkerId -> x -> y -> heading /// also functions as JoinOK
-   abstract member Zombie : walkerId:uint32 -> x:float -> y:float -> heading:float -> unit // walkerId -> x -> y -> heading /// also functions as JoinOK
+   abstract member Human : walkerId:uint32 -> x:float -> y:float -> heading:float -> name:string -> unit // walkerId -> x -> y -> heading /// also functions as JoinOK
+   abstract member Zombie : walkerId:uint32 -> x:float -> y:float -> heading:float -> name:string -> unit // walkerId -> x -> y -> heading /// also functions as JoinOK
    abstract member Move : unit -> unit
    abstract member No : reason:string -> unit // reason for rejection
 
@@ -69,18 +69,18 @@ type Command with
       | TakeFood (wId, fromWhere) -> x.TakeFood wId fromWhere
       | TakeSocks (wId, fromWhere) -> x.TakeSocks wId fromWhere
       | Throw (wId, heading) -> x.Throw wId heading
-      | ZombieJoin (gameId, name) -> x.ZombieJoin gameId name
-      | HumanJoin (gameId, name) -> x.HumanJoin gameId name
       | Hello playerId -> x.Hello playerId
       | Create mapdata -> x.Create mapdata
       | CreateOK gameId -> x.CreateOK gameId
       | Game gameId -> x.Game gameId
+      | Bite (wId, target) -> x.Bite wId target
       | ListStart -> x.ListStart ()
       | ListEnd -> x.ListEnd ()
-      | Human (walkerId, _x, y, heading) -> x.Human walkerId _x y heading
-      | Zombie (walkerId, _x, y, heading) -> x.Zombie walkerId _x y heading
+      | Human (walkerId, _x, y, heading, name) -> x.Human walkerId _x y heading name
+      | Zombie (walkerId, _x, y, heading, name) -> x.Zombie walkerId _x y heading name
       | Move -> x.Move ()
       | No why -> x.No why
+      | _ -> printfn "I shouldn't be receiving %A commands..." cmd // ignore?
 
 type ClientStatus =
 | InGame of string // gameId
@@ -119,6 +119,7 @@ module Internal =
          | Left (wId, degrees) -> sprintf "left %d %.2f" wId degrees
          | Right (wId, degrees) -> sprintf "right %d %.2f" wId degrees
          | Eat wId -> sprintf "eat %d" wId
+         | Bite (wId, target) -> sprintf "bite %d %d" wId target
          | TakeFood (wId, fromWhere) -> sprintf "takefood %d %d" wId fromWhere
          | TakeSocks (wId, fromWhere) -> sprintf "takesocks %d %d" wId fromWhere
          | Throw (wId, heading) -> sprintf "throw %d %.2f" wId heading
@@ -134,8 +135,8 @@ module Internal =
          | Game gameId -> sprintf "game %s" gameId
          | ListStart -> sprintf "begin"
          | ListEnd -> sprintf "end"
-         | Human (walkerId, x, y, heading) -> sprintf "human %d %.2f %.2f %.2f" walkerId x y heading
-         | Zombie (walkerId, x, y, heading) -> sprintf "zombie %d %.2f %.2f %.2f" walkerId x y heading
+         | Human (walkerId, x, y, heading, name) -> sprintf "human %d %.2f %.2f %.2f %s" walkerId x y heading name
+         | Zombie (walkerId, x, y, heading, name) -> sprintf "zombie %d %.2f %.2f %.2f %s" walkerId x y heading name
          | Move -> "move"
          | No why -> sprintf "no %s" why // reason for rejection
       let byteCount = Encoding.UTF8.GetByteCount s
@@ -153,6 +154,7 @@ module Internal =
          makeMatcher @"^left (\d+) (\d+\.\d{2})$" (fun m -> Left(uint32 m.[1], float m.[2]))
          makeMatcher @"^right (\d+) (\d+\.\d{2})$" (fun m -> Right(uint32 m.[1], float m.[2]))
          makeMatcher @"^eat (\d+)$" (fun m -> Eat(uint32 m.[1]))
+         makeMatcher @"^bite (\d+) (\d+)$" (fun m -> Bite(uint32 m.[1], uint32 m.[2]))
          makeMatcher @"^takefood (\d+) (\d+)$" (fun m -> TakeFood(uint32 m.[1], uint32 m.[2]))
          makeMatcher @"^takesocks (\d+) (\d+)$" (fun m -> TakeSocks(uint32 m.[1], uint32 m.[2]))
          makeMatcher @"^throw (\d+) (\d+\.\d{2})$" (fun m -> Throw(uint32 m.[1], float m.[2]))
@@ -164,8 +166,8 @@ module Internal =
          makeMatcher @"^game (.{20})$" (fun m -> Game(m.[1]))
          makeMatcher @"^begin$" (fun _ -> ListStart)
          makeMatcher @"^end$" (fun _ -> ListEnd)
-         makeMatcher @"^human (\d+) (\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})$" (fun m -> Human(uint32 m.[1], float m.[2], float m.[3], float m.[4]))
-         makeMatcher @"^zombie (\d+) (\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})$" (fun m -> Zombie(uint32 m.[1], float m.[2], float m.[3], float m.[4]))
+         makeMatcher @"^human (\d+) (\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2}) (.+)$" (fun m -> Human(uint32 m.[1], float m.[2], float m.[3], float m.[4], m.[5]))
+         makeMatcher @"^zombie (\d+) (\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2}) (.+)$" (fun m -> Zombie(uint32 m.[1], float m.[2], float m.[3], float m.[4], m.[5]))
          makeMatcher @"^move$" (fun _ -> Move)
          makeMatcher @"^no (.+)$" (fun m -> No(m.[1]))
       |]
@@ -288,6 +290,24 @@ module Internal =
       connection client onClosed onCommandReceived onAbnormalCommand
       |> ignore
 
+namespace HvZ.AI
+open HvZ.Common
+
+type IHumanPlayer =
+   abstract member GoForward: distance:float -> unit
+   abstract member TurnLeft: degrees:float -> unit
+   abstract member TurnRight: degrees:float -> unit
+   abstract member Eat: unit -> unit
+   abstract member TakeFoodFrom: place:IIdentified -> unit
+   abstract member TakeSocksFrom: place:IIdentified -> unit
+   abstract member Throw: heading:float -> unit
+
+type IZombiePlayer =
+   abstract member GoForward: distance:float -> unit
+   abstract member TurnLeft: degrees:float -> unit
+   abstract member TurnRight: degrees:float -> unit
+   abstract member Eat: target:IIdentified -> unit
+
 namespace HvZ.Common
 open HvZ.Networking
 open System.Net.Sockets
@@ -334,12 +354,19 @@ type HvZConnection() as this =
          | None -> ()
 
    (* Here be members which hide the nasty details of Command interop *)
-
-   member __.Forward distance = send () (Forward (Option.get playerId, distance))
-   member __.Left degrees = send () (Left (Option.get playerId, degrees))
-   member __.Right degrees = send () (Right (Option.get playerId, degrees))
-   member __.Eat () = send () (Eat (Option.get playerId))
-   member __.TakeFoodFrom (r : IIdentified) = send () (TakeFood (Option.get playerId, r.Id))
-   member __.TakeSocksFrom (r : IIdentified) = send () (TakeSocks (Option.get playerId, r.Id))
-   member __.Throw heading = send () (Throw (Option.get playerId, heading))
    member __.CreateGame mapData = send () (Create mapData)
+   
+   interface HvZ.AI.IHumanPlayer with
+      member __.GoForward distance = send () (Forward (Option.get playerId, distance))
+      member __.TurnLeft degrees = send () (Left (Option.get playerId, degrees))
+      member __.TurnRight degrees = send () (Right (Option.get playerId, degrees))
+      member __.Eat () = send () (Eat (Option.get playerId))
+      member __.TakeFoodFrom (r : IIdentified) = send () (TakeFood (Option.get playerId, r.Id))
+      member __.TakeSocksFrom (r : IIdentified) = send () (TakeSocks (Option.get playerId, r.Id))
+      member __.Throw heading = send () (Throw (Option.get playerId, heading))
+   
+   interface HvZ.AI.IZombiePlayer with
+      member __.GoForward distance = send () (Forward (Option.get playerId, distance))
+      member __.TurnLeft degrees = send () (Left (Option.get playerId, degrees))
+      member __.TurnRight degrees = send () (Right (Option.get playerId, degrees))
+      member __.Eat target = send () (Bite (Option.get playerId, target.Id))

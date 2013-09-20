@@ -75,12 +75,17 @@ namespace HvZClient {
 
         private void Window_Loaded(object sender, RoutedEventArgs e) {
             var t = new System.Threading.Tasks.Task(new Action(() => {
-                try {
-                    connection.ConnectToServer("localhost");
-                } catch (Exception exc) {
-                    Dispatcher.Invoke(new Action(() =>
-                        MessageBox.Show("I couldn't connect to the server.  Maybe you're not on the Rhodes internal network?  You won't be able to play the game unless you can connect to the server...")
-                    ));
+                bool connected = false;
+                while (!connected) {
+                    try {
+                        connection.ConnectToServer("localhost");
+                        connected = true;
+                        Dispatcher.Invoke(new Action(() => {
+                            JoinButton.IsEnabled = CreateButton.IsEnabled = true;
+                        }));
+                    } catch {
+                        System.Threading.Thread.Sleep(2000);
+                    }
                 }
             }));
             t.Start();
@@ -100,7 +105,7 @@ namespace HvZClient {
                 return;
             }
             var m = new Map((string)Maps.SelectedValue);
-            var gameWindow = new GameWindow(Name.Text, (Role.SelectedItem as ComboBoxItem).Content.ToString(), m);
+            var gameWindow = new GameWindow(Name.Text, (Role.SelectedItem as ComboBoxItem).Content.ToString(), m, (HvZ.AI.IHumanAI)new HvZ.AI.RandomWalker());
             gameWindow.Owner = this;
             gameWindow.Show();
         }

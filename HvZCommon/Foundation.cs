@@ -56,29 +56,12 @@ namespace HvZ.Common {
     }
 
     public class Position {
-        public double X { get; set; }
-        public double Y { get; set; }
+        public double X { get; internal set; }
+        public double Y { get; internal set; }
 
         public Position(double x, double y) {
             X = x;
             Y = y;
-        }
-
-        public bool newPosition(string posX, string posY) {
-            double x = X;
-            double y = Y;
-
-            try {
-                x = Double.Parse(posX);
-                y = Double.Parse(posY);
-            } catch  {
-                return false;
-            }
-
-            X = x;
-            Y = y;
-
-            return true;
         }
 
         /// <summary>Calculates straight line distance between two Positions (untested)</summary>

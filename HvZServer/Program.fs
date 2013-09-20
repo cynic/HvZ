@@ -42,7 +42,7 @@ module Internal =
    | Create of string[] * (Command -> unit) * AsyncReplyChannel<string> // map, send, reply
 
    let newGame gameId (map : Map) onGameOver =
-      let delay_between_moves = 100 // ms
+      let delay_between_moves = 400 // ms
       let playerSends = System.Collections.Generic.List()
       let myGame = new HvZ.Common.Game(map)
       let nextId =
@@ -53,36 +53,39 @@ module Internal =
       MailboxProcessor.Start(fun inbox ->
          let rec loop (lastMoveTime : System.DateTime) numPlayers =
             async {
-               let delay = int (System.DateTime.Now-lastMoveTime).TotalMilliseconds
-               if delay < 0 then
-                  playerSends.ForEach (fun x -> x Move)
-                  return! loop System.DateTime.Now numPlayers
+               if numPlayers = 0 then
+                  return! waitForPlayers ()
                else
-                  let! input = inbox.TryReceive(delay)
-                  match input with
-                  | None ->
+                  let delay = int (System.DateTime.Now-lastMoveTime).TotalMilliseconds
+                  if delay < 0 then
                      playerSends.ForEach (fun x -> x Move)
                      return! loop System.DateTime.Now numPlayers
-                  | Some (playerId, cmd, send) ->
-                     let checkOwnPlayer wId f =
-                        if playerId <> wId then send (No "You can only control your own walker, not anyone else's.")
-                        elif f () then playerSends.ForEach (fun x -> x cmd)
-                        else send (No "I couldn't execute that command, sorry.")
-                     match cmd with
-                     | Forward (wId, dist) -> checkOwnPlayer wId (fun () -> myGame.Forward(wId, dist))
-                     | Left (wId, degrees) -> checkOwnPlayer wId (fun () -> myGame.Left(wId, degrees))
-                     | Right (wId, degrees) -> checkOwnPlayer wId (fun () -> myGame.Right(wId, degrees))
-                     | Eat wId -> checkOwnPlayer wId (fun () -> myGame.Eat(wId))
-                     | TakeFood (wId, fromWhere) -> checkOwnPlayer wId (fun () -> myGame.TakeFood(wId, fromWhere))
-                     | TakeSocks (wId, fromWhere) -> checkOwnPlayer wId (fun () -> myGame.TakeSocks(wId, fromWhere))
-                     | Throw (wId, heading) -> checkOwnPlayer wId (fun () -> myGame.Throw(wId, heading))
-                     | HumanJoin (x, name) when x = gameId ->
-                        if not <| map.AddHuman(nextId (), name) then failwith "I *told* you this would happen.  Now fix it."
-                     | ZombieJoin (x, name) when x = gameId ->
-                        if not <| map.AddZombie(nextId (), name) then failwith "Hey moron, fix what you need to fix."
-                     | _ ->
-                        send (No "This command is something that I tell clients.  Clients don't get to tell it to me.")
-                     return! loop lastMoveTime numPlayers
+                  else
+                     let! input = inbox.TryReceive(delay)
+                     match input with
+                     | None ->
+                        playerSends.ForEach (fun x -> x Move)
+                        return! loop System.DateTime.Now numPlayers
+                     | Some (playerId, cmd, send) ->
+                        let checkOwnPlayer wId f =
+                           if playerId <> wId then send (No "You can only control your own walker, not anyone else's.")
+                           elif f () then playerSends.ForEach (fun x -> x cmd)
+                           else send (No "I couldn't execute that command, sorry.")
+                        match cmd with
+                        | Forward (wId, dist) -> checkOwnPlayer wId (fun () -> myGame.Forward(wId, dist))
+                        | Left (wId, degrees) -> checkOwnPlayer wId (fun () -> myGame.Left(wId, degrees))
+                        | Right (wId, degrees) -> checkOwnPlayer wId (fun () -> myGame.Right(wId, degrees))
+                        | Eat wId -> checkOwnPlayer wId (fun () -> myGame.Eat(wId))
+                        | TakeFood (wId, fromWhere) -> checkOwnPlayer wId (fun () -> myGame.TakeFood(wId, fromWhere))
+                        | TakeSocks (wId, fromWhere) -> checkOwnPlayer wId (fun () -> myGame.TakeSocks(wId, fromWhere))
+                        | Throw (wId, heading) -> checkOwnPlayer wId (fun () -> myGame.Throw(wId, heading))
+                        | HumanJoin (x, name) when x = gameId ->
+                           if not <| map.AddHuman(nextId (), name) then failwith "I *told* you this would happen.  Now fix it."
+                        | ZombieJoin (x, name) when x = gameId ->
+                           if not <| map.AddZombie(nextId (), name) then failwith "Hey moron, fix what you need to fix."
+                        | _ ->
+                           send (No "This command is something that I tell clients.  Clients don't get to tell it to me.")
+                        return! loop lastMoveTime numPlayers
             }
          and waitForPlayers () =
             async {
@@ -91,26 +94,28 @@ module Internal =
                   if addFunc () then
                      playerSends.Add send
                      let x, y, heading =
-                        let h = map.Walker playerId
-                        h.Position.X, h.Position.Y, h.Heading
+                        let w = map.Walker playerId
+                        w.Position.X, w.Position.Y, w.Heading
                      playerSends.ForEach (fun f ->
-                        f (Human (playerId, x, y, heading))
+                        f (createCommand x y heading)
                      )
                      loop System.DateTime.Now 1
                   else
                      send (No "There aren't any slots left for that kind of player on this map.")
                      waitForPlayers ()
                match input with
-               | None -> onGameOver () // that's it -- no players in here for 1s -- game ended!
+               | None ->
+                  printfn "There are no players left in %s; the game is declared to be over!" gameId
+                  onGameOver () // that's it -- no players in here for 1s -- game ended!
                | Some (playerId, HumanJoin(x,name), send) when x = gameId ->
-                  return! doAdd (fun () -> map.AddHuman(playerId, name)) playerId send (fun x y heading -> Human (playerId, x, y, heading))
+                  return! doAdd (fun () -> map.AddHuman(playerId, name)) playerId send (fun x y heading -> Human (playerId, x, y, heading, name))
                | Some (playerId, ZombieJoin(x,name), send) when x = gameId ->
-                  return! doAdd (fun () -> map.AddZombie(playerId, name)) playerId send (fun x y heading -> Zombie (playerId, x, y, heading))
+                  return! doAdd (fun () -> map.AddZombie(playerId, name)) playerId send (fun x y heading -> Zombie (playerId, x, y, heading, name))
                | Some (_, _, send) ->
                   send (No "There are no players in the game yet, so no commands can be issued to players yet.")
                   return! waitForPlayers ()
             }
-         loop System.DateTime.Now 0
+         waitForPlayers ()
       )
 
    let gamesProcessor =
@@ -133,14 +138,13 @@ module Internal =
                   try
                      let map = HvZ.Common.Map(map)
                      gamesList.Add(id, newGame id map gameOver)
-                     printfn "Sending game ID."
                      send (CreateOK id)
-                     printfn "Game ID sent."
                      reply.Reply (id)
                   with
                   | e ->
                      send (No e.Message)
                      reply.Reply null
+                  return! loop ()
                | Request (gameId, playerId, cmd, send) ->
                   match gamesList.TryGetValue gameId with
                   | true, v -> v.Post (playerId, cmd, send)
@@ -153,7 +157,7 @@ module Internal =
 let handleRequest playerId status cmd send =
    printfn "Received %A from player %d" cmd playerId
    let send x =
-      printfn "Sending %A to player %d" cmd playerId
+      printfn "Sending %A to player %d" x playerId
       send x
    match status, cmd with
    | OutOfGame, HumanJoin (gameId, _) | OutOfGame, ZombieJoin (gameId, _) ->

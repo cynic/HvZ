@@ -24,6 +24,14 @@ namespace HvZ.Common {
             return walkers[id]; // this will throw if the id isn't found.  That's fine; if it happens, fix the bug.
         }
 
+        internal bool IsHuman(uint id) {
+            return humans.ContainsKey(id);
+        }
+
+        internal bool IsZombie(uint id) {
+            return zombies.ContainsKey(id);
+        }
+
         private void GetBodyForTransfer(out double xpos, out double ypos, out double heading) {
             // find something that's computer-controlled; it won't have a name.
             IWalker walker = walkers.Select(x => x.Value).FirstOrDefault(x => x.Name == null);
@@ -35,14 +43,72 @@ namespace HvZ.Common {
             ypos = walker.Position.Y;
             heading = walker.Heading;
             if ((humans.Remove(walker.Id) || zombies.Remove(walker.Id)) && walkers.Remove(walker.Id)) {
+                return;
+            } else {
                 throw new Exception("Map accounting is incorrect.  Fix it.");
             }
+        }
+
+        public void SetHeading(uint id, double newHeading) {
+            if (humans.ContainsKey(id)) {
+                humans[id].Heading = newHeading;
+            } else {
+                zombies[id].Heading = newHeading;
+            }
+        }
+
+        public void SetPosition(uint id, double x, double y) {
+            var walker = walkers[id];
+            var pos = walker.Position;
+            var oldX = pos.X;
+            var oldY = pos.Y;
+            pos.X = Math.Max(0.0, Math.Min(Width - walkers[id].Radius, x));
+            pos.Y = Math.Max(0.0, Math.Min(Height - walkers[id].Radius, y));
+            foreach (var kvp in walkers) {
+                if (kvp.Key == id) continue;
+                if (kvp.Value.Intersects(walker)) {
+                    // reset back to the old values.
+                    pos.X = oldX;
+                    pos.Y = oldY;
+                }
+            }
+        }
+
+        public void SetHuman(uint id, uint x, uint y, double heading, string name) {
+            // find the player with x,y coordinates specified.  Replace with this one.
+            var w = walkers
+                .First(walker => walker.Value.Position.X == x && walker.Value.Position.Y == y).Value;
+            walkers.Remove(w.Id);
+            humans.Remove(w.Id);
+            zombies.Remove(w.Id);
+            var h = new Human(id, name, this, x, y, heading);
+            humans.Add(id, h);
+            walkers.Add(id, h);
+            PlayersInGame++;
+        }
+
+        public void SetZombie(uint id, uint x, uint y, double heading, string name) {
+            // find the player with x,y coordinates specified.  Replace with this one.
+            var w = walkers
+                .First(walker => walker.Value.Position.X == x && walker.Value.Position.Y == y).Value;
+            walkers.Remove(w.Id);
+            humans.Remove(w.Id);
+            zombies.Remove(w.Id);
+            var z = new Zombie(id, name, this, x, y, heading);
+            zombies.Add(id, z);
+            walkers.Add(id, z);
+            PlayersInGame++;
         }
 
         public bool AddHuman(uint id, string name) {
             if (PlayersInGame == PlayersAllowed) return false; // too many already in-game.
             double xpos, ypos, heading;
-            GetBodyForTransfer(out xpos, out ypos, out heading);
+            try {
+                GetBodyForTransfer(out xpos, out ypos, out heading);
+            } catch (Exception e) {
+                Console.WriteLine("AddHuman(): {0}", e);
+                return false;
+            }
             var h = new Human(id, name, this, xpos, ypos, heading);
             humans.Add(id, h);
             walkers.Add(id, h);
@@ -54,7 +120,12 @@ namespace HvZ.Common {
             // mostly copypasta from above
             if (PlayersInGame == PlayersAllowed) return false; // too many already in-game.
             double xpos, ypos, heading;
-            GetBodyForTransfer(out xpos, out ypos, out heading);
+            try {
+                GetBodyForTransfer(out xpos, out ypos, out heading);
+            } catch (Exception e) {
+                Console.WriteLine("AddZombie(): {0}", e);
+                return false;
+            }
             var z = new Zombie(id, name, this, xpos, ypos, heading);
             zombies.Add(id, z);
             walkers.Add(id, z);

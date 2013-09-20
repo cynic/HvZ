@@ -32,24 +32,27 @@ namespace HvZClient {
     }
     /// <summary>Interaction logic for MainWindow.xaml</summary>
     public partial class GameWindow : Window {
-        private static readonly List<Key> pressedKeys = new List<Key>();
         ClientGame game;
 
         public double RenderMultiplier { get; private set; }
-
-        private DispatcherTimer ticker = new DispatcherTimer() {
-            Interval = TimeSpan.FromMilliseconds(300),
+        DispatcherTimer ticker = new DispatcherTimer() {
+            Interval = TimeSpan.FromMilliseconds(100)
         };
 
-        public GameWindow(string name, string role, Map m) {
+        public GameWindow(string name, string role, Map m, HvZ.AI.IZombieAI ai) {
             InitializeComponent();
-            game = new ClientGame(name, role, m);
+            game = new ClientGame(name, role, m, ai);
+        }
+
+        public GameWindow(string name, string role, Map m, HvZ.AI.IHumanAI ai) {
+            InitializeComponent();
+            game = new ClientGame(name, role, m, ai);
         }
 
         public void StartGame() {
             GUIMap.Visibility = Visibility.Visible;
             HideDialog();
-            ticker.Tick += gameLoop;
+            ticker.Tick += (o, e) => gameLoop();
             ticker.Start();
         }
 
@@ -62,7 +65,7 @@ namespace HvZClient {
             Dialog.Visibility = Visibility.Collapsed;
         }
 
-        private void gameLoop(object sender, EventArgs e) {
+        private void gameLoop() {
             renderPass();
         }
 
@@ -100,28 +103,6 @@ namespace HvZClient {
             Canvas.SetLeft(img, RenderMultiplier * (item.Position.X - item.Radius));
             Canvas.SetTop(img, RenderMultiplier * (item.Position.Y - item.Radius));
             GUIMap.Children.Add(img);
-        }
-
-        private void Window_KeyDown(object sender, KeyEventArgs e) {
-            if (!pressedKeys.Contains(e.Key)) {
-                pressedKeys.Add(e.Key);
-            }
-        }
-
-        private void Window_KeyUp(object sender, KeyEventArgs e) {
-            if (pressedKeys.Contains(e.Key)) {
-                pressedKeys.Remove(e.Key);
-            }
-        }
-
-        public static bool hasKeys(params Key[] k) {
-            foreach (Key i in k) {
-                if (!pressedKeys.Contains(i)) {
-                    return false;
-                }
-            }
-
-            return true;
         }
 
         private void Window_Resized(object sender, SizeChangedEventArgs e) {

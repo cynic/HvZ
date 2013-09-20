@@ -8,15 +8,22 @@ namespace HvZ.Common {
     public static class Utils {
         internal static readonly Random rand = new Random();
 
-        public static Position randPosition(int maxWidth, int maxHeight) {
-            return new Position(rand.Next(maxWidth), rand.Next(maxHeight));
+        public static bool Intersects(this ITakeSpace a, ITakeSpace b) {
+            // thanks to: http://stackoverflow.com/questions/8367512/algorithm-to-detect-if-a-circles-intersect-with-any-other-circle-in-the-same-pla
+            var dX = a.Position.X - b.Position.X;
+            var dY = a.Position.Y - b.Position.Y;
+            var distBetween = Math.Sqrt((dX * dX) + (dY * dY));
+            var sum = Math.Abs(a.Radius + b.Radius);
+            var diff = Math.Abs(a.Radius - b.Radius);
+            return distBetween >= diff && distBetween <= sum;
         }
 
-        public static string validateFileName(string str) {
-            foreach (char i in
-                Path.GetInvalidFileNameChars())
-                str = str.Replace(i.ToString(), "_");
-            return str;
+        public static double ToDegrees(this double x) {
+            return (x * 180.0) / Math.PI;
+        }
+
+        public static double ToRadians(this double x) {
+            return (x * Math.PI) / 180.0;
         }
 
         public static T PickOne<T>(this T[] array) {

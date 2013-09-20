@@ -29,10 +29,10 @@
     <Canvas Name="Splash">
         <ListBox Height="106" Canvas.Left="10" Canvas.Top="43" Width="232"/>
         <Label Canvas.Left="10" Canvas.Top="170">Choose a game to join, then</Label>
-        <Button Name="JoinButton" Template="{StaticResource InsideButtonTemplateNoImage}" Canvas.Left="174" Canvas.Top="170" Click="JoinButton_Click">Join game</Button>
+        <Button Name="JoinButton" Template="{StaticResource InsideButtonTemplateNoImage}" Canvas.Left="174" Canvas.Top="170" Click="JoinButton_Click" IsEnabled="False">Join game</Button>
         <Label TextBlock.FontSize="28" Canvas.Left="267" Canvas.Top="153">OR</Label>
         <Label Canvas.Left="330" Canvas.Top="170">Choose a map to play on, then</Label>
-        <Button Template="{StaticResource InsideButtonTemplateNoImage}" Canvas.Left="507" Canvas.Top="170" Name="CreateButton" Click="CreateButton_Click">Create a game</Button>
+        <Button Template="{StaticResource InsideButtonTemplateNoImage}" Canvas.Left="507" Canvas.Top="170" Name="CreateButton" Click="CreateButton_Click" IsEnabled="False">Create a game</Button>
         <ListBox Name="Maps"  Height="106" Canvas.Left="330" Canvas.Top="43" Width="268" SelectionChanged="Maps_SelectionChanged"/>
         <Canvas Name="MapPreview"  Width="353" Height="254" Opacity="0.65" Canvas.Top="211" Canvas.Left="429"></Canvas>
         <Label Canvas.Left="10" Canvas.Top="6">Name:</Label>

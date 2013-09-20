@@ -37,11 +37,16 @@ namespace HvZ.Common {
         Map map;
         string playerName;
 
+        public AI.IHumanPlayer HumanPlayer { get { return connection; } }
+        public AI.IZombiePlayer ZombiePlayer { get { return connection; } }
+        Action onMove;
+        Game world;
+
         /// <summary>
         /// Create a new game, using the given map.
         /// </summary>
         /// <param name="map"></param>
-        public ClientGame(string name, string role, Map map) {
+        private ClientGame(string name, string role, Map map) {
             connection.OnCommandReceived += connection_OnGameCommand;
             switch (role) {
                 case "Human": this.role = Role.Human; break;
@@ -51,8 +56,19 @@ namespace HvZ.Common {
             playerName = name;
             state = CGState.CreateRequested;
             this.map = map;
+            world = new Game(map);
             connection.ConnectToServer("localhost");
             connection.Send(Command.NewCreate(map.RawMapData));
+        }
+
+        public ClientGame(string name, string role, Map map, AI.IHumanAI humanAI)
+            : this(name, role, map) {
+                onMove = () => humanAI.DoSomething(connection, new List<ITakeSpace>());
+        }
+
+        public ClientGame(string name, string role, Map map, AI.IZombieAI zombieAI)
+            : this(name, role, map) {
+            onMove = () => zombieAI.DoSomething(connection, new List<ITakeSpace>());
         }
 
         private void connection_OnGameCommand(object sender, CommandEventArgs e) {
@@ -60,10 +76,12 @@ namespace HvZ.Common {
         }
 
         public void JoinGameAsHuman(string gameId, string name) {
-            
+            this.gameId = gameId;
+            connection.Send(Command.NewHumanJoin(gameId, name));
         }
 
         public void JoinGameAsZombie(string gameId, string name) {
+            this.gameId = gameId;
             connection.Send(Command.NewZombieJoin(gameId, name));
         }
 
@@ -71,19 +89,27 @@ namespace HvZ.Common {
         public event EventHandler<FailureEventArgs> OnCommandFailure;
 
         void ICommandInterpreter.Create(string mapdata) {
-            map = new Map(mapdata.Split('\r', '\n'));
+            throw new NotImplementedException();
         }
 
         void ICommandInterpreter.CreateOK(string gameId) {
             this.gameId = gameId;
+            switch (role) {
+                case Role.Human: JoinGameAsHuman(gameId, playerName); break;
+                case Role.Zombie: JoinGameAsZombie(gameId, playerName); break;
+            }
         }
 
         void ICommandInterpreter.Eat(uint walkerId) {
             throw new NotImplementedException();
         }
 
-        void ICommandInterpreter.Forward(uint walkerId, double distance) {
+        void ICommandInterpreter.Bite(uint walkerId, uint target) {
             throw new NotImplementedException();
+        }
+
+        void ICommandInterpreter.Forward(uint walkerId, double distance) {
+            world.Forward(walkerId, distance);
         }
 
         void ICommandInterpreter.Game(string gameId) {
@@ -94,16 +120,12 @@ namespace HvZ.Common {
             throw new NotImplementedException();
         }
 
-        void ICommandInterpreter.Human(uint walkerId, double x, double y, double heading) {
-            throw new NotImplementedException();
-        }
-
-        void ICommandInterpreter.HumanJoin(string gameId, string name) {
+        void ICommandInterpreter.Human(uint walkerId, double x, double y, double heading, string name) {
             throw new NotImplementedException();
         }
 
         void ICommandInterpreter.Left(uint walkerId, double degrees) {
-            throw new NotImplementedException();
+            world.Left(walkerId, degrees);
         }
 
         void ICommandInterpreter.ListEnd() {
@@ -115,7 +137,9 @@ namespace HvZ.Common {
         }
 
         void ICommandInterpreter.Move() {
-            throw new NotImplementedException();
+            // first, do the moves.
+            // then ask the AI to make decisions.
+            onMove();
         }
 
         void ICommandInterpreter.No(string reason) {
@@ -123,7 +147,7 @@ namespace HvZ.Common {
         }
 
         void ICommandInterpreter.Right(uint walkerId, double degrees) {
-            throw new NotImplementedException();
+            world.Right(walkerId, degrees);
         }
 
         void ICommandInterpreter.TakeFood(uint walkerId, uint resupplyId) {
@@ -138,34 +162,90 @@ namespace HvZ.Common {
             throw new NotImplementedException();
         }
 
-        void ICommandInterpreter.Zombie(uint walkerId, double x, double y, double heading) {
-            throw new NotImplementedException();
-        }
-
-        void ICommandInterpreter.ZombieJoin(string gameId, string name) {
+        void ICommandInterpreter.Zombie(uint walkerId, double x, double y, double heading, string name) {
             throw new NotImplementedException();
         }
     }
 
     public class Game {
+        /* Assumptions:
+         * - Humans move at 0.55 per turn.
+         * - Zombies move at 0.5 per turn.
+         * - Turn-rate for humans and zombies is 20 degrees per turn.
+         */
+        private Random rng = new Random(12345); // fixed seed, deliberately non-static.
+        private const double humanMoveRate = 0.55;
+        private const double zombieMoveRate = 0.5;
+        private const double turnRate = 30.0;
+        private const int stepsPerTurn = 15;
+
         private Map map;
-        private Dictionary<uint, Human> humans = new Dictionary<uint, Human>();
-        private Dictionary<uint, Zombie> zombies = new Dictionary<uint, Zombie>();
+        //private Dictionary<uint, Human> humans = new Dictionary<uint, Human>();
+        //private Dictionary<uint, Zombie> zombies = new Dictionary<uint, Zombie>();
+        private Dictionary<uint, Action> ongoing = new Dictionary<uint, Action>();
 
         public Game(Map m) {
             map = m;
         }
 
+        private void Update() {
+            for (int i = 0; i < stepsPerTurn; ++i) {
+                // permute order.
+                foreach (var key in ongoing.Keys.OrderBy(_ => rng.Next())) {
+                    // execute action.
+                    ongoing[key]();
+                }
+            }
+        }
+
         public bool Forward(uint walkerId, double dist) {
-            return false;
+            double distRemaining = dist;
+            double distPerStep = (map.IsHuman(walkerId) ? humanMoveRate : zombieMoveRate) / stepsPerTurn;
+            var walker = map.Walker(walkerId);
+            var distXPerStep = distPerStep * Math.Sin(walker.Heading.ToRadians());
+            var distYPerStep = distPerStep * Math.Cos(walker.Heading.ToRadians());
+            Action act = () => {
+                if (distRemaining > 0.0) {
+                    distRemaining -= distPerStep;
+                    map.SetPosition(walkerId, walker.Position.X + distXPerStep, walker.Position.Y + distYPerStep);
+                }
+            };
+            ongoing[walkerId] = act;
+            return true;
         }
+
         public bool Left(uint walkerId, double degrees) {
-            return false;
+            double turnRemaining = degrees;
+            double turnPerStep = turnRate / stepsPerTurn;
+            var walker = map.Walker(walkerId);
+            Action act = () => {
+                if (turnRemaining > 0.0) {
+                    turnRemaining -= turnPerStep;
+                    map.SetHeading(walkerId, walker.Heading - turnPerStep);
+                }
+            };
+            ongoing[walkerId] = act;
+            return true;
         }
+
         public bool Right(uint walkerId, double degrees) {
+            double turnRemaining = degrees;
+            double turnPerStep = turnRate / stepsPerTurn;
+            var walker = map.Walker(walkerId);
+            Action act = () => {
+                if (turnRemaining > 0.0) {
+                    turnRemaining -= turnPerStep;
+                    map.SetHeading(walkerId, walker.Heading + turnPerStep);
+                }
+            };
+            ongoing[walkerId] = act;
+            return true;
+        }
+
+        public bool Eat(uint walkerId) {
             return false;
         }
-        public bool Eat(uint walkerId) {
+        public bool Bite(uint walkerId, uint target) {
             return false;
         }
         public bool TakeFood(uint walkerId, uint fromWhere) {

@@ -39,7 +39,7 @@ namespace HvZClient {
         }
 
         private static BitmapImage makeBitmap(string file) {
-            file = nameSpace + Utils.validateFileName(file) + ext;
+            file = nameSpace + file + ext;
 
             Uri uri = new Uri(file, UriKind.Relative);
 
