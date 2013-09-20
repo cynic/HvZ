@@ -42,7 +42,7 @@ namespace HvZ.Common {
         Action onMove;
         Game world;
 
-        public Groupes MapContents { get { return new Groupes(map); } }
+        public Groups MapContents { get { return new Groups(map); } }
 
         public int Width { get { return map.Width; } }
         public int Height { get { return map.Height; } }

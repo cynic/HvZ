@@ -15,14 +15,14 @@ namespace HvZ.Common {
     /// <summary>
     /// Provides a filtered view of the world
     /// </summary>
-    public class Groupes {
+    public class Groups {
         public Human[] Humans { get; private set; }
         public Zombie[] Zombies { get; private set; }
         public ResupplyPoint[] SupplyPoints { get; private set; }
         public Obstacle[] Obstacles { get; private set; }
         public ITakeSpace[] Uncategorized { get; private set; }
 
-        public Groupes(Map map) {
+        public Groups(Map map) {
             Humans = map.humans.Values.ToArray();
             Zombies = map.zombies.Values.ToArray();
             SupplyPoints = map.resupply.ToArray();

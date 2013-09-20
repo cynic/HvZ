@@ -80,7 +80,7 @@ namespace HvZClient {
         private void renderPass() {
             GUIMap.Children.Clear();
 
-            Groupes things = game.MapContents;
+            Groups things = game.MapContents;
             renderItems(things.Obstacles);
             renderItems(things.SupplyPoints);
             renderItems(things.Zombies);
