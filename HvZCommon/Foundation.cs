@@ -22,36 +22,12 @@ namespace HvZ.Common {
         public Obstacle[] Obstacles { get; private set; }
         public ITakeSpace[] Uncategorized { get; private set; }
 
-        public Groupes(List<ITakeSpace> items) {
-            List<Human> humans = new List<Human>();
-            List<Zombie> zombies = new List<Zombie>();
-            List<ResupplyPoint> points = new List<ResupplyPoint>();
-            List<Obstacle> obstacles = new List<Obstacle>();
-            List<ITakeSpace> other = new List<ITakeSpace>();
-
-            /*
-            foreach (ITakeSpace i in items) {
-                if (!i.MustDespawn || (i is IWalker && !((IWalker)i).isDead)) {
-                    if (i is Human) {
-                        humans.Add((Human)i);
-                    } else if (i is Zombie) {
-                        zombies.Add((Zombie)i);
-                    } else if (i is Obstacle) {
-                        obstacles.Add((Obstacle)i);
-                    } else if (i is ResupplyPoint) {
-                        points.Add((ResupplyPoint)i);
-                    } else {
-                        other.Add(i);
-                    }
-                }
-            }
-            */
-
-            Humans = humans.ToArray();
-            Zombies = zombies.ToArray();
-            SupplyPoints = points.ToArray();
-            Obstacles = obstacles.ToArray();
-            Uncategorized = other.ToArray();
+        public Groupes(Map map) {
+            Humans = map.humans.Values.ToArray();
+            Zombies = map.zombies.Values.ToArray();
+            SupplyPoints = map.resupply.ToArray();
+            Obstacles = new Obstacle[0];
+            Uncategorized = new ITakeSpace[0];
         }
     }
 

@@ -49,6 +49,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="PresentationFramework.Aero" />
     <Reference Include="System" />
@@ -78,6 +81,7 @@
     <Compile Include="JoinGameWindow.xaml.cs">
       <DependentUpon>JoinGameWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="QuoteGenerator.cs" />
     <Compile Include="Resource.cs" />
     <Compile Include="UI.cs" />
     <Page Include="ClientWindow.xaml">
@@ -184,6 +188,9 @@
     <Resource Include="Images\splash.png" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="icon.ico" />
+    <Resource Include="Images\frame.png" />
+    <Resource Include="Images\map.png" />
     <Content Include="Maps\Another map.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

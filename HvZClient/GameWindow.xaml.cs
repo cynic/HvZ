@@ -41,21 +41,28 @@ namespace HvZClient {
 
         public GameWindow(string name, string role, Map m, HvZ.AI.IZombieAI ai) {
             InitializeComponent();
+            Title = name + " - " + role;
             game = new ClientGame(name, role, m, ai);
+            GUIMap.Background = ClientWindow.ImageFromMap(m);
+            StartGame();
         }
 
         public GameWindow(string name, string role, Map m, HvZ.AI.IHumanAI ai) {
             InitializeComponent();
+            Title = name + " - " + role;
             game = new ClientGame(name, role, m, ai);
+            GUIMap.Background = ClientWindow.ImageFromMap(m);
+            StartGame();
         }
 
         public void StartGame() {
             GUIMap.Visibility = Visibility.Visible;
-            HideDialog();
+            //HideDialog();
             ticker.Tick += (o, e) => gameLoop();
             ticker.Start();
         }
 
+        /* // "Dialog" doesn't exist, near as I can tell.  Uncommitted stuff?
         public void ShowDialog(string message) {
             Dialog_message.Content = message;
             Dialog_message.Visibility = Visibility.Visible;
@@ -64,6 +71,7 @@ namespace HvZClient {
         public void HideDialog() {
             Dialog.Visibility = Visibility.Collapsed;
         }
+         */
 
         private void gameLoop() {
             renderPass();
@@ -71,14 +79,13 @@ namespace HvZClient {
 
         private void renderPass() {
             GUIMap.Children.Clear();
-/*
-            Groupes things = Game.ThingsOnMap;
+
+            Groupes things = game.MapContents;
             renderItems(things.Obstacles);
             renderItems(things.SupplyPoints);
             renderItems(things.Zombies);
             renderItems(things.Humans);
             renderItems(things.Uncategorized);
- */
         }
 
         private void renderItems(ITakeSpace[] items) {
@@ -106,20 +113,19 @@ namespace HvZClient {
         }
 
         private void Window_Resized(object sender, SizeChangedEventArgs e) {
-            //Added null check so it doesnt crash. How do you get a ClientGame?
-            if (Game.clientWorld != null) {
-                double size = Math.Min(ActualWidth, ActualHeight);
-/*
-                double mapSize = Math.Min(Game.clientWorld.Map.Width, Game.clientWorld.Map.Height);
-                RenderMultiplier = size / mapSize;
+            if (game != null) {
 
-                if (GUIMap.Width != Game.clientWorld.Map.Width * RenderMultiplier || GUIMap.Height != Game.clientWorld.Map.Height) {
-                    GUIMap.Width = Game.clientWorld.Map.Width * RenderMultiplier;
-                    GUIMap.Height = Game.clientWorld.Map.Height * RenderMultiplier;
+                double multX = top.ActualWidth / game.Width;
+                double multY = top.ActualHeight / game.Height;
+
+                RenderMultiplier = Math.Min(multX, multY);
+
+                if (GUIMap.ActualWidth != (game.Width * RenderMultiplier) || GUIMap.ActualHeight != (game.Height * RenderMultiplier)) {
+                    GUIMap.Width = (game.Width * RenderMultiplier);
+                    GUIMap.Height = (game.Height * RenderMultiplier);
 
                     renderPass();
                 }
- */
             }
         }
 
@@ -136,7 +142,7 @@ namespace HvZClient {
                 "You're lucky I don't smack you for thinking about leaving.",
                 "Don't leave now - there's a dimensional shambler waiting for you in Windows!"
             };
-            if (MessageBox.Show(messages[DateTime.Now.Second%messages.Length], "Leave Game", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes) {
+            if (MessageBox.Show(messages.PickNext(), "Leave Game", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes) {
                 //Game.theGame.EndGame();
                 Owner.Focus();
             } else {

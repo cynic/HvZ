@@ -6,7 +6,7 @@ using System.Text;
 
 namespace HvZ.Common {
     public static class Utils {
-        internal static readonly Random rand = new Random();
+        public static readonly Random rand = new Random();
 
         public static bool Intersects(this ITakeSpace a, ITakeSpace b) {
             // thanks to: http://stackoverflow.com/questions/8367512/algorithm-to-detect-if-a-circles-intersect-with-any-other-circle-in-the-same-pla
@@ -24,6 +24,10 @@ namespace HvZ.Common {
 
         public static double ToRadians(this double x) {
             return (x * Math.PI) / 180.0;
+        }
+
+        public static T PickNext<T>(this T[] array) {
+            return array[DateTime.Now.Second%array.Length];
         }
 
         public static T PickOne<T>(this T[] array) {

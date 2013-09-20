@@ -18,18 +18,33 @@ namespace HvZClient {
     /// Interaction logic for ClientWindow.xaml
     /// </summary>
     public partial class ClientWindow : Window {
-        HvZConnection connection = new HvZConnection();
+        internal static readonly string MAP_LOCATION = "Maps";
+
+        private HvZConnection connection = new HvZConnection();
 
         public ClientWindow() {
             InitializeComponent();
             // populate maps...
-            foreach (var v in Directory.GetFiles("Maps", "*.txt")) {
-                Maps.Items.Add(v);
+            if (!Directory.Exists(MAP_LOCATION)) {
+                Directory.CreateDirectory(MAP_LOCATION);
+            }
+
+            foreach (string v in Directory.GetFiles(MAP_LOCATION, "*.txt")) {
+                Maps.Items.Add(System.IO.Path.GetFileNameWithoutExtension(v));
             }
         }
 
-        private ImageBrush ImageFromMap(string filename) {
-            var m = new HvZ.Common.Map(filename);
+        protected override void OnContentRendered(EventArgs e) {
+            QuoteGenerator.RegisterQuoteListener(quote);
+            base.OnContentRendered(e);
+            this.RegisterWindow();
+        }
+
+        public static ImageBrush ImageFromMap(string filename) {
+            return ImageFromMap(new Map(filename));
+        }
+
+        public static ImageBrush ImageFromMap(Map m) {
             var arr = new byte[3 * m.Width * m.Height];
             var imgW = m.Width;
             var imgH = m.Height;
@@ -48,7 +63,10 @@ namespace HvZClient {
                     arr[idx + 2] = rgb.B;
                 }
             }
-            var i = BitmapImage.Create(imgW, imgH, 96, 96, PixelFormats.Rgb24, null, arr, 3 * m.Width);
+
+            int mult = 6;
+            arr = amplifyResolution(arr, mult, m.Width);
+            var i = BitmapImage.Create(mult * imgW, mult * imgH, 96, 96, PixelFormats.Rgb24, null, arr, mult * 3 * m.Width);
             /*
             PngBitmapEncoder encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(i));
@@ -61,11 +79,47 @@ namespace HvZClient {
             return brush;
         }
 
+        public static byte[] amplifyResolution(byte[] data, int mult, int width) {
+            if (mult <= 1) {
+                return data;
+            }
+
+            List<byte[][]> lines = new List<byte[][]>();
+            List<byte[]> line = new List<byte[]>();
+
+            for (int i = 0; i < data.Length; i += 3) {
+                byte[] pixel = new byte[3];
+                pixel[0] = data[i];
+                pixel[1] = data[i + 1];
+                pixel[2] = data[i + 2];
+
+                for (int p = 0; p < mult; p++) {
+                    line.Add(pixel);
+                }
+
+                if (line.Count == width * mult) {
+                    for (int p = 0; p < mult; p++) {
+                        lines.Add(line.ToArray());
+                    }
+                    line.Clear();
+                }
+            }
+
+            List<byte> result = new List<byte>();
+            foreach (byte[][] i in lines) {
+                foreach (byte[] k in i) {
+                    result.AddRange(k);
+                }
+            }
+
+            return result.ToArray();
+        }
+
         private void Maps_SelectionChanged(object sender, SelectionChangedEventArgs e) {
             if (e.AddedItems.Count == 0) return; // nothing to do.
             var filename = (string)e.AddedItems[0];
             try {
-                var img = ImageFromMap(filename);
+                var img = ImageFromMap(MAP_LOCATION + "\\" + filename + ".txt");
                 MapPreview.Background = img;
             } catch (Exception exc) {
                 Maps.UnselectAll();
@@ -92,7 +146,7 @@ namespace HvZClient {
         }
 
         private void CreateButton_Click(object sender, RoutedEventArgs e) {
-            if (String.IsNullOrWhiteSpace(Name.Text)) {
+            if (String.IsNullOrWhiteSpace(Name_textBox.Text)) {
                 MessageBox.Show("You need to type in a name first.");
                 return;
             }
@@ -104,8 +158,8 @@ namespace HvZClient {
                 MessageBox.Show("You need to choose a map that you want to play on.");
                 return;
             }
-            var m = new Map((string)Maps.SelectedValue);
-            var gameWindow = new GameWindow(Name.Text, (Role.SelectedItem as ComboBoxItem).Content.ToString(), m, (HvZ.AI.IHumanAI)new HvZ.AI.RandomWalker());
+            var m = new Map(MAP_LOCATION + "\\" + (string)Maps.SelectedValue + ".txt");
+            var gameWindow = new GameWindow(Name_textBox.Text, (Role.SelectedItem as ComboBoxItem).Content.ToString(), m, (HvZ.AI.IHumanAI)new HvZ.AI.RandomWalker());
             gameWindow.Owner = this;
             gameWindow.Show();
         }

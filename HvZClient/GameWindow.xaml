@@ -1,11 +1,14 @@
 ﻿<Window x:Class="HvZClient.GameWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Hoomanz vs Zombeez" Height="350" Width="525" Background="Black" SizeChanged="Window_Resized" Closing="Window_Closing">
-    <Grid>
-        <Canvas Name="GUIMap" Visibility="Collapsed" Background="#FFB8F9FF"/>
-        <Canvas Name="Dialog" Background="White" VerticalAlignment="Center" HorizontalAlignment="Center" Height="78" Width="192">
-            <Label Name="Dialog_message" Content="Waiting for Server...." Canvas.Left="40" Canvas.Top="23" />
+        Title="Hoomanz vs Zombeez" Height="350" Width="525" Background="Black"
+        Icon="icon.ico" WindowStyle="ToolWindow"
+        SizeChanged="Window_Resized" Closing="Window_Closing" RenderOptions.BitmapScalingMode="HighQuality">
+    <Grid Name="top">
+        <Canvas Name="GUIMap" Visibility="Collapsed" Background="#FFB8F9FF" >
+            <Canvas.OpacityMask>
+                <ImageBrush ImageSource="Images/map.png"/>
+            </Canvas.OpacityMask>
         </Canvas>
     </Grid>
 </Window>

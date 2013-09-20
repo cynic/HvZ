@@ -109,15 +109,17 @@ namespace HvZClient {
 
             Canvas t = (Canvas)context.FindName("title");
             if (t != null) {
-                t.MouseLeftButtonDown += delegate { context.DragMove(); };
+                t.MouseLeftButtonDown += delegate { try { context.DragMove(); } catch (Exception) { } };
             }
 
             Label tL = (Label)context.FindName("title2");
             if (tL != null) {
-                tL.MouseLeftButtonDown += delegate { context.DragMove(); };
-                tL.MouseDoubleClick += delegate {
-                    context.RestoreButtonClicked(null);
-                };
+                tL.MouseLeftButtonDown += delegate { try { context.DragMove(); } catch (Exception) { } };
+                if (context.ResizeMode != ResizeMode.NoResize) {
+                    tL.MouseDoubleClick += delegate {
+                        context.RestoreButtonClicked(null);
+                    };
+                }
             }
         }
 
