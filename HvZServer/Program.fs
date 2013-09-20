@@ -35,6 +35,7 @@ open System.Net
 open System.Net.Sockets
 open System.Text.RegularExpressions
 open System.Text
+open System
 
 module Internal =
    type GamesMessage =
@@ -171,6 +172,7 @@ let handleRequest playerId status cmd send =
 
 [<EntryPoint>]
 let main argv = 
+   Console.Title <- "HvZ Server"
    let listener = TcpListener(IPAddress.Any, 2310)
    try
       listener.Server.LingerState <- LingerOption(false, 1)

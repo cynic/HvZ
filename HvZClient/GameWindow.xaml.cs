@@ -43,6 +43,7 @@ namespace HvZClient {
 
         public GameWindow(string name, string role, Map m) {
             InitializeComponent();
+            Title = name + " - " + role;
             game = new ClientGame(name, role, m);
             GUIMap.Background = ClientWindow.ImageFromMap(m);
             StartGame();
@@ -126,16 +127,16 @@ namespace HvZClient {
         }
 
         private void Window_Resized(object sender, SizeChangedEventArgs e) {
-            //Added null check so it doesnt crash. How do you get a ClientGame?
             if (game != null) {
-                double size = Math.Min(ActualWidth, ActualHeight);
-                
-                double mapSize = Math.Min(game.Width, game.Height);
-                RenderMultiplier = size / mapSize;
 
-                if (GUIMap.Width != game.Width * RenderMultiplier || GUIMap.Height != game.Height) {
-                    GUIMap.Width = game.Width * RenderMultiplier;
-                    GUIMap.Height = game.Height * RenderMultiplier;
+                double multX = top.ActualWidth / game.Width;
+                double multY = top.ActualHeight / game.Height;
+
+                RenderMultiplier = Math.Min(multX, multY);
+
+                if (GUIMap.ActualWidth != (game.Width * RenderMultiplier) || GUIMap.ActualHeight != (game.Height * RenderMultiplier)) {
+                    GUIMap.Width = (game.Width * RenderMultiplier);
+                    GUIMap.Height = (game.Height * RenderMultiplier);
 
                     renderPass();
                 }

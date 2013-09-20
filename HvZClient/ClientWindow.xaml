@@ -28,7 +28,11 @@
             <Button x:Name="close" Canvas.Right="10" Width="30" Height="30" Template="{DynamicResource ButtonTemplate}"/>
             <Button x:Name="minimize" Height="30" Canvas.Right="45" Width="30" Background="White" Template="{DynamicResource ButtonTemplate}" />
         </Canvas>
-        <Canvas Name="MapPreview" Opacity="0.65" Grid.Row="1" Margin="34,17,10,10"/>
+        <Canvas Name="MapPreview" Opacity="0.65" Grid.Row="1" Margin="34,17,10,10">
+            <Canvas.OpacityMask>
+                <ImageBrush ImageSource="Images/map.png"/>
+            </Canvas.OpacityMask>
+        </Canvas>
         <Canvas Grid.Column="0" Background="#99F0F8FF" Grid.Row="2" Margin="19,10,54,23">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Height="106" Canvas.Left="33" Canvas.Top="13" Width="257">
                 <ListBox/>

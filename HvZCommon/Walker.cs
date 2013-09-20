@@ -75,7 +75,7 @@ namespace HvZ.Common {
             map = m;
             Position = new Position(x, y);
             Heading = heading;
-            Radius = 4;
+            Radius = 2;
             //Health = health >= 0 ? health : 20;
             //ability = SpecialAbility.NULL;
             //OnKilled += Human_OnKilled;
@@ -153,7 +153,7 @@ namespace HvZ.Common {
             map = m;
             Position = new Position(x, y);
             Heading = heading;
-            Radius = 4;
+            Radius = 2;
         }
 
         /*
