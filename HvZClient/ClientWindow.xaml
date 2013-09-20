@@ -1,55 +1,9 @@
 ﻿<Window x:Class="HvZClient.ClientWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Humans vs Zombies" WindowStyle="None" Height="540" Width="840" MinHeight="540" MinWidth="840"
+        Title="Humans vs Zombies" Height="540" Width="840" MinHeight="540" MinWidth="840"
          RenderOptions.BitmapScalingMode="HighQuality" ResizeMode="NoResize" Loaded="Window_Loaded"
-         AllowsTransparency="True" Icon="icon.ico" Background="Transparent">
-    <!--
-        Title="Humans vs Zombies" WindowStyle="ToolWindow" Height="500" Width="800"
-         RenderOptions.BitmapScalingMode="HighQuality" Loaded="Window_Loaded">
-    <Window.Resources>
-        <ControlTemplate x:Key="InsideButtonTemplateNoImage" TargetType="{x:Type Button}">
-            <ContentPresenter>
-                <ContentPresenter.Content>
-                    <Grid x:Name="backColor" Background="SkyBlue" Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
-                        <Label x:Name="text" Content="{TemplateBinding Content}" FontWeight="Bold" Foreground="White"  VerticalContentAlignment="Center" />
-                    </Grid>
-                </ContentPresenter.Content>
-            </ContentPresenter>
-            <ControlTemplate.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter TargetName="backColor" Property="Background" Value="DarkBlue" />
-                </Trigger>
-                <Trigger Property="IsEnabled" Value="False">
-                    <Setter TargetName="backColor" Property="Background" Value="Beige" />
-                    <Setter TargetName="text" Property="FontWeight" Value="Normal" />
-                </Trigger>
-            </ControlTemplate.Triggers>
-        </ControlTemplate>
-    </Window.Resources>
-    <Window.Background>
-        <ImageBrush ImageSource="Images/splash.png" Stretch="Fill" />
-    </Window.Background>
-    <Canvas Name="Splash">
-        <ListBox Height="106" Canvas.Left="10" Canvas.Top="43" Width="232"/>
-        <Label Canvas.Left="10" Canvas.Top="170">Choose a game to join, then</Label>
-        <Button Name="JoinButton" Template="{StaticResource InsideButtonTemplateNoImage}" Canvas.Left="174" Canvas.Top="170" Click="JoinButton_Click" IsEnabled="False">Join game</Button>
-        <Label TextBlock.FontSize="28" Canvas.Left="267" Canvas.Top="153">OR</Label>
-        <Label Canvas.Left="330" Canvas.Top="170">Choose a map to play on, then</Label>
-        <Button Template="{StaticResource InsideButtonTemplateNoImage}" Canvas.Left="507" Canvas.Top="170" Name="CreateButton" Click="CreateButton_Click" IsEnabled="False">Create a game</Button>
-        <ListBox Name="Maps"  Height="106" Canvas.Left="330" Canvas.Top="43" Width="268" SelectionChanged="Maps_SelectionChanged"/>
-        <Canvas Name="MapPreview"  Width="353" Height="254" Opacity="0.65" Canvas.Top="211" Canvas.Left="429"></Canvas>
-        <Label Canvas.Left="10" Canvas.Top="6">Name:</Label>
-        <TextBox Width="150" Name="Name" Canvas.Left="59" Canvas.Top="10"></TextBox>
-        <Label Canvas.Left="214" Canvas.Top="6">Play as a</Label>
-        <ComboBox Width="100" Canvas.Left="274" Canvas.Top="10" Name="Role">
-            <ComboBox.Items>
-                <ComboBoxItem>Human</ComboBoxItem>
-                <ComboBoxItem>Zombie</ComboBoxItem>
-            </ComboBox.Items>
-        </ComboBox>
-    </Canvas>
--->
+         Icon="icon.ico" Background="Transparent">
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="30" />
@@ -69,11 +23,6 @@
             </Canvas.BitmapEffect>
         </Canvas>
         <Label Name="quote" Height="26" Grid.ColumnSpan="2" Grid.Row="1" Margin="10,-5,10,0" VerticalAlignment="Top" />
-        <Canvas Name="title" Background="#4CF0F8FF" Height="30" VerticalAlignment="Top" Grid.ColumnSpan="2" Margin="0,0">
-            <Label Content="{Binding Title,RelativeSource={RelativeSource FindAncestor,AncestorType=Window}}" Canvas.Left="10" Height="24" Canvas.Top="6" />
-            <Button x:Name="close" Canvas.Right="10" Width="30" Height="30" Template="{DynamicResource ButtonTemplate}"/>
-            <Button x:Name="minimize" Height="30" Canvas.Right="45" Width="30" Background="White" Template="{DynamicResource ButtonTemplate}" />
-        </Canvas>
         <Canvas Name="MapPreview" Opacity="0.65" Grid.Row="1" Margin="34,17,10,10">
             <Canvas.OpacityMask>
                 <ImageBrush ImageSource="Images/map.png"/>
