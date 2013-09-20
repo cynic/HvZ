@@ -14,6 +14,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using HvZ.AI;
 using HvZ.Common;
 
 namespace HvZClient {
@@ -39,39 +40,29 @@ namespace HvZClient {
             Interval = TimeSpan.FromMilliseconds(100)
         };
 
-        public GameWindow(string name, string role, Map m, HvZ.AI.IZombieAI ai) {
+        private GameWindow(string name, string role, Map m) {
             InitializeComponent();
             Title = name + " - " + role;
-            game = new ClientGame(name, role, m, ai);
             GUIMap.Background = ClientWindow.ImageFromMap(m);
             StartGame();
         }
 
-        public GameWindow(string name, string role, Map m, HvZ.AI.IHumanAI ai) {
-            InitializeComponent();
-            Title = name + " - " + role;
+        public GameWindow(string name, string role, Map m, IZombieAI ai) : this(name, role, m) {
             game = new ClientGame(name, role, m, ai);
-            GUIMap.Background = ClientWindow.ImageFromMap(m);
-            StartGame();
+        }
+
+        public GameWindow(string name, string role, Map m, IHumanAI ai) : this(name, role, m) {
+            game = new ClientGame(name, role, m, ai);
         }
 
         public void StartGame() {
-            GUIMap.Visibility = Visibility.Visible;
-            //HideDialog();
             ticker.Tick += (o, e) => gameLoop();
             ticker.Start();
         }
 
-        /* // "Dialog" doesn't exist, near as I can tell.  Uncommitted stuff?
-        public void ShowDialog(string message) {
-            Dialog_message.Content = message;
-            Dialog_message.Visibility = Visibility.Visible;
-        }
-
-        public void HideDialog() {
-            Dialog.Visibility = Visibility.Collapsed;
-        }
-         */
+         // "Dialog" doesn't exist, near as I can tell.  Uncommitted stuff?
+        // It was there in my previous commit. Strange :/
+        // anyway - removed dialog
 
         private void gameLoop() {
             renderPass();
@@ -88,7 +79,9 @@ namespace HvZClient {
 
         private void renderItems(ITakeSpace[] items) {
             foreach (ITakeSpace i in items) {
-                renderItem(i);
+                if (game.isInBounds(i)) {
+                    renderItem(i);
+                }
             }
         }
 
@@ -104,7 +97,7 @@ namespace HvZClient {
                     CenterY = img.Height / 2
                 };
             }
-                
+
             Canvas.SetLeft(img, RenderMultiplier * (item.Position.X - item.Radius));
             Canvas.SetTop(img, RenderMultiplier * (item.Position.Y - item.Radius));
             GUIMap.Children.Add(img);
