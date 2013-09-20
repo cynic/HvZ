@@ -126,7 +126,7 @@ namespace HvZ.Common {
         }
 
         void ICommandInterpreter.Human(uint walkerId, double x, double y, double heading, string name) {
-            throw new NotImplementedException();
+            map.SetHuman(walkerId, x, y, heading, name);
         }
 
         void ICommandInterpreter.Left(uint walkerId, double degrees) {
@@ -143,6 +143,7 @@ namespace HvZ.Common {
 
         void ICommandInterpreter.Move() {
             // first, do the moves.
+            world.Update();
             // then ask the AI to make decisions.
             onMove();
         }
@@ -168,7 +169,7 @@ namespace HvZ.Common {
         }
 
         void ICommandInterpreter.Zombie(uint walkerId, double x, double y, double heading, string name) {
-            throw new NotImplementedException();
+            map.SetZombie(walkerId, x, y, heading, name);
         }
     }
 
@@ -193,7 +194,7 @@ namespace HvZ.Common {
             map = m;
         }
 
-        private void Update() {
+        public void Update() {
             for (int i = 0; i < stepsPerTurn; ++i) {
                 // permute order.
                 foreach (var key in ongoing.Keys.OrderBy(_ => rng.Next())) {

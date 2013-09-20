@@ -74,7 +74,7 @@ namespace HvZ.Common {
             }
         }
 
-        public void SetHuman(uint id, uint x, uint y, double heading, string name) {
+        public void SetHuman(uint id, double x, double y, double heading, string name) {
             // find the player with x,y coordinates specified.  Replace with this one.
             var w = walkers
                 .First(walker => walker.Value.Position.X == x && walker.Value.Position.Y == y).Value;
@@ -87,10 +87,10 @@ namespace HvZ.Common {
             PlayersInGame++;
         }
 
-        public void SetZombie(uint id, uint x, uint y, double heading, string name) {
+        public void SetZombie(uint id, double x, double y, double heading, string name) {
             // find the player with x,y coordinates specified.  Replace with this one.
             var w = walkers
-                .First(walker => walker.Value.Position.X == x && walker.Value.Position.Y == y).Value;
+                .First(walker => Math.Round(walker.Value.Position.X, 1) == Math.Round(x, 1) && Math.Round(walker.Value.Position.Y, 1) == Math.Round(y, 1)).Value;
             walkers.Remove(w.Id);
             humans.Remove(w.Id);
             zombies.Remove(w.Id);

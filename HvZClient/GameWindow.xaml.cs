@@ -79,13 +79,11 @@ namespace HvZClient {
 
         private void renderPass() {
             GUIMap.Children.Clear();
-
             Groups things = game.MapContents;
             renderItems(things.Obstacles);
             renderItems(things.SupplyPoints);
             renderItems(things.Zombies);
             renderItems(things.Humans);
-            renderItems(things.Uncategorized);
         }
 
         private void renderItems(ITakeSpace[] items) {

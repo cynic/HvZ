@@ -43,7 +43,7 @@ module Internal =
    | Create of string[] * (Command -> unit) * AsyncReplyChannel<string> // map, send, reply
 
    let newGame gameId (map : Map) onGameOver =
-      let delay_between_moves = 400 // ms
+      let delay_between_moves = 200 // ms
       let playerSends = System.Collections.Generic.List()
       let myGame = new HvZ.Common.Game(map)
       let nextId =
@@ -59,12 +59,14 @@ module Internal =
                else
                   let delay = int (System.DateTime.Now-lastMoveTime).TotalMilliseconds
                   if delay < 0 then
+                     myGame.Update ()
                      playerSends.ForEach (fun x -> x Move)
                      return! loop System.DateTime.Now numPlayers
                   else
-                     let! input = inbox.TryReceive(delay)
+                     let! input = inbox.TryReceive(delay_between_moves)
                      match input with
                      | None ->
+                        myGame.Update ()
                         playerSends.ForEach (fun x -> x Move)
                         return! loop System.DateTime.Now numPlayers
                      | Some (playerId, cmd, send) ->

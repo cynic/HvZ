@@ -9,7 +9,6 @@ namespace HvZ.Common {
         Position Position { get; } // center of the object
         double Radius { get; }
         string Texture { get; }
-        //bool MustDespawn { get; }
     }
 
     /// <summary>
@@ -20,14 +19,12 @@ namespace HvZ.Common {
         public Zombie[] Zombies { get; private set; }
         public ResupplyPoint[] SupplyPoints { get; private set; }
         public Obstacle[] Obstacles { get; private set; }
-        public ITakeSpace[] Uncategorized { get; private set; }
 
         public Groups(Map map) {
             Humans = map.humans.Values.ToArray();
             Zombies = map.zombies.Values.ToArray();
             SupplyPoints = map.resupply.ToArray();
             Obstacles = new Obstacle[0];
-            Uncategorized = new ITakeSpace[0];
         }
     }
 
