@@ -18,13 +18,19 @@ namespace HvZClient {
     /// Interaction logic for ClientWindow.xaml
     /// </summary>
     public partial class ClientWindow : Window {
-        HvZConnection connection = new HvZConnection();
+        internal static readonly string MAP_LOCATION = "Maps";
+
+        private HvZConnection connection = new HvZConnection();
 
         public ClientWindow() {
             InitializeComponent();
             // populate maps...
-            foreach (var v in Directory.GetFiles("Maps", "*.txt")) {
-                Maps.Items.Add(v);
+            if (!Directory.Exists(MAP_LOCATION)) {
+                Directory.CreateDirectory(MAP_LOCATION);
+            }
+
+            foreach (string v in Directory.GetFiles(MAP_LOCATION, "*.txt")) {
+                Maps.Items.Add(System.IO.Path.GetFileNameWithoutExtension(v));
             }
         }
 
@@ -113,7 +119,7 @@ namespace HvZClient {
             if (e.AddedItems.Count == 0) return; // nothing to do.
             var filename = (string)e.AddedItems[0];
             try {
-                var img = ImageFromMap(filename);
+                var img = ImageFromMap(MAP_LOCATION + "\\" + filename + ".txt");
                 MapPreview.Background = img;
             } catch (Exception exc) {
                 Maps.UnselectAll();
@@ -147,7 +153,7 @@ namespace HvZClient {
                 MessageBox.Show("You need to choose a map that you want to play on.");
                 return;
             }
-            var m = new Map((string)Maps.SelectedValue);
+            var m = new Map(MAP_LOCATION + "\\" + (string)Maps.SelectedValue + ".txt");
             var gameWindow = new GameWindow(Name_textBox.Text, (Role.SelectedItem as ComboBoxItem).Content.ToString(), m);
             gameWindow.Owner = this;
             gameWindow.Show();
