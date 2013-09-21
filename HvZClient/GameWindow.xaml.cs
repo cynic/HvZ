@@ -39,12 +39,10 @@ namespace HvZClient {
         // A better plan might be to do most of this stuff in XAML, using DataTemplates http://msdn.microsoft.com/en-us/library/ms742521.aspx
         // Let's see if I can get away with implementing INotifyPropertyChanged.  Necessary, but such boilerplate in C#...
 
-        public double RenderMultiplier { get; private set; }
-
         private GameWindow(string name, string role, Map m) {
             InitializeComponent();
             Title = name + " - " + role;
-            GUIMap.Background = ClientWindow.ImageFromMap(m);
+            ground.Background = ClientWindow.ImageFromMap(m);
         }
 
         public GameWindow(string name, string role, Map m, IZombieAI ai) : this(name, role, m) {

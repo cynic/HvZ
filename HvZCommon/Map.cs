@@ -149,7 +149,7 @@ namespace HvZ.Common {
                 for (int column = 0; column < lines[row].Length; ++column) {
                     uint id = 0;
                     IWalker w = null;
-                    switch (lines[row][column]) {
+                    switch (Char.ToLower(lines[row][column])) {
                         case '.':
                         case 's': terrain[row * Width + column] = Terrain.Ground; break;
                         case ' ': terrain[row * Width + column] = Terrain.Empty; break;
