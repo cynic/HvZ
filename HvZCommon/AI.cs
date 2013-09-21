@@ -6,26 +6,26 @@ using HvZ.Common;
 
 namespace HvZ.AI {
     public interface IHumanAI {
-        void DoSomething(IHumanPlayer player, List<ITakeSpace> environment);
+        void DoSomething(IHumanPlayer player, List<IWalker> zombies, List<IWalker> humans, List<ITakeSpace> obstacles, List<ITakeSpace> resupply);
     }
 
     public interface IZombieAI {
-        void DoSomething(IZombiePlayer player, List<ITakeSpace> environment);
+        void DoSomething(IZombiePlayer player, List<IWalker> zombies, List<IWalker> humans, List<ITakeSpace> obstacles, List<ITakeSpace> resupply);
     }
 
     public class RandomWalker : IHumanAI, IZombieAI {
         Random rng = new Random();
 
-        public void DoSomething(IHumanPlayer player, List<ITakeSpace> environment) {
-            player.GoForward(10.0);
-            switch (rng.Next(3)) {
+        void IHumanAI.DoSomething(IHumanPlayer player, List<IWalker> zombies, List<IWalker> humans, List<ITakeSpace> obstacles, List<ITakeSpace> resupply) {
+            switch (rng.Next(50)) {
                 case 0: player.TurnLeft(rng.NextDouble() * 200.0); break;
                 case 1: player.TurnRight(rng.NextDouble() * 200.0); break;
+                case 2: player.GoForward(10.0); break;
             }
         }
 
-        public void DoSomething(IZombiePlayer player, List<ITakeSpace> environment) {
-            switch (rng.Next(10)) {
+        void IZombieAI.DoSomething(IZombiePlayer player, List<IWalker> zombies, List<IWalker> humans, List<ITakeSpace> obstacles, List<ITakeSpace> resupply) {
+            switch (rng.Next(50)) {
                 case 0: player.TurnLeft(rng.NextDouble() * 200.0); break;
                 case 1: player.TurnRight(rng.NextDouble() * 200.0); break;
                 case 2: player.GoForward(10.0); break;
@@ -33,31 +33,4 @@ namespace HvZ.AI {
         }
     }
 
-    public class CurveRight : IHumanAI, IZombieAI {
-        int i = 0;
-
-        public void DoSomething(IHumanPlayer player, List<ITakeSpace> environment) {
-            if (i++ % 2 == 0) player.TurnRight(5);
-            else player.GoForward(0.5);
-        }
-
-        public void DoSomething(IZombiePlayer player, List<ITakeSpace> environment) {
-            if (i++ % 2 == 0) player.TurnRight(5);
-            else player.GoForward(0.5);
-        }
-    }
-
-    public class CurrveLeft : IHumanAI, IZombieAI {
-        int i = 0;
-
-        public void DoSomething(IHumanPlayer player, List<ITakeSpace> environment) {
-            if (i++ % 2 == 0) player.TurnLeft(5);
-            else player.GoForward(0.5);
-        }
-
-        public void DoSomething(IZombiePlayer player, List<ITakeSpace> environment) {
-            if (i++ % 2 == 0) player.TurnLeft(5);
-            else player.GoForward(0.5);
-        }
-    }
 }
