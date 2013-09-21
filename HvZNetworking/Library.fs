@@ -301,12 +301,22 @@ type IHumanPlayer =
    abstract member TakeFoodFrom: place:IIdentified -> unit
    abstract member TakeSocksFrom: place:IIdentified -> unit
    abstract member Throw: heading:float -> unit
+   abstract member X : float with get
+   abstract member Y : float with get 
+   abstract member Heading : float with get 
+   abstract member MapWidth : float with get
+   abstract member MapHeight : float with get
 
 type IZombiePlayer =
    abstract member GoForward: distance:float -> unit
    abstract member TurnLeft: degrees:float -> unit
    abstract member TurnRight: degrees:float -> unit
    abstract member Eat: target:IIdentified -> unit
+   abstract member X : float with get
+   abstract member Y : float with get 
+   abstract member Heading : float with get 
+   abstract member MapWidth : float with get
+   abstract member MapHeight : float with get
 
 namespace HvZ.Common
 open HvZ.Networking
@@ -355,18 +365,4 @@ type HvZConnection() as this =
 
    (* Here be members which hide the nasty details of Command interop *)
    member __.CreateGame mapData = send () (Create mapData)
-   
-   interface HvZ.AI.IHumanPlayer with
-      member __.GoForward distance = send () (Forward (Option.get playerId, distance))
-      member __.TurnLeft degrees = send () (Left (Option.get playerId, degrees))
-      member __.TurnRight degrees = send () (Right (Option.get playerId, degrees))
-      member __.Eat () = send () (Eat (Option.get playerId))
-      member __.TakeFoodFrom (r : IIdentified) = send () (TakeFood (Option.get playerId, r.Id))
-      member __.TakeSocksFrom (r : IIdentified) = send () (TakeSocks (Option.get playerId, r.Id))
-      member __.Throw heading = send () (Throw (Option.get playerId, heading))
-   
-   interface HvZ.AI.IZombiePlayer with
-      member __.GoForward distance = send () (Forward (Option.get playerId, distance))
-      member __.TurnLeft degrees = send () (Left (Option.get playerId, degrees))
-      member __.TurnRight degrees = send () (Right (Option.get playerId, degrees))
-      member __.Eat target = send () (Bite (Option.get playerId, target.Id))
+   member __.PlayerId with get () = Option.get playerId

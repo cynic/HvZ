@@ -52,7 +52,7 @@ namespace HvZClient {
                     Color rgb;
                     switch (m[column, row]) {
                         case HvZ.Common.Terrain.Empty: rgb = Colors.Black; break;
-                        case HvZ.Common.Terrain.Ground: rgb = Colors.White; break;
+                        case HvZ.Common.Terrain.Ground: rgb = Colors.Yellow; break;
                         default: throw new InvalidOperationException("unrecognized mapitem");
                     }
                     int idx = 3 * (row * m.Width + column);
@@ -157,7 +157,7 @@ namespace HvZClient {
                 return;
             }
             var m = new Map(MAP_LOCATION + "\\" + (string)Maps.SelectedValue + ".txt");
-            var gameWindow = new GameWindow(Name_textBox.Text, (Role.SelectedItem as ComboBoxItem).Content.ToString(), m, (HvZ.AI.IZombieAI)new HvZ.AI.CurveRight());
+            var gameWindow = new GameWindow(Name_textBox.Text, (Role.SelectedItem as ComboBoxItem).Content.ToString(), m, (HvZ.AI.IHumanAI)new HvZ.AI.RandomWalker());
             gameWindow.Owner = this;
             gameWindow.Show();
         }

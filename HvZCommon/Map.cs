@@ -71,9 +71,18 @@ namespace HvZ.Common {
             var oldY = pos.Y;
             pos.X = Math.Max(walker.Radius, Math.Min(Width - walkers[id].Radius, x));
             pos.Y = Math.Max(walker.Radius, Math.Min(Height - walkers[id].Radius, y));
+            // double-check against walkers.
             foreach (var kvp in walkers) {
                 if (kvp.Key == id) continue;
                 if (kvp.Value.Intersects(walker)) {
+                    // reset back to the old values.
+                    pos.X = oldX;
+                    pos.Y = oldY;
+                }
+            }
+            // double-check against obstacles.
+            foreach (var o in obstacles) {
+                if (o.Intersects(walker)) {
                     // reset back to the old values.
                     pos.X = oldX;
                     pos.Y = oldY;

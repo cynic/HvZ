@@ -30,7 +30,7 @@ namespace HvZ.Common {
      * joining a game, the client has no say.
      */
 
-    public class ClientGame : ICommandInterpreter, INotifyPropertyChanged {
+    public class ClientGame : ICommandInterpreter, INotifyPropertyChanged, IHumanPlayer, IZombiePlayer {
         private HvZConnection connection = new HvZConnection();
         private string gameId = null;
 
@@ -43,8 +43,6 @@ namespace HvZ.Common {
             get { return map; }
             internal set { if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Map")); map = value; }
         }
-        public IHumanPlayer HumanPlayer { get { return connection; } }
-        public IZombiePlayer ZombiePlayer { get { return connection; } }
         Action requestDecision;
         Game world;
 
@@ -82,12 +80,12 @@ namespace HvZ.Common {
 
         public ClientGame(System.Windows.Threading.Dispatcher dispatcher, string name, string role, Map map, AI.IHumanAI humanAI)
             : this(dispatcher, name, role, map) {
-                requestDecision = () => humanAI.DoSomething(connection, new List<ITakeSpace>());
+                requestDecision = () => humanAI.DoSomething(this, new List<IWalker>(map.Zombies), new List<IWalker>(map.Humans.Where(x => x.Id != connection.PlayerId)), new List<ITakeSpace>(map.Obstacles), new List<ITakeSpace>(map.ResupplyPoints));
         }
 
         public ClientGame(System.Windows.Threading.Dispatcher dispatcher, string name, string role, Map map, AI.IZombieAI zombieAI)
             : this(dispatcher, name, role, map) {
-            requestDecision = () => zombieAI.DoSomething(connection, new List<ITakeSpace>());
+            requestDecision = () => zombieAI.DoSomething(this, new List<IWalker>(map.Zombies.Where(x => x.Id != connection.PlayerId)), new List<IWalker>(map.Humans), new List<ITakeSpace>(map.Obstacles), new List<ITakeSpace>(map.ResupplyPoints));
         }
 
         private void connection_OnGameCommand(object sender, CommandEventArgs e) {
@@ -190,6 +188,114 @@ namespace HvZ.Common {
 
         public event PropertyChangedEventHandler PropertyChanged;
         public event EventHandler OnPlayerJoin;
+
+        /*
+   interface HvZ.AI.IHumanPlayer with
+      member __.GoForward distance = send () (Forward (Option.get playerId, distance))
+      member __.TurnLeft degrees = send () (Left (Option.get playerId, degrees))
+      member __.TurnRight degrees = send () (Right (Option.get playerId, degrees))
+      member __.Eat () = send () (Eat (Option.get playerId))
+      member __.TakeFoodFrom (r : IIdentified) = send () (TakeFood (Option.get playerId, r.Id))
+      member __.TakeSocksFrom (r : IIdentified) = send () (TakeSocks (Option.get playerId, r.Id))
+      member __.Throw heading = send () (Throw (Option.get playerId, heading))
+   
+   interface HvZ.AI.IZombiePlayer with
+      member __.GoForward distance = send () (Forward (Option.get playerId, distance))
+      member __.TurnLeft degrees = send () (Left (Option.get playerId, degrees))
+      member __.TurnRight degrees = send () (Right (Option.get playerId, degrees))
+      member __.Eat target = send () (Bite (Option.get playerId, target.Id))
+      member __.X : float with get
+      member __.Y : float with get 
+      member __.Heading : float with get 
+      member __.X : float with get
+      member __.Y : float with get 
+         */
+
+        void IHumanPlayer.Eat() {
+            connection.Send(Command.NewEat(connection.PlayerId));
+        }
+
+        void IHumanPlayer.GoForward(double distance) {
+            connection.Send(Command.NewForward(connection.PlayerId, distance));
+        }
+
+        void IHumanPlayer.TakeFoodFrom(IIdentified place) {
+            connection.Send(Command.NewTakeFood(connection.PlayerId, place.Id));
+        }
+
+        void IHumanPlayer.TakeSocksFrom(IIdentified place) {
+            connection.Send(Command.NewTakeSocks(connection.PlayerId, place.Id));
+        }
+
+        void IHumanPlayer.Throw(double heading) {
+            connection.Send(Command.NewThrow(connection.PlayerId, heading));
+        }
+
+        void IHumanPlayer.TurnLeft(double degrees) {
+            connection.Send(Command.NewLeft(connection.PlayerId, degrees));
+        }
+
+        void IHumanPlayer.TurnRight(double degrees) {
+            connection.Send(Command.NewRight(connection.PlayerId, degrees));
+        }
+
+        void IZombiePlayer.Eat(IIdentified target) {
+            connection.Send(Command.NewBite(connection.PlayerId, target.Id));
+        }
+
+        void IZombiePlayer.GoForward(double distance) {
+            connection.Send(Command.NewForward(connection.PlayerId, distance));
+        }
+
+        void IZombiePlayer.TurnLeft(double degrees) {
+            connection.Send(Command.NewLeft(connection.PlayerId, degrees));
+        }
+
+        void IZombiePlayer.TurnRight(double degrees) {
+            connection.Send(Command.NewRight(connection.PlayerId, degrees));
+        }
+
+
+        double IHumanPlayer.Heading {
+            get { return Map.humans[connection.PlayerId].Heading; }
+        }
+
+        double IHumanPlayer.MapHeight {
+            get { return Map.Height; }
+        }
+
+        double IHumanPlayer.MapWidth {
+            get { return Map.Width; }
+        }
+
+        double IHumanPlayer.X {
+            get { return Map.humans[connection.PlayerId].Position.X; }
+        }
+
+        double IHumanPlayer.Y {
+            get { return Map.humans[connection.PlayerId].Position.Y; }
+        }
+
+
+        double IZombiePlayer.Heading {
+            get { return Map.zombies[connection.PlayerId].Heading; }
+        }
+
+        double IZombiePlayer.MapHeight {
+            get { return Map.Height; }
+        }
+
+        double IZombiePlayer.MapWidth {
+            get { return Map.Width; }
+        }
+
+        double IZombiePlayer.X {
+            get { return Map.zombies[connection.PlayerId].Position.X; }
+        }
+
+        double IZombiePlayer.Y {
+            get { return Map.zombies[connection.PlayerId].Position.Y; }
+        }
     }
 
     public class Game {
