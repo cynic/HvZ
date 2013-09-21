@@ -24,7 +24,7 @@ namespace HvZ.Common {
             Humans = map.humans.Values.ToArray();
             Zombies = map.zombies.Values.ToArray();
             SupplyPoints = map.resupply.ToArray();
-            Obstacles = new Obstacle[0];
+            Obstacles = map.obstacles.ToArray();
         }
     }
 

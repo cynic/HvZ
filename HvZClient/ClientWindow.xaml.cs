@@ -53,8 +53,7 @@ namespace HvZClient {
                     Color rgb;
                     switch (m[column, row]) {
                         case HvZ.Common.Terrain.Empty: rgb = Colors.Black; break;
-                        case HvZ.Common.Terrain.Ground: rgb = Colors.Brown; break;
-                        case HvZ.Common.Terrain.Obstacle: rgb = Colors.Pink; break;
+                        case HvZ.Common.Terrain.Ground: rgb = Colors.White; break;
                         default: throw new InvalidOperationException("unrecognized mapitem");
                     }
                     int idx = 3 * (row * m.Width + column);

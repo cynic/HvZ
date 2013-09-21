@@ -93,21 +93,17 @@ namespace HvZClient {
         }
 
         private void renderItem(ITakeSpace item) {
-            Image img = new Image() {
-                Source = Resource.getResourceByName(item.Texture).Image,
-                Width = RenderMultiplier * item.Radius * 2,
-                Height = RenderMultiplier * item.Radius * 2,
-            };
+            Ellipse e = new Ellipse() { Width = item.Radius * RenderMultiplier * 2, Height = item.Radius * RenderMultiplier * 2 };
+            e.Fill = (ImageBrush)Resources[item.Texture];
             if (item is IWalker) {
-                img.RenderTransform = new RotateTransform(((IWalker)item).Heading) {
-                    CenterX = img.Width / 2,
-                    CenterY = img.Height / 2
+                e.RenderTransform = new RotateTransform(((IWalker)item).Heading) {
+                    CenterX = item.Radius * RenderMultiplier,
+                    CenterY = item.Radius * RenderMultiplier
                 };
-            }
-                
-            Canvas.SetLeft(img, RenderMultiplier * (item.Position.X - item.Radius));
-            Canvas.SetTop(img, RenderMultiplier * (item.Position.Y - item.Radius));
-            GUIMap.Children.Add(img);
+            }                
+            Canvas.SetLeft(e, RenderMultiplier * (item.Position.X - item.Radius));
+            Canvas.SetTop(e, RenderMultiplier * (item.Position.Y - item.Radius));
+            GUIMap.Children.Add(e);
         }
 
         private void Window_Resized(object sender, SizeChangedEventArgs e) {

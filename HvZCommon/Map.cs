@@ -6,7 +6,7 @@ using System.IO;
 
 namespace HvZ.Common {
     public enum Terrain : byte { // this can only go up to 4 bits (which means 16 possible entries, incl. Empty=0), because of how it's sent over the wire
-        Empty=0, Ground, Obstacle
+        Empty=0, Ground
     }
 
     public class Map {
@@ -14,6 +14,7 @@ namespace HvZ.Common {
         internal Dictionary<uint, Zombie> zombies = new Dictionary<uint, Zombie>();
         internal Dictionary<uint, Human> humans = new Dictionary<uint, Human>();
         internal Dictionary<uint, IWalker> walkers = new Dictionary<uint, IWalker>();
+        internal List<Obstacle> obstacles = new List<Obstacle>();
         internal List<ResupplyPoint> resupply = new List<ResupplyPoint>();
         public int PlayersAllowed { get; private set; }
         public int PlayersInGame { get; private set; }
@@ -146,7 +147,21 @@ namespace HvZ.Common {
                         case '.':
                         case 's': terrain[row * Width + column] = Terrain.Ground; break;
                         case ' ': terrain[row * Width + column] = Terrain.Empty; break;
-                        case '#': terrain[row * Width + column] = Terrain.Obstacle; break;
+                        case '#':
+                            terrain[row * Width + column] = Terrain.Ground;
+                            var large = new Obstacle(column, row, 1.5);
+                            obstacles.Add(large);
+                            break;
+                        case '@':
+                            terrain[row * Width + column] = Terrain.Ground;
+                            var medium = new Obstacle(column, row, 0.75);
+                            obstacles.Add(medium);
+                            break;
+                        case '!':
+                            terrain[row * Width + column] = Terrain.Ground;
+                            var small = new Obstacle(column, row, 0.25);
+                            obstacles.Add(small);
+                            break;
                         case 'x':
                             terrain[row * Width + column] = Terrain.Ground;
                             PlayersAllowed++;
