@@ -5,10 +5,13 @@ using System.Text;
 
 namespace HvZ.Common {
     public class Obstacle : ITakeSpace {
-        public Position Position { get; set; } // center of the object
-        public double Radius { get; set; }
-        public string Texture { get { return ""; } }
-        public bool MustDespawn { get { return false; } }
+        public Position Position { get; private set; } // center of the object
+        public double Radius { get; private set; }
+        public string Texture { get { return "zombie"; } }
+        public Obstacle(double x, double y, double radius) {
+            Position = new Position(x, y);
+            Radius = radius;
+        }
     }
 
     public class ExplosionEffect : ITakeSpace {
