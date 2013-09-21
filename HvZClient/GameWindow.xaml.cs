@@ -75,9 +75,7 @@ namespace HvZClient {
 
         private void renderItems(ITakeSpace[] items) {
             foreach (ITakeSpace i in items) {
-                if (game.isInBounds(i)) {
-                    renderItem(i);
-                }
+                renderItem(i);
             }
         }
 
