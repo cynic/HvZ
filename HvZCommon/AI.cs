@@ -25,10 +25,10 @@ namespace HvZ.AI {
         }
 
         public void DoSomething(IZombiePlayer player, List<ITakeSpace> environment) {
-            player.GoForward(10.0);
-            switch (rng.Next(3)) {
+            switch (rng.Next(10)) {
                 case 0: player.TurnLeft(rng.NextDouble() * 200.0); break;
                 case 1: player.TurnRight(rng.NextDouble() * 200.0); break;
+                case 2: player.GoForward(10.0); break;
             }
         }
     }
