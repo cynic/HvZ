@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using HvZ.AI;
@@ -29,21 +30,23 @@ namespace HvZ.Common {
      * joining a game, the client has no say.
      */
 
-    public class ClientGame : ICommandInterpreter {
+    public class ClientGame : ICommandInterpreter, INotifyPropertyChanged {
         private HvZConnection connection = new HvZConnection();
         private string gameId = null;
 
         CGState state = CGState.Invalid;
         Role role = Role.Invalid;
-        Map map;
         string playerName;
 
+        Map map;
+        public Map Map {
+            get { return map; }
+            internal set { if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Map")); map = value; }
+        }
         public IHumanPlayer HumanPlayer { get { return connection; } }
         public IZombiePlayer ZombiePlayer { get { return connection; } }
-        Action onMove;
+        Action requestDecision;
         Game world;
-
-        public Groups MapContents { get { return new Groups(map); } }
 
         public int Width { get { return map.Width; } }
         public int Height { get { return map.Height; } }
@@ -55,37 +58,40 @@ namespace HvZ.Common {
                 (item.Position.Y + item.Radius) <= Height;
         }
 
+        System.Windows.Threading.Dispatcher dispatcher; // stupid, stupid, stupid WPF.  *sigh*.
+
         /// <summary>
         /// Create a new game, using the given map.
         /// </summary>
         /// <param name="map"></param>
-        private ClientGame(string name, string role, Map map) {
+        private ClientGame(System.Windows.Threading.Dispatcher dispatcher, string name, string role, Map map) {
             connection.OnCommandReceived += connection_OnGameCommand;
             switch (role) {
                 case "Human": this.role = Role.Human; break;
                 case "Zombie": this.role = Role.Zombie; break;
                 default: throw new Exception("Not a human or a zombie; edit me to tell me what this is.");
             }
+            this.dispatcher = dispatcher;
             playerName = name;
             state = CGState.CreateRequested;
-            this.map = map;
+            this.Map = map;
             world = new Game(map);
             connection.ConnectToServer("localhost");
             connection.Send(Command.NewCreate(map.RawMapData));
         }
 
-        public ClientGame(string name, string role, Map map, AI.IHumanAI humanAI)
-            : this(name, role, map) {
-                onMove = () => humanAI.DoSomething(connection, new List<ITakeSpace>());
+        public ClientGame(System.Windows.Threading.Dispatcher dispatcher, string name, string role, Map map, AI.IHumanAI humanAI)
+            : this(dispatcher, name, role, map) {
+                requestDecision = () => humanAI.DoSomething(connection, new List<ITakeSpace>());
         }
 
-        public ClientGame(string name, string role, Map map, AI.IZombieAI zombieAI)
-            : this(name, role, map) {
-            onMove = () => zombieAI.DoSomething(connection, new List<ITakeSpace>());
+        public ClientGame(System.Windows.Threading.Dispatcher dispatcher, string name, string role, Map map, AI.IZombieAI zombieAI)
+            : this(dispatcher, name, role, map) {
+            requestDecision = () => zombieAI.DoSomething(connection, new List<ITakeSpace>());
         }
 
         private void connection_OnGameCommand(object sender, CommandEventArgs e) {
-            Command.Dispatch(e.Command, this);
+            dispatcher.Invoke(new Action(() => Command.Dispatch(e.Command, this)));
         }
 
         public void JoinGameAsHuman(string gameId, string name) {
@@ -135,6 +141,7 @@ namespace HvZ.Common {
 
         void ICommandInterpreter.Human(uint walkerId, double x, double y, double heading, string name) {
             map.SetHuman(walkerId, x, y, heading, name);
+            if (OnPlayerJoin != null) OnPlayerJoin(this, EventArgs.Empty);
         }
 
         void ICommandInterpreter.Left(uint walkerId, double degrees) {
@@ -153,7 +160,7 @@ namespace HvZ.Common {
             // first, do the moves.
             world.Update();
             // then ask the AI to make decisions.
-            onMove();
+            requestDecision();
         }
 
         void ICommandInterpreter.No(string reason) {
@@ -178,7 +185,11 @@ namespace HvZ.Common {
 
         void ICommandInterpreter.Zombie(uint walkerId, double x, double y, double heading, string name) {
             map.SetZombie(walkerId, x, y, heading, name);
+            if (OnPlayerJoin != null) OnPlayerJoin(this, EventArgs.Empty);
         }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        public event EventHandler OnPlayerJoin;
     }
 
     public class Game {

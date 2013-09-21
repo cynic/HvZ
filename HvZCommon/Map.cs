@@ -16,6 +16,12 @@ namespace HvZ.Common {
         internal Dictionary<uint, IWalker> walkers = new Dictionary<uint, IWalker>();
         internal List<Obstacle> obstacles = new List<Obstacle>();
         internal List<ResupplyPoint> resupply = new List<ResupplyPoint>();
+
+        public IEnumerable<Human> Humans { get { return humans.Values; } }
+        public IEnumerable<Zombie> Zombies { get { return zombies.Values; } }
+        public IEnumerable<Obstacle> Obstacles { get { return obstacles; } }
+        public IEnumerable<ResupplyPoint> ResupplyPoints { get { return resupply; } }
+
         public int PlayersAllowed { get; private set; }
         public int PlayersInGame { get; private set; }
 
@@ -63,8 +69,8 @@ namespace HvZ.Common {
             var pos = walker.Position;
             var oldX = pos.X;
             var oldY = pos.Y;
-            pos.X = Math.Max(0.0, Math.Min(Width - walkers[id].Radius, x));
-            pos.Y = Math.Max(0.0, Math.Min(Height - walkers[id].Radius, y));
+            pos.X = Math.Max(walker.Radius, Math.Min(Width - walkers[id].Radius, x));
+            pos.Y = Math.Max(walker.Radius, Math.Min(Height - walkers[id].Radius, y));
             foreach (var kvp in walkers) {
                 if (kvp.Key == id) continue;
                 if (kvp.Value.Intersects(walker)) {
@@ -149,17 +155,17 @@ namespace HvZ.Common {
                         case ' ': terrain[row * Width + column] = Terrain.Empty; break;
                         case '#':
                             terrain[row * Width + column] = Terrain.Ground;
-                            var large = new Obstacle(column, row, 1.5);
+                            var large = new Obstacle(column, row, 0.9);
                             obstacles.Add(large);
                             break;
                         case '@':
                             terrain[row * Width + column] = Terrain.Ground;
-                            var medium = new Obstacle(column, row, 0.75);
+                            var medium = new Obstacle(column, row, 0.45);
                             obstacles.Add(medium);
                             break;
                         case '!':
                             terrain[row * Width + column] = Terrain.Ground;
-                            var small = new Obstacle(column, row, 0.25);
+                            var small = new Obstacle(column, row, 0.15);
                             obstacles.Add(small);
                             break;
                         case 'x':

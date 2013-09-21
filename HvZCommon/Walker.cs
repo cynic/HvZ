@@ -2,70 +2,27 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.ComponentModel;
 
 namespace HvZ.Common {
-    [Flags]
-    public enum SpecialAbility {
-        /// <summary>Value is not set</summary>
-        NULL,
-        /// <summary>Exploding Zombie</summary>
-        EXPLODING,
-    }
-
-    public delegate void Killed(IWalker x);
-
-    public interface IWalker : ITakeSpace, IIdentified {
+    public interface IWalker : ITakeSpace, IIdentified, INotifyPropertyChanged {
         /// <summary>heading is in degrees, 0 is directly upwards</summary>
         double Heading { get; }
         string Name { get; }
-        //double Speed { get; set; }
-        //int Health { get; set; }
-
-        //string Owner { get; set; }
-
-        //SpecialAbility ability { get; set; }
-
-        //bool isDead { get; set; }
-        //bool isHuman { get; }
-
-        //void TriggerSpecial();
-        //void Attack(IWalker attacker);
-
-        //event Killed OnKilled;
     }
 
     public class Human : IWalker {
         private Map map;
-        public double Heading { get; internal set; }
-        //public double Speed { get; set; }
-        //public int Health { get; set; }
+        double heading;
+        public double Heading {
+            get { return heading; }
+            internal set { if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Heading")); heading = value.PositiveAngle(); }
+        }
         public uint Id { get; private set; }
-
-        //public string Owner { get; set; }
-
-        //public bool isHuman { get { return true; } }
         public string Texture { get { return "human"; } }
-
-        //public bool isDead { get; set; }
-        //public bool MustDespawn { get { return false; } }
-
-        //public SpecialAbility ability { get; set; }
-
-        //public event Killed OnKilled;
 
         public Position Position { get; set; }
         public double Radius { get; private set; }
-
-        //public void TriggerSpecial() {
-        //}
-
-        /*
-        public void Attack(IWalker other) {
-            if (--Health == 0) {
-                OnKilled(other);
-            }
-        }
-        */
 
         public string Name { get; private set; }
 
@@ -75,77 +32,25 @@ namespace HvZ.Common {
             map = m;
             Position = new Position(x, y);
             Heading = heading;
-            Radius = 2;
-            //Health = health >= 0 ? health : 20;
-            //ability = SpecialAbility.NULL;
-            //OnKilled += Human_OnKilled;
+            Radius = 0.95;
         }
 
-        /*
-        void Human_OnKilled(IWalker x) {
-            //respawnOwner = x.Owner;
-            isDead = true;
-        }
-        */
-
-        /*
-        private string respawnOwner;
-        public IWalker ZombifiedVersion {
-            get {
-                if (isDead) {
-                    return new Zombie(Id) {
-                        Position = Position,
-                        Heading = Heading,
-                        Radius = Radius,
-                        Speed = Speed / 2,
-                        //Owner = respawnOwner
-                    };
-                }
-                return this;
-            }
-        }
-        */
+        public event PropertyChangedEventHandler PropertyChanged;
     }
 
     public class Zombie : IWalker {
         private Map map;
-        public double Heading { get; internal set; }
-        //public double Speed { get; set; }
+        double heading;
+        public double Heading {
+            get { return heading; }
+            internal set { if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Heading")); heading = value.PositiveAngle(); }
+        }
         public uint Id { get; private set; }
         public string Name { get; private set; }
-        /*
-        public string Owner { get; set; }
-
-        public bool isHuman { get { return false; } }
-        */
         public string Texture { get { return "zombie"; } }
-
-        /*
-        public bool isDead { get; set; }
-        public bool MustDespawn { get { return isDead; } }
-        public SpecialAbility ability { get; set; }
-
-        public event Killed OnKilled;
-        */
 
         public Position Position { get; set; }
         public double Radius { get; private set; }
-
-        /*
-        public void TriggerSpecial() {
-            if (ability.HasFlag(SpecialAbility.EXPLODING) && !isDead) {
-                if (OnKilled != null) {
-                    OnKilled(this);
-                }
-            }
-        }
-
-        public void Attack(IWalker other) {
-            if (--Health == 0) {
-                OnKilled(other);
-            }
-        }
-        */
 
         public Zombie(uint id, string name, Map m, double x, double y, double heading) {
             Id = id;
@@ -153,16 +58,9 @@ namespace HvZ.Common {
             map = m;
             Position = new Position(x, y);
             Heading = heading;
-            Radius = 2;
+            Radius = 0.95;
         }
 
-        /*
-        public void setExploding(Killed del) {
-            if (!ability.HasFlag(SpecialAbility.EXPLODING)) {
-                ability |= SpecialAbility.EXPLODING;
-                OnKilled += del;
-            }
-        }
-        */
+        public event PropertyChangedEventHandler PropertyChanged;
     }
 }

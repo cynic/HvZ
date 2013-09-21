@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.ComponentModel;
 
 namespace HvZ.Common {
     public interface ITakeSpace {
@@ -11,26 +12,16 @@ namespace HvZ.Common {
         string Texture { get; }
     }
 
-    /// <summary>
-    /// Provides a filtered view of the world
-    /// </summary>
-    public class Groups {
-        public Human[] Humans { get; private set; }
-        public Zombie[] Zombies { get; private set; }
-        public ResupplyPoint[] SupplyPoints { get; private set; }
-        public Obstacle[] Obstacles { get; private set; }
-
-        public Groups(Map map) {
-            Humans = map.humans.Values.ToArray();
-            Zombies = map.zombies.Values.ToArray();
-            SupplyPoints = map.resupply.ToArray();
-            Obstacles = map.obstacles.ToArray();
+    public class Position : INotifyPropertyChanged {
+        private double x, y;
+        public double X {
+            get { return x; }
+            internal set { if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("X")); x = value; }
         }
-    }
-
-    public class Position {
-        public double X { get; internal set; }
-        public double Y { get; internal set; }
+        public double Y {
+            get { return y; }
+            internal set { if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Y")); y = value; }
+        }
 
         public Position(double x, double y) {
             X = x;
@@ -38,7 +29,7 @@ namespace HvZ.Common {
         }
 
         /// <summary>Calculates straight line distance between two Positions (untested)</summary>
-        public double distanceFrom(Position other) {
+        public double DistanceFrom(Position other) {
             double distX = X - other.X;
             double distY = Y - other.Y;
 
@@ -46,10 +37,10 @@ namespace HvZ.Common {
         }
 
         /// <summary>Calculates heading needed to face one Position from another (untested)</summary>
-        public double angleFrom(Position other) {
+        public double AngleFrom(Position other) {
             double distX = X - other.X;
             double distY = Y - other.Y;
-            double angle = Math.Asin(distX / distanceFrom(other));
+            double angle = Math.Asin(distX / DistanceFrom(other));
 
             if (distX > 0) {
                 angle = 360 - angle;
@@ -62,5 +53,7 @@ namespace HvZ.Common {
             
             return angle;
         }
+
+        public event PropertyChangedEventHandler PropertyChanged;
     }
 }

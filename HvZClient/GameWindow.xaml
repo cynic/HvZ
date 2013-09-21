@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Hoomanz vs Zombeez" Height="350" Width="525" Background="Black"
         Icon="icon.ico" WindowStyle="ToolWindow"
-        SizeChanged="Window_Resized" Closing="Window_Closing" RenderOptions.BitmapScalingMode="HighQuality">
+        SizeChanged="Window_Resized" Closing="Window_Closing" Loaded="Window_Loaded" RenderOptions.BitmapScalingMode="HighQuality">
     <Window.Resources>
         <ImageBrush x:Key="human" ImageSource="Images/human.png" />
         <ImageBrush x:Key="zombie" ImageSource="Images/zombie.png" />
@@ -12,9 +12,9 @@
     </Window.Resources>
     <Grid Name="top">
         <Canvas Name="GUIMap" Background="#FFB8F9FF" >
-            <Canvas.OpacityMask>
+<!--            <Canvas.OpacityMask>
                 <ImageBrush ImageSource="Images/map.png"/>
-            </Canvas.OpacityMask>
+            </Canvas.OpacityMask>-->
         </Canvas>
     </Grid>
 </Window>

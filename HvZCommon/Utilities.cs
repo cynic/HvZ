@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.ComponentModel;
 
 namespace HvZ.Common {
     public static class Utils {
@@ -16,6 +17,10 @@ namespace HvZ.Common {
             var sum = Math.Abs(a.Radius + b.Radius);
             var diff = Math.Abs(a.Radius - b.Radius);
             return distBetween >= diff && distBetween <= sum;
+        }
+
+        internal static double PositiveAngle(this double x) {
+            return (360 + (x % 360)) % 360;
         }
 
         public static double ToDegrees(this double x) {

@@ -16,7 +16,7 @@ namespace HvZ.Common {
         public Position Position { get; private set; }
         public double Radius { get; private set; }
         public ResupplyPoint(int x, int y) {
-            Radius = 5.0;
+            Radius = 1.5;
             Position = new Position(x, y);
         }
 
