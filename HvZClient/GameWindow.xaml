@@ -11,7 +11,7 @@
         <ImageBrush x:Key="supply" ImageSource="Images/supplyP.png" />
     </Window.Resources>
     <Grid Name="top">
-        <Canvas Name="GUIMap" Visibility="Collapsed" Background="#FFB8F9FF" >
+        <Canvas Name="GUIMap" Background="#FFB8F9FF" >
             <Canvas.OpacityMask>
                 <ImageBrush ImageSource="Images/map.png"/>
             </Canvas.OpacityMask>

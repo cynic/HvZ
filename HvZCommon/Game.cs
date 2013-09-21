@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using HvZ.AI;
 
 namespace HvZ.Common {
     public enum CGState {
@@ -37,8 +38,8 @@ namespace HvZ.Common {
         Map map;
         string playerName;
 
-        public AI.IHumanPlayer HumanPlayer { get { return connection; } }
-        public AI.IZombiePlayer ZombiePlayer { get { return connection; } }
+        public IHumanPlayer HumanPlayer { get { return connection; } }
+        public IZombiePlayer ZombiePlayer { get { return connection; } }
         Action onMove;
         Game world;
 
@@ -46,6 +47,13 @@ namespace HvZ.Common {
 
         public int Width { get { return map.Width; } }
         public int Height { get { return map.Height; } }
+
+        public bool isInBounds(ITakeSpace item) {
+            return (item.Position.X - item.Radius) >= 0 &&
+                (item.Position.Y - item.Radius) >= 0 &&
+                (item.Position.X + item.Radius) <= Width &&
+                (item.Position.Y + item.Radius) <= Height;
+        }
 
         /// <summary>
         /// Create a new game, using the given map.

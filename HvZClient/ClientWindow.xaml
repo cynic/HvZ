@@ -3,8 +3,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Humans vs Zombies" Height="540" Width="840" MinHeight="540" MinWidth="840"
          RenderOptions.BitmapScalingMode="HighQuality" ResizeMode="NoResize" Loaded="Window_Loaded"
-         Icon="icon.ico" Background="Transparent">
-    <Grid Margin="20">
+         Icon="icon.ico">
+    <Window.Background>
+        <ImageBrush ImageSource="Images/splash.png" Stretch="UniformToFill" />
+    </Window.Background>
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="30" />
             <RowDefinition />
@@ -14,15 +17,7 @@
             <ColumnDefinition />
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
-        <Canvas Name="grounds" Grid.RowSpan="3" Grid.ColumnSpan="2">
-            <Canvas.Background>
-                <ImageBrush ImageSource="Images/splash.png" Stretch="UniformToFill" />
-            </Canvas.Background>
-            <Canvas.BitmapEffect>
-                <DropShadowBitmapEffect Color="Black" Direction="320" ShadowDepth="4" Softness="2" Opacity="0.5"/>
-            </Canvas.BitmapEffect>
-        </Canvas>
-        <Label Name="quote" Height="26" Grid.ColumnSpan="2" Grid.Row="1" Margin="10,-5,10,0" VerticalAlignment="Top" />
+        <Label Name="quote" Grid.Row="0" Height="26" Grid.ColumnSpan="2" Margin="10,4,10,0" VerticalAlignment="Top" />
         <Canvas Name="MapPreview" Opacity="0.65" Grid.Row="1" Margin="34,17,10,10">
             <Canvas.OpacityMask>
                 <ImageBrush ImageSource="Images/map.png"/>
@@ -42,7 +37,7 @@
                 <ListBox Name="Maps" SelectionChanged="Maps_SelectionChanged"/>
             </ScrollViewer>
         </Canvas>
-        <Label TextBlock.FontSize="28" Foreground="White" Grid.Row="2" Margin="362,47,356,87" Grid.ColumnSpan="2" FontSize="48" >OR</Label>
+        <Label Foreground="White" Content="OR" HorizontalAlignment="Center" HorizontalContentAlignment="Center" VerticalAlignment="Center" Grid.Row="2" Grid.ColumnSpan="2" FontSize="48" />
         <Canvas Background="#99F0F8FF" Grid.Column="1" Grid.Row="1" Width="262" Height="146" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="82,44,52,46">
             <Label Canvas.Left="10" Canvas.Top="6" Width="55">Name:</Label>
             <TextBox Width="150" Name="Name_textBox" Canvas.Left="70" Canvas.Top="10"></TextBox>

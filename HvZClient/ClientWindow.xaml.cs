@@ -37,7 +37,6 @@ namespace HvZClient {
         protected override void OnContentRendered(EventArgs e) {
             QuoteGenerator.RegisterQuoteListener(quote);
             base.OnContentRendered(e);
-            this.RegisterWindow();
         }
 
         public static ImageBrush ImageFromMap(string filename) {

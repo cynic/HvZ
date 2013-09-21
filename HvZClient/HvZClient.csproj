@@ -78,9 +78,6 @@
     </Compile>
     <Compile Include="DefaultAI.cs" />
     <Compile Include="Game.cs" />
-    <Compile Include="JoinGameWindow.xaml.cs">
-      <DependentUpon>JoinGameWindow.xaml</DependentUpon>
-    </Compile>
     <Compile Include="QuoteGenerator.cs" />
     <Compile Include="UI.cs" />
     <Page Include="ClientWindow.xaml">
@@ -99,10 +96,6 @@
       <DependentUpon>GameWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Page Include="JoinGameWindow.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -122,7 +115,6 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <None Include="ClassDiagram1.cd" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -147,9 +139,6 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\holder.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="List of messages.txt" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.0">
