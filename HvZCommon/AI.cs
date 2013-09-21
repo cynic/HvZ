@@ -32,4 +32,32 @@ namespace HvZ.AI {
             }
         }
     }
+
+    public class CurveRight : IHumanAI, IZombieAI {
+        int i = 0;
+
+        public void DoSomething(IHumanPlayer player, List<ITakeSpace> environment) {
+            if (i++ % 2 == 0) player.TurnRight(5);
+            else player.GoForward(0.5);
+        }
+
+        public void DoSomething(IZombiePlayer player, List<ITakeSpace> environment) {
+            if (i++ % 2 == 0) player.TurnRight(5);
+            else player.GoForward(0.5);
+        }
+    }
+
+    public class CurrveLeft : IHumanAI, IZombieAI {
+        int i = 0;
+
+        public void DoSomething(IHumanPlayer player, List<ITakeSpace> environment) {
+            if (i++ % 2 == 0) player.TurnLeft(5);
+            else player.GoForward(0.5);
+        }
+
+        public void DoSomething(IZombiePlayer player, List<ITakeSpace> environment) {
+            if (i++ % 2 == 0) player.TurnLeft(5);
+            else player.GoForward(0.5);
+        }
+    }
 }

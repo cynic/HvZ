@@ -43,7 +43,7 @@ module Internal =
    | Create of string[] * (Command -> unit) * AsyncReplyChannel<string> // map, send, reply
 
    let newGame gameId (map : Map) onGameOver =
-      let delay_between_moves = 200 // ms
+      let delay_between_moves = 100 // ms
       let playerSends = System.Collections.Generic.List()
       let myGame = new HvZ.Common.Game(map)
       let nextId =
@@ -158,10 +158,12 @@ module Internal =
       )
 
 let handleRequest playerId status cmd send =
+(*
    printfn "Received %A from player %d" cmd playerId
    let send x =
       printfn "Sending %A to player %d" x playerId
       send x
+*)
    match status, cmd with
    | OutOfGame, HumanJoin (gameId, _) | OutOfGame, ZombieJoin (gameId, _) ->
       Internal.gamesProcessor.Post (Internal.GamesMessage.Request(gameId, playerId, cmd, send))

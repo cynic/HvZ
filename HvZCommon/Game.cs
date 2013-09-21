@@ -194,15 +194,15 @@ namespace HvZ.Common {
 
     public class Game {
         /* Assumptions:
-         * - Humans move at 0.55 per turn.
-         * - Zombies move at 0.5 per turn.
+         * - Humans move at 0.45 per turn.
+         * - Zombies move at 0.4 per turn.
          * - Turn-rate for humans and zombies is 20 degrees per turn.
          */
         private Random rng = new Random(12345); // fixed seed, deliberately non-static.
-        private const double humanMoveRate = 0.55;
-        private const double zombieMoveRate = 0.5;
-        private const double turnRate = 30.0;
-        private const int stepsPerTurn = 15;
+        private const double humanMoveRate = 0.45;
+        private const double zombieMoveRate = 0.4;
+        private const double turnRate = 20.0;
+        private const int stepsPerTurn = 25;
 
         private Map map;
         //private Dictionary<uint, Human> humans = new Dictionary<uint, Human>();
@@ -228,7 +228,7 @@ namespace HvZ.Common {
             double distPerStep = (map.IsHuman(walkerId) ? humanMoveRate : zombieMoveRate) / stepsPerTurn;
             var walker = map.Walker(walkerId);
             var distXPerStep = distPerStep * Math.Sin(walker.Heading.ToRadians());
-            var distYPerStep = distPerStep * Math.Cos(walker.Heading.ToRadians());
+            var distYPerStep = -distPerStep * Math.Cos(walker.Heading.ToRadians());
             Action act = () => {
                 if (distRemaining > 0.0) {
                     distRemaining -= distPerStep;
