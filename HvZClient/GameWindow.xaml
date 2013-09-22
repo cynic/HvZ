@@ -12,7 +12,7 @@
     </Window.Resources>
     <Grid Name="ground">
         <Canvas Name="GUIMap" Background="Transparent"/>
-        <Canvas Background="Black">
+        <Canvas Background="Black" Opacity="0.4">
             <Canvas.OpacityMask>
                 <ImageBrush ImageSource="Images/frame.png"/>
             </Canvas.OpacityMask>
