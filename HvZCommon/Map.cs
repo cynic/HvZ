@@ -64,6 +64,14 @@ namespace HvZ.Common {
             }
         }
 
+        public void Harm(uint id, double amount) {
+            if (humans.ContainsKey(id)) {
+                //
+            } else {
+                //
+            }
+        }
+
         public void SetPosition(uint id, double x, double y) {
             var walker = walkers[id];
             var pos = walker.Position;

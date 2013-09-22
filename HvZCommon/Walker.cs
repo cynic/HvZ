@@ -9,11 +9,20 @@ namespace HvZ.Common {
 
     public class Human : IWalkerExtended {
         private Map map;
+
         double heading;
         public double Heading {
-            get { return heading; }
-            internal set { if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Heading")); heading = value.PositiveAngle(); }
+            get {
+                return heading;
+            }
+            internal set {
+                if (PropertyChanged != null) {
+                    PropertyChanged(this, new PropertyChangedEventArgs("Heading"));
+                }
+                heading = value.PositiveAngle();
+            }
         }
+
         public uint Id { get; private set; }
         public string Texture { get { return "human"; } }
 
@@ -21,6 +30,8 @@ namespace HvZ.Common {
         public double Radius { get; private set; }
 
         public string Name { get; private set; }
+
+        public double Health { get; private set; }
 
         public Human(uint id, string name, Map m, double x, double y, double heading) {
             Id = id;
@@ -36,13 +47,25 @@ namespace HvZ.Common {
 
     public class Zombie : IWalkerExtended {
         private Map map;
+
         double heading;
         public double Heading {
-            get { return heading; }
-            internal set { if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Heading")); heading = value.PositiveAngle(); }
+            get {
+                return heading;
+            }
+            internal set {
+                if (PropertyChanged != null) {
+                    PropertyChanged(this, new PropertyChangedEventArgs("Heading"));
+                }
+                heading = value.PositiveAngle();
+            }
         }
+
         public uint Id { get; private set; }
         public string Name { get; private set; }
+
+        public double Health { get; private set; }
+
         public string Texture { get { return "zombie"; } }
 
         public Position Position { get; set; }

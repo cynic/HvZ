@@ -19,14 +19,14 @@ namespace HvZ.Common {
             return distBetween >= diff && distBetween <= sum;
         }
 
-        /// <summary>Calculates straight line distance between two Positions (untested)</summary>
+        /// <summary>Calculates straight line distance between two Entities (untested)</summary>
         public static double DistanceFrom(this ITakeSpace a, ITakeSpace b) {
             double distX = a.Position.X - b.Position.X;
             double distY = a.Position.Y - b.Position.Y;
             return Math.Sqrt(distX * distX + distY * distY);
         }
 
-        /// <summary>Calculates heading needed to face one Position from another (untested)</summary>
+        /// <summary>Calculates heading needed to face one Entity from another (untested)</summary>
         public static double AngleFrom(this ITakeSpace a, ITakeSpace b) {
             double distX = a.Position.X - b.Position.X;
             double distY = a.Position.Y - b.Position.Y;

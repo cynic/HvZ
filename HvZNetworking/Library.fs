@@ -37,6 +37,7 @@ type IWalker =
    abstract member Heading : float with get
    abstract member Name : string with get
 
+   abstract member Health : float with get
 (*
 How to add new commands:
 
