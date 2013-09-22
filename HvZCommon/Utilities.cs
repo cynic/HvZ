@@ -19,6 +19,31 @@ namespace HvZ.Common {
             return distBetween >= diff && distBetween <= sum;
         }
 
+        /// <summary>Calculates straight line distance between two Positions (untested)</summary>
+        public static double DistanceFrom(this ITakeSpace a, ITakeSpace b) {
+            double distX = a.Position.X - b.Position.X;
+            double distY = a.Position.Y - b.Position.Y;
+            return Math.Sqrt(distX * distX + distY * distY);
+        }
+
+        /// <summary>Calculates heading needed to face one Position from another (untested)</summary>
+        public static double AngleFrom(this ITakeSpace a, ITakeSpace b) {
+            double distX = a.Position.X - b.Position.X;
+            double distY = a.Position.Y - b.Position.Y;
+            double angle = Math.Asin(distX / a.DistanceFrom(b));
+
+            if (distX > 0) {
+                angle = 360 - angle;
+                if (distY < 0) {
+                    angle -= 90;
+                }
+            } else if (distY < 0) {
+                angle = 180 - angle;
+            }
+
+            return angle;
+        }
+
         internal static double PositiveAngle(this double x) {
             return (360 + (x % 360)) % 360;
         }

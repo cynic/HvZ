@@ -5,13 +5,9 @@ using System.Text;
 using System.ComponentModel;
 
 namespace HvZ.Common {
-    public interface IWalker : ITakeSpace, IIdentified, INotifyPropertyChanged {
-        /// <summary>heading is in degrees, 0 is directly upwards</summary>
-        double Heading { get; }
-        string Name { get; }
-    }
+    public interface IWalkerExtended : IWalker, IVisual, IIdentified, INotifyPropertyChanged { }
 
-    public class Human : IWalker {
+    public class Human : IWalkerExtended {
         private Map map;
         double heading;
         public double Heading {
@@ -38,7 +34,7 @@ namespace HvZ.Common {
         public event PropertyChangedEventHandler PropertyChanged;
     }
 
-    public class Zombie : IWalker {
+    public class Zombie : IWalkerExtended {
         private Map map;
         double heading;
         public double Heading {

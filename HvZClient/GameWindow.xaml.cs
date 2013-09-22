@@ -55,7 +55,7 @@ namespace HvZClient {
             game.OnPlayerJoin += (_, __) => placeObjects();
         }
 
-        private void placeWalker(string texture, IWalker walker) {
+        private void placeWalker(string texture, IWalkerExtended walker) {
             var e = new Ellipse() { Width = walker.Radius*2, Height = walker.Radius*2 };
             e.Fill = (ImageBrush)Resources[texture];
             var group = new TransformGroup();
@@ -74,7 +74,7 @@ namespace HvZClient {
             var y = walker.Position.Y - walker.Radius;
             var storyboard = new Storyboard();
             */
-            walker.Position.PropertyChanged += (_, __) => {
+            ((System.ComponentModel.INotifyPropertyChanged)walker.Position).PropertyChanged += (_, __) => {
                 /*
                 var animX = new DoubleAnimation(x, walker.Position.X - walker.Radius, new Duration(TimeSpan.FromMilliseconds(100)));
                 x = walker.Position.X - walker.Radius;

@@ -13,7 +13,7 @@ namespace HvZ.Common {
         Terrain[] terrain;
         internal Dictionary<uint, Zombie> zombies = new Dictionary<uint, Zombie>();
         internal Dictionary<uint, Human> humans = new Dictionary<uint, Human>();
-        internal Dictionary<uint, IWalker> walkers = new Dictionary<uint, IWalker>();
+        internal Dictionary<uint, IWalkerExtended> walkers = new Dictionary<uint, IWalkerExtended>();
         internal List<Obstacle> obstacles = new List<Obstacle>();
         internal List<ResupplyPoint> resupply = new List<ResupplyPoint>();
 
@@ -41,7 +41,7 @@ namespace HvZ.Common {
 
         private void GetBodyForTransfer(out double xpos, out double ypos, out double heading) {
             // find something that's computer-controlled; it won't have a name.
-            IWalker walker = walkers.Select(x => x.Value).FirstOrDefault(x => x.Name == null);
+            IWalkerExtended walker = walkers.Select(x => x.Value).FirstOrDefault(x => x.Name == null);
             if (walker == null) {
                 throw new Exception("Shouldn't be here; map accounting has gone crazy.");
             }
@@ -157,7 +157,7 @@ namespace HvZ.Common {
             for (int row = 0; row < Height; ++row) {
                 for (int column = 0; column < lines[row].Length; ++column) {
                     uint id = 0;
-                    IWalker w = null;
+                    IWalkerExtended w = null;
                     switch (Char.ToLower(lines[row][column])) {
                         case '.':
                         case 's': terrain[row * Width + column] = Terrain.Ground; break;

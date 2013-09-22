@@ -189,28 +189,6 @@ namespace HvZ.Common {
         public event PropertyChangedEventHandler PropertyChanged;
         public event EventHandler OnPlayerJoin;
 
-        /*
-   interface HvZ.AI.IHumanPlayer with
-      member __.GoForward distance = send () (Forward (Option.get playerId, distance))
-      member __.TurnLeft degrees = send () (Left (Option.get playerId, degrees))
-      member __.TurnRight degrees = send () (Right (Option.get playerId, degrees))
-      member __.Eat () = send () (Eat (Option.get playerId))
-      member __.TakeFoodFrom (r : IIdentified) = send () (TakeFood (Option.get playerId, r.Id))
-      member __.TakeSocksFrom (r : IIdentified) = send () (TakeSocks (Option.get playerId, r.Id))
-      member __.Throw heading = send () (Throw (Option.get playerId, heading))
-   
-   interface HvZ.AI.IZombiePlayer with
-      member __.GoForward distance = send () (Forward (Option.get playerId, distance))
-      member __.TurnLeft degrees = send () (Left (Option.get playerId, degrees))
-      member __.TurnRight degrees = send () (Right (Option.get playerId, degrees))
-      member __.Eat target = send () (Bite (Option.get playerId, target.Id))
-      member __.X : float with get
-      member __.Y : float with get 
-      member __.Heading : float with get 
-      member __.X : float with get
-      member __.Y : float with get 
-         */
-
         void IHumanPlayer.Eat() {
             connection.Send(Command.NewEat(connection.PlayerId));
         }
@@ -255,47 +233,15 @@ namespace HvZ.Common {
             connection.Send(Command.NewRight(connection.PlayerId, degrees));
         }
 
+        Position ITakeSpace.Position { get { return Map.walkers[connection.PlayerId].Position; } }
+        double ITakeSpace.Radius { get { return Map.walkers[connection.PlayerId].Radius; } }
+        double IWalker.Heading { get { return Map.walkers[connection.PlayerId].Heading; } }
+        string IWalker.Name { get { return Map.walkers[connection.PlayerId].Name; } }
 
-        double IHumanPlayer.Heading {
-            get { return Map.humans[connection.PlayerId].Heading; }
-        }
-
-        double IHumanPlayer.MapHeight {
-            get { return Map.Height; }
-        }
-
-        double IHumanPlayer.MapWidth {
-            get { return Map.Width; }
-        }
-
-        double IHumanPlayer.X {
-            get { return Map.humans[connection.PlayerId].Position.X; }
-        }
-
-        double IHumanPlayer.Y {
-            get { return Map.humans[connection.PlayerId].Position.Y; }
-        }
-
-
-        double IZombiePlayer.Heading {
-            get { return Map.zombies[connection.PlayerId].Heading; }
-        }
-
-        double IZombiePlayer.MapHeight {
-            get { return Map.Height; }
-        }
-
-        double IZombiePlayer.MapWidth {
-            get { return Map.Width; }
-        }
-
-        double IZombiePlayer.X {
-            get { return Map.zombies[connection.PlayerId].Position.X; }
-        }
-
-        double IZombiePlayer.Y {
-            get { return Map.zombies[connection.PlayerId].Position.Y; }
-        }
+        double IHumanPlayer.MapHeight { get { return Map.Height; } }
+        double IHumanPlayer.MapWidth { get { return Map.Width; } }
+        double IZombiePlayer.MapHeight { get { return Map.Height; } }
+        double IZombiePlayer.MapWidth { get { return Map.Width; } }
     }
 
     public class Game {

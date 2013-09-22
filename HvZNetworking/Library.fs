@@ -1,9 +1,41 @@
 ﻿namespace HvZ.Common
 
+module Mxyzptlk =
+   [<assembly:System.Runtime.CompilerServices.InternalsVisibleTo("HvZCommon")>]
+   do ()
+
 type IIdentified =
-   interface
-      abstract member Id : uint32 with get
-   end
+   abstract member Id : uint32 with get
+
+type Position(x : float, y : float) =
+   let evt = Event<_,_>()
+   let mutable x = x
+   let mutable y = y
+
+   member __.X
+      with get () = x
+      and internal set v =
+         evt.Trigger(__, System.ComponentModel.PropertyChangedEventArgs "X")
+         x <- v
+   member __.Y
+      with get () = y
+      and internal set v =
+         evt.Trigger (__, System.ComponentModel.PropertyChangedEventArgs "Y")
+         y <- v
+
+   interface System.ComponentModel.INotifyPropertyChanged with
+      [<CLIEvent>]
+      member __.PropertyChanged = evt.Publish
+
+type ITakeSpace =
+   abstract member Position : Position with get
+   abstract member Radius : float with get
+
+type IWalker =
+   inherit ITakeSpace
+   /// <summary>heading is in degrees, 0 is directly upwards</summary>
+   abstract member Heading : float with get
+   abstract member Name : string with get
 
 (*
 How to add new commands:
@@ -294,6 +326,7 @@ namespace HvZ.AI
 open HvZ.Common
 
 type IHumanPlayer =
+   inherit IWalker
    abstract member GoForward: distance:float -> unit
    abstract member TurnLeft: degrees:float -> unit
    abstract member TurnRight: degrees:float -> unit
@@ -301,20 +334,15 @@ type IHumanPlayer =
    abstract member TakeFoodFrom: place:IIdentified -> unit
    abstract member TakeSocksFrom: place:IIdentified -> unit
    abstract member Throw: heading:float -> unit
-   abstract member X : float with get
-   abstract member Y : float with get 
-   abstract member Heading : float with get 
    abstract member MapWidth : float with get
    abstract member MapHeight : float with get
 
 type IZombiePlayer =
+   inherit IWalker
    abstract member GoForward: distance:float -> unit
    abstract member TurnLeft: degrees:float -> unit
    abstract member TurnRight: degrees:float -> unit
    abstract member Eat: target:IIdentified -> unit
-   abstract member X : float with get
-   abstract member Y : float with get 
-   abstract member Heading : float with get 
    abstract member MapWidth : float with get
    abstract member MapHeight : float with get
 
