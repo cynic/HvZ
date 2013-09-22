@@ -174,9 +174,6 @@
     <Resource Include="Images\splash.png" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Maps\COD Piece.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Include="Maps\Nether.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
