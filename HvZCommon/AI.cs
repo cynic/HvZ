@@ -20,7 +20,7 @@ namespace HvZ.AI {
             switch (rng.Next(50)) {
                 case 0: player.TurnLeft(rng.NextDouble() * 300.0); break;
                 case 1: player.TurnRight(rng.NextDouble() * 300.0); break;
-                case 2: player.GoForward(rng.NextDouble()*10.0); break;
+                case 2: player.GoForward(rng.NextDouble()*20.0); break;
             }
         }
 
