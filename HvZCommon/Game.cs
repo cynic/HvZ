@@ -41,7 +41,10 @@ namespace HvZ.Common {
         Map map;
         public Map Map {
             get { return map; }
-            internal set { if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Map")); map = value; }
+            internal set {
+                map = value;
+                if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Map"));
+            }
         }
         Action requestDecision;
         Game world;
@@ -243,6 +246,8 @@ namespace HvZ.Common {
         double IHumanPlayer.MapWidth { get { return Map.Width; } }
         double IZombiePlayer.MapHeight { get { return Map.Height; } }
         double IZombiePlayer.MapWidth { get { return Map.Width; } }
+
+        int IWalker.MaximumLifespan { get { return Map.walkers[connection.PlayerId].MaximumLifespan; } }
     }
 
     public class Game {
@@ -267,12 +272,24 @@ namespace HvZ.Common {
         }
 
         public void Update() {
+            // ensure that all walkers are a bit closer to death.
+            foreach (var h in map.Humans) if (h.Lifespan > 0) --h.Lifespan;
+            foreach (var z in map.Zombies) if (z.Lifespan > 0) --z.Lifespan;
+            // now do whatever is required on the turn.
             for (int i = 0; i < stepsPerTurn; ++i) {
                 // permute order.
                 foreach (var key in ongoing.Keys.OrderBy(_ => rng.Next())) {
                     // execute action.
                     ongoing[key]();
                 }
+            }
+            // now check for death-by-timeout.
+            // We do this now because it's possible for a walker to do something on the turn that they're about to die on (e.g. eat food or bite a victim).
+            foreach (var w in map.walkers.ToArray()) {
+                if (w.Value.Lifespan > 0) continue;
+                // otherwise ... DEATH!
+                ongoing.Remove(w.Key);
+                //map.Kill(w.Key); // TODO.
             }
         }
 

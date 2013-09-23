@@ -58,56 +58,63 @@ namespace HvZClient {
         private void placeWalker(string texture, IWalkerExtended walker) {
             var e = new Ellipse() { Width = walker.Radius*2, Height = walker.Radius*2 };
             e.Fill = (ImageBrush)Resources[texture];
+            //e.Stroke = Brushes.Gray;
+            //e.StrokeThickness = 0.05;
+            // this is the direction arc, which shows which way the player is facing.
+            var frontStrokeThickness = 0.25;
+            var dirpath = new Path() { Stroke = Brushes.HotPink, StrokeThickness = frontStrokeThickness, StrokeEndLineCap = PenLineCap.Round, StrokeStartLineCap = PenLineCap.Round, Opacity=0.6 };
+            var dirfigure = new PathFigure() { IsClosed = false, StartPoint = new Point(-walker.Radius*Math.Sin((55.0).ToRadians()) + walker.Radius, walker.Radius*Math.Cos((55.0).ToRadians())) };
+            var dirarc = new ArcSegment() {
+                SweepDirection = System.Windows.Media.SweepDirection.Clockwise,
+                Point = new Point(walker.Radius * Math.Sin((55.0).ToRadians()) + walker.Radius, walker.Radius * Math.Cos((55.0).ToRadians())),
+                IsStroked = true,
+                Size = new Size(walker.Radius, walker.Radius)
+            };
+            var dirgeom = new PathGeometry(new[] { dirfigure });
+            dirfigure.Segments.Add(dirarc);
+            dirpath.Data = dirgeom;
+            // here is the remaining lifespan.
+            var green = new GradientStop(Colors.Green, 1.0-0.01);
+            var red = new GradientStop(Colors.Red, 1.0);
+            var lifebar = new LinearGradientBrush(new GradientStopCollection(new[] { new GradientStop(Colors.Green, 0.0), green, red }));
+            var liferec = new Rectangle() { Width = walker.Radius * 2, RadiusX = 0.25, RadiusY = 0.25, Height = 0.3, Fill = lifebar, Margin = new Thickness(0.0, walker.Radius * 2, 0.0, 0.0), Opacity = 0.6 };
+            //var arc = new HvZ.Controls.Arc() { Center = new Point(walker.Radius, walker.Radius), Stroke = Brushes.Blue, StartAngle = 45, EndAngle = 315, StrokeThickness = 0.4, SmallAngle = false, Opacity=0.6, Radius = walker.Radius-0.3 };
             var group = new TransformGroup();
             var translate = new TranslateTransform(walker.Position.X - walker.Radius, walker.Position.Y - walker.Radius);
             var rotate = new RotateTransform(walker.Heading, walker.Radius, walker.Radius);
             group.Children.Add(rotate);
             group.Children.Add(translate);
             e.RenderTransform = group;
-            // HOLY FRACKING SPACE-POPE ON A POGO-STICK.
-            // The commented-out bits below are what's required for WPF to do a simple animation.
-            // ... really, WPF?
-            // ... really, really?
-            // Screw this hippie BS.
-            /*
-            var x = walker.Position.X - walker.Radius;
-            var y = walker.Position.Y - walker.Radius;
-            var storyboard = new Storyboard();
-            */
-            ((System.ComponentModel.INotifyPropertyChanged)walker.Position).PropertyChanged += (_, __) => {
-                /*
-                var animX = new DoubleAnimation(x, walker.Position.X - walker.Radius, new Duration(TimeSpan.FromMilliseconds(100)));
-                x = walker.Position.X - walker.Radius;
-                var animY = new DoubleAnimation(y, walker.Position.Y - walker.Radius, new Duration(TimeSpan.FromMilliseconds(100)));
-                y = walker.Position.Y - walker.Radius;
-                storyboard.Children.Add(animX);
-                storyboard.Children.Add(animY);
-                var propertyChainX = new[] {
-                    Ellipse.RenderTransformProperty,
-                    TransformGroup.ChildrenProperty,
-                    TranslateTransform.XProperty
-                };
-                var propertyChainY = new[] {
-                    Ellipse.RenderTransformProperty,
-                    TransformGroup.ChildrenProperty,
-                    TranslateTransform.YProperty
-                };
-                string path = "(0).(1)[1].(2)";
-                var ppathX = new PropertyPath(path, propertyChainX);
-                var ppathY = new PropertyPath(path, propertyChainY);
-                Storyboard.SetTarget(animX, e);
-                Storyboard.SetTarget(animY, e);
-                Storyboard.SetTargetProperty(animX, ppathX);
-                Storyboard.SetTargetProperty(animY, ppathY);
-                storyboard.Begin();
-                */
-                translate.X = walker.Position.X - walker.Radius;
-                translate.Y = walker.Position.Y - walker.Radius;
+            dirpath.RenderTransform = group;
+            liferec.RenderTransform = translate;
+            ((System.ComponentModel.INotifyPropertyChanged)walker.Position).PropertyChanged += (_, args) => {
+                switch (args.PropertyName) {
+                    case "X":
+                        translate.X = walker.Position.X - walker.Radius;
+                        break;
+                    case "Y":
+                        translate.Y = walker.Position.Y - walker.Radius;
+                        break;
+                    default: throw new Exception("Unhandled property name from Position");
+                }
             };
-            walker.PropertyChanged += (_, __) => {
-                rotate.Angle = walker.Heading;
+            walker.PropertyChanged += (_, args) => {
+                switch (args.PropertyName) {
+                    case "Heading":
+                        rotate.Angle = walker.Heading;
+                        break;
+                    case "Lifespan":
+                        var amount = (double)walker.Lifespan / (double)walker.MaximumLifespan;
+                        green.Offset = amount-0.01;
+                        red.Offset = amount;
+                        break;
+                    default: throw new Exception("Unhandled property name from Walker");
+                }
+                
             };
             GUIMap.Children.Add(e);
+            GUIMap.Children.Add(dirpath);
+            GUIMap.Children.Add(liferec);
         }
 
         private void placeObstacle(Obstacle item) {

@@ -8,18 +8,15 @@ namespace HvZ.Common {
     public interface IWalkerExtended : IWalker, IVisual, IIdentified, INotifyPropertyChanged { }
 
     public class Human : IWalkerExtended {
+        internal const int HumanLifespan = 300; // that's 30 seconds at 0.1s per turn.
         private Map map;
 
         double heading;
         public double Heading {
-            get {
-                return heading;
-            }
+            get { return heading; }
             internal set {
-                if (PropertyChanged != null) {
-                    PropertyChanged(this, new PropertyChangedEventArgs("Heading"));
-                }
                 heading = value.PositiveAngle();
+                if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Heading"));
             }
         }
 
@@ -31,7 +28,16 @@ namespace HvZ.Common {
 
         public string Name { get; private set; }
 
-        public int Lifespan { get; internal set; }
+        int lifespan = HumanLifespan;
+        public int Lifespan {
+            get { return lifespan; }
+            internal set {
+                lifespan = value;
+                if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Lifespan"));
+            }
+        }
+
+        public int MaximumLifespan { get { return HumanLifespan; } }
 
         public Human(uint id, string name, Map m, double x, double y, double heading) {
             Id = id;
@@ -46,25 +52,31 @@ namespace HvZ.Common {
     }
 
     public class Zombie : IWalkerExtended {
+        internal const int ZombieLifespan = 300; // 30s at 0.1s per turn
         private Map map;
 
         double heading;
         public double Heading {
-            get {
-                return heading;
-            }
+            get { return heading; }
             internal set {
-                if (PropertyChanged != null) {
-                    PropertyChanged(this, new PropertyChangedEventArgs("Heading"));
-                }
                 heading = value.PositiveAngle();
+                if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Heading"));
             }
         }
 
         public uint Id { get; private set; }
         public string Name { get; private set; }
 
-        public int Lifespan { get; internal set; }
+        int lifespan = ZombieLifespan;
+        public int Lifespan {
+            get { return lifespan; }
+            internal set {
+                lifespan = value;
+                if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Lifespan"));
+            }
+        }
+
+        public int MaximumLifespan { get { return ZombieLifespan; } }
 
         public string Texture { get { return "zombie"; } }
 

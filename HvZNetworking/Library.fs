@@ -37,6 +37,8 @@ type IWalker =
    abstract member Heading : float with get
    abstract member Name : string with get
    abstract member Lifespan : int with get
+   abstract member MaximumLifespan : int with get
+
 (*
 How to add new commands:
 
@@ -129,21 +131,7 @@ module Internal =
    open HvZ.Common
    open System.Text
    open System.Text.RegularExpressions
-   (*
-   let smoosh (xs : byte[]) =
-      let len = xs.Length / 2 + xs.Length % 2
-      let arr = Array.zeroCreate len
-      for i = 0 to arr.Length-1 do
-         arr.[i] <- (xs.[i*2] <<< 4) ||| (if i = arr.Length-1 && xs.Length % 2 = 1 then 0uy else xs.[i*2+1])
-      System.Convert.ToBase64String arr
 
-   let unsmoosh xs =
-      seq {
-         for x in System.Convert.FromBase64String xs do
-            yield x >>> 4
-            yield x &&& 0xFuy
-      } |> Seq.toArray
-   *)
    let toProtocol cmd =
       let s =
          match cmd with
