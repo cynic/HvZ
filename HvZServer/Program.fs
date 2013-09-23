@@ -51,28 +51,38 @@ module Internal =
          fun () ->
             iter.MoveNext () |> ignore
             iter.Current
+      let sendAll cmd =
+         playerSends.RemoveAll (fun x ->
+            try
+               x cmd
+               false
+            with
+            | e -> 
+               printfn "Client connection errored, removing it: %A" e
+               true
+         ) |> ignore
       MailboxProcessor.Start(fun inbox ->
-         let rec loop (lastMoveTime : System.DateTime) numPlayers =
+         let rec loop (lastMoveTime : System.DateTime) =
             async {
-               if numPlayers = 0 then
+               if playerSends.Count = 0 then
                   return! waitForPlayers ()
                else
                   let delay = int (System.DateTime.Now-lastMoveTime).TotalMilliseconds
                   if delay < 0 then
                      myGame.Update ()
-                     playerSends.ForEach (fun x -> x Move)
-                     return! loop System.DateTime.Now numPlayers
+                     sendAll Move
+                     return! loop System.DateTime.Now
                   else
                      let! input = inbox.TryReceive(delay_between_moves)
                      match input with
                      | None ->
                         myGame.Update ()
-                        playerSends.ForEach (fun x -> x Move)
-                        return! loop System.DateTime.Now numPlayers
+                        sendAll Move
+                        return! loop System.DateTime.Now
                      | Some (playerId, cmd, send) ->
                         let checkOwnPlayer wId f =
                            if playerId <> wId then send (No "You can only control your own walker, not anyone else's.")
-                           elif f () then playerSends.ForEach (fun x -> x cmd)
+                           elif f () then sendAll cmd
                            else send (No "I couldn't execute that command, sorry.")
                         match cmd with
                         | Forward (wId, dist) -> checkOwnPlayer wId (fun () -> myGame.Forward(wId, dist))
@@ -88,7 +98,7 @@ module Internal =
                            if not <| map.AddZombie(nextId (), name) then failwith "Hey moron, fix what you need to fix."
                         | _ ->
                            send (No "This command is something that I tell clients.  Clients don't get to tell it to me.")
-                        return! loop lastMoveTime numPlayers
+                        return! loop lastMoveTime
             }
          and waitForPlayers () =
             async {
@@ -99,10 +109,8 @@ module Internal =
                      let x, y, heading =
                         let w = map.Walker playerId
                         w.Position.X, w.Position.Y, w.Heading
-                     playerSends.ForEach (fun f ->
-                        f (createCommand x y heading)
-                     )
-                     loop System.DateTime.Now 1
+                     sendAll (createCommand x y heading)
+                     loop System.DateTime.Now
                   else
                      send (No "There aren't any slots left for that kind of player on this map.")
                      waitForPlayers ()
