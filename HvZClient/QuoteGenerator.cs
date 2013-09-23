@@ -20,6 +20,7 @@ namespace HvZClient {
         // Variable keys:
         private enum QKey {
             q,  // = quote
+            t,  // = statement
             c,  // = conjunction
             p,  // = prefix
             s,  // = source
@@ -30,8 +31,8 @@ namespace HvZClient {
             d,  // = directive i.e "I", "You", "we"
 
             rR, // = the sum of r and R
-            os, // = source - forced plural
-            ss  // = object - forced plural
+            ss, // = source - forced plural
+            os  // = object - forced plural
         }
         // Variable keys can be used from anywhere but must be used sparingly.
         //  Keys only work in sets other than the one they refer to, to prevent circular references
@@ -99,9 +100,7 @@ namespace HvZClient {
         quotes = new string[] {
             "Don't eat the yellow {o}",
             "A zombie apocalypse is very unlikely",
-            "\"There is no such thing as zombies.\" was what I said",
-            "Uuugh",
-            "Smash!!",
+            "{t}, was the only thing {d} could say",
             "{d} just lost THE GAME",
             "Eating {rR} kilos of {o} is good for zombie bites",
             "Zombies love {o}",
@@ -116,14 +115,23 @@ namespace HvZClient {
             "Zombies, just zombies",
             "Unicorns, deal with it.",
             "Wonka bars are made from <sensored> and <sensored> from monkeys <sensored>, but only after they've been washed.",
-            "I remember what it was like to be human",
             "Brains taste alot like {o}",
             "You'll know what it means when you need it",
             "Use the {o} Luke",
             "Zombie are the main cause of zombies",
             "Zombies are your friends!",
-            "Terrible! astounding! Fantastic!",
             "Lookout for the {os}!"
+        },
+        statements = new string[] {
+            "I can smell your rotting flesh",
+            "Terrible! astounding! Fantastic!",
+            "I always wanted to be a zombie",
+            "Becoming a zombie was the best decision I'v ever made",
+            "Always carry plenty of {os}",
+            "Uuugh",
+            "Smash!!",
+            "I remember what it was like to be human",
+            "\"There is no such thing as zombies.\""
         },
         conjunc = new string[] {
             "say", "reveal", "tell", "believe", "estimate", "report", "state", "unimpressed", "sweaty", "scream"
@@ -170,7 +178,10 @@ namespace HvZClient {
             "{s}: {q}",
             "Some friendly advice: \"{q}\", brought to you by your friendly neighbourhood {s}",
             "Breaking News! {q}",
-            "Warning: {c} {s}"
+            "Warning: {t}, {c} {s}",
+            "{s}: {t}",
+            "{t} {c} {p} {s}",
+            "\"{t}\" - famous last words"
         };
 
         private static bool plural = false;
@@ -178,7 +189,14 @@ namespace HvZClient {
         private static string NextQuote() {
             plural = Utils.rand.Next(1) == 0;
             string quote = formattedString(formats.PickOne(), new List<QKey>());
-            return Char.ToUpper(quote[0]) + quote.Substring(1, quote.Length - 1);
+
+            quote = Char.ToUpper(quote[0]) + quote.Substring(1, quote.Length - 1);
+
+            while (quote.Contains("\"\"")) {
+                quote = quote.Replace("\"\"", "\"");
+            }
+
+            return quote;
         }
 
         private static string formattedString(string s, List<QKey> exclude) {
@@ -208,6 +226,7 @@ namespace HvZClient {
                 case QKey.R: return Utils.rand.NextDouble().ToString();
                 case QKey.rR: return (((double)Utils.rand.Next(0, 901)) + Utils.rand.NextDouble()).ToString();
                 case QKey.d: return getDirective(Utils.rand.Next(20) == 0);
+                case QKey.t: return statements.PickNext();
             }
 
             throw new NotSupportedException("Edit me so I know what to do with " + c.ToString() + " ...PLEASE!!!");
@@ -261,7 +280,7 @@ namespace HvZClient {
             return result;
         }
 
-        private static List<Label> contexts = new List<Label>();
+        private static List<TextBlock> contexts = new List<TextBlock>();
         private static DispatcherTimer timer = new DispatcherTimer() {
             Interval = randomTime()
         };
@@ -272,20 +291,20 @@ namespace HvZClient {
         }
 
         private static TimeSpan randomTime() {
-            return TimeSpan.FromSeconds(Utils.rand.Next(30, 101));
+            return TimeSpan.FromSeconds(Utils.rand.Next(10, 31));
         }
 
         private static void timer_Tick(object sender, EventArgs e) {
             timer.Interval = randomTime();
-            foreach (Label i in contexts) {
-                i.Content = NextQuote();
+            foreach (TextBlock i in contexts) {
+                i.Text = NextQuote();
             }
         }
 
-        public static void RegisterQuoteListener(Label context) {
+        public static void RegisterQuoteListener(TextBlock context) {
             if (!contexts.Contains(context)) {
                 contexts.Add(context);
-                context.Content = NextQuote();
+                context.Text = NextQuote();
             }
         }
     }
