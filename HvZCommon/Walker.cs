@@ -31,7 +31,7 @@ namespace HvZ.Common {
 
         public string Name { get; private set; }
 
-        public double Health { get; private set; }
+        public int Lifespan { get; internal set; }
 
         public Human(uint id, string name, Map m, double x, double y, double heading) {
             Id = id;
@@ -64,7 +64,7 @@ namespace HvZ.Common {
         public uint Id { get; private set; }
         public string Name { get; private set; }
 
-        public double Health { get; private set; }
+        public int Lifespan { get; internal set; }
 
         public string Texture { get { return "zombie"; } }
 

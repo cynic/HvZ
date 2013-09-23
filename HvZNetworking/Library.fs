@@ -36,8 +36,7 @@ type IWalker =
    /// <summary>heading is in degrees, 0 is directly upwards</summary>
    abstract member Heading : float with get
    abstract member Name : string with get
-
-   abstract member Health : float with get
+   abstract member Lifespan : int with get
 (*
 How to add new commands:
 

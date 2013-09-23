@@ -236,7 +236,7 @@ namespace HvZ.Common {
         Position ITakeSpace.Position { get { return Map.walkers[connection.PlayerId].Position; } }
         double ITakeSpace.Radius { get { return Map.walkers[connection.PlayerId].Radius; } }
         double IWalker.Heading { get { return Map.walkers[connection.PlayerId].Heading; } }
-        double IWalker.Health { get { return Map.walkers[connection.PlayerId].Health; } }
+        int IWalker.Lifespan { get { return Map.walkers[connection.PlayerId].Lifespan; } }
         string IWalker.Name { get { return Map.walkers[connection.PlayerId].Name; } }
 
         double IHumanPlayer.MapHeight { get { return Map.Height; } }
