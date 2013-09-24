@@ -102,7 +102,7 @@ module Internal =
             }
          and waitForPlayers () =
             async {
-               let! input = inbox.TryReceive(1000)
+               let! input = inbox.TryReceive(5000)
                let doAdd addFunc playerId send createCommand =
                   if addFunc () then
                      playerSends.Add send
