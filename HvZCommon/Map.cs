@@ -111,6 +111,7 @@ namespace HvZ.Common {
             Width = lines.Max(x => x.Length);
             Height = lines.Length;
             terrain = new Terrain[Width * Height];
+            uint resupplyId = 0;
             for (int row = 0; row < Height; ++row) {
                 for (int column = 0; column < lines[row].Length; ++column) {
                     switch (Char.ToLower(lines[row][column])) {
@@ -138,7 +139,7 @@ namespace HvZ.Common {
                             break;
                         case 'r':
                             terrain[row * Width + column] = Terrain.Ground;
-                            resupply.Add(new ResupplyPoint(column, row));
+                            resupply.Add(new ResupplyPoint(++resupplyId, column, row));
                             break;
                         default:
                             throw new System.NotImplementedException(String.Format("There's something wrong with the map: I don't know how to handle '{0}' characters.", lines[row][column]));

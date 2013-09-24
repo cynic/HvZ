@@ -67,8 +67,8 @@ type Command =
 | CreateOK of string // gameId
 | Game of string // gameId
 | ListEnd
-| Human of uint32 * float * float * float * string // walkerId * x * y * heading * name /// also functions as JoinOK
-| Zombie of uint32 * float * float * float * string // walkerId * x * y * heading * name /// also functions as JoinOK
+| Human of uint32 * string // walkerId * name /// also functions as JoinOK
+| Zombie of uint32 * string // walkerId * name /// also functions as JoinOK
 | Move
 | No of string // reason for rejection
 
@@ -87,8 +87,8 @@ type ICommandInterpreter =
    abstract member CreateOK : gameId:string -> unit // gameId
    abstract member Game : gameId:string -> unit // gameId
    abstract member ListEnd : unit -> unit
-   abstract member Human : walkerId:uint32 -> x:float -> y:float -> heading:float -> name:string -> unit // walkerId -> x -> y -> heading /// also functions as JoinOK
-   abstract member Zombie : walkerId:uint32 -> x:float -> y:float -> heading:float -> name:string -> unit // walkerId -> x -> y -> heading /// also functions as JoinOK
+   abstract member Human : walkerId:uint32 -> name:string -> unit // walkerId -> name /// also functions as JoinOK
+   abstract member Zombie : walkerId:uint32 -> name:string -> unit // walkerId -> name /// also functions as JoinOK
    abstract member Move : unit -> unit
    abstract member No : reason:string -> unit // reason for rejection
 
@@ -110,8 +110,8 @@ type Command with
       | Bite (wId, target) -> x.Bite wId target
       | ListStart -> x.ListStart ()
       | ListEnd -> x.ListEnd ()
-      | Human (walkerId, _x, y, heading, name) -> x.Human walkerId _x y heading name
-      | Zombie (walkerId, _x, y, heading, name) -> x.Zombie walkerId _x y heading name
+      | Human (walkerId, name) -> x.Human walkerId name
+      | Zombie (walkerId, name) -> x.Zombie walkerId name
       | Move -> x.Move ()
       | No why -> x.No why
       | _ -> printfn "I shouldn't be receiving %A commands..." cmd // ignore?
@@ -155,8 +155,8 @@ module Internal =
          | Game gameId -> sprintf "game %s" gameId
          | ListStart -> sprintf "begin"
          | ListEnd -> sprintf "end"
-         | Human (walkerId, x, y, heading, name) -> sprintf "human %d %.2f %.2f %.2f %s" walkerId x y heading name
-         | Zombie (walkerId, x, y, heading, name) -> sprintf "zombie %d %.2f %.2f %.2f %s" walkerId x y heading name
+         | Human (walkerId, name) -> sprintf "human %d %s" walkerId name
+         | Zombie (walkerId, name) -> sprintf "zombie %d %s" walkerId name
          | Move -> "move"
          | No why -> sprintf "no %s" why // reason for rejection
       let byteCount = Encoding.UTF8.GetByteCount s
@@ -186,8 +186,8 @@ module Internal =
          makeMatcher @"^game (.{20})$" (fun m -> Game(m.[1]))
          makeMatcher @"^begin$" (fun _ -> ListStart)
          makeMatcher @"^end$" (fun _ -> ListEnd)
-         makeMatcher @"^human (\d+) (\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2}) (.+)$" (fun m -> Human(uint32 m.[1], float m.[2], float m.[3], float m.[4], m.[5]))
-         makeMatcher @"^zombie (\d+) (\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2}) (.+)$" (fun m -> Zombie(uint32 m.[1], float m.[2], float m.[3], float m.[4], m.[5]))
+         makeMatcher @"^human (\d+) (.+)$" (fun m -> Human(uint32 m.[1], m.[2]))
+         makeMatcher @"^zombie (\d+) (.+)$" (fun m -> Zombie(uint32 m.[1], m.[2]))
          makeMatcher @"^move$" (fun _ -> Move)
          makeMatcher @"^no (.+)$" (fun m -> No(m.[1]))
       |]

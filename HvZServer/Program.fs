@@ -46,13 +46,12 @@ module Internal =
       let delay_between_moves = 100 // ms
       let playerSends = System.Collections.Generic.List()
       let myGame = new HvZ.Common.Game(map)
-      let nextId =
-         let iter = (Seq.initInfinite uint32).GetEnumerator()
-         fun () ->
-            iter.MoveNext () |> ignore
-            iter.Current
+      myGame.OnPlayerRemoved
+      |> Event.add (fun args ->
+         playerSends.RemoveAll(Predicate(fun (id,_) -> id = args.PlayerId)) |> ignore
+      )
       let sendAll cmd =
-         playerSends.RemoveAll (fun x ->
+         playerSends.RemoveAll (fun (_,x) ->
             try
                x cmd
                false
@@ -62,6 +61,15 @@ module Internal =
                true
          ) |> ignore
       MailboxProcessor.Start(fun inbox ->
+         let doAdd addFunc playerId send command =
+            if addFunc () then
+               playerSends.Add (playerId, send)
+               let x, y, heading =
+                  let w = map.Walker playerId
+                  w.Position.X, w.Position.Y, w.Heading
+               sendAll command
+            else
+               send (No "There aren't any slots left for that kind of player on this map.")
          let rec loop (lastMoveTime : System.DateTime) =
             async {
                if playerSends.Count = 0 then
@@ -69,15 +77,15 @@ module Internal =
                else
                   let delay = int (System.DateTime.Now-lastMoveTime).TotalMilliseconds
                   if delay < 0 then
+                     sendAll Move // have to send before moving.  A player might die during the update, which would remove the player from playerSends.
                      myGame.Update ()
-                     sendAll Move
                      return! loop System.DateTime.Now
                   else
                      let! input = inbox.TryReceive(delay_between_moves)
                      match input with
                      | None ->
+                        sendAll Move // have to send before moving.  A player might die during the update, which would remove the player from playerSends.
                         myGame.Update ()
-                        sendAll Move
                         return! loop System.DateTime.Now
                      | Some (playerId, cmd, send) ->
                         let checkOwnPlayer wId f =
@@ -93,9 +101,11 @@ module Internal =
                         | TakeSocks (wId, fromWhere) -> checkOwnPlayer wId (fun () -> myGame.TakeSocks(wId, fromWhere))
                         | Throw (wId, heading) -> checkOwnPlayer wId (fun () -> myGame.Throw(wId, heading))
                         | HumanJoin (x, name) when x = gameId ->
-                           if not <| map.AddHuman(nextId (), name) then failwith "I *told* you this would happen.  Now fix it."
+                           if not <| map.AddHuman(playerId, name) then send (No "This game is full, sorry.")
+                           else doAdd (fun () -> map.AddHuman(playerId, name)) playerId send (Human (playerId, name))
                         | ZombieJoin (x, name) when x = gameId ->
-                           if not <| map.AddZombie(nextId (), name) then failwith "Hey moron, fix what you need to fix."
+                           if not <| map.AddZombie(playerId, name) then send (No "This game is full, sorry.")
+                           else doAdd (fun () -> map.AddZombie(playerId, name)) playerId send (Zombie (playerId, name))
                         | _ ->
                            send (No "This command is something that I tell clients.  Clients don't get to tell it to me.")
                         return! loop lastMoveTime
@@ -103,25 +113,16 @@ module Internal =
          and waitForPlayers () =
             async {
                let! input = inbox.TryReceive(5000)
-               let doAdd addFunc playerId send createCommand =
-                  if addFunc () then
-                     playerSends.Add send
-                     let x, y, heading =
-                        let w = map.Walker playerId
-                        w.Position.X, w.Position.Y, w.Heading
-                     sendAll (createCommand x y heading)
-                     loop System.DateTime.Now
-                  else
-                     send (No "There aren't any slots left for that kind of player on this map.")
-                     waitForPlayers ()
                match input with
                | None ->
                   printfn "There are no players left in %s; the game is declared to be over!" gameId
-                  onGameOver () // that's it -- no players in here for 1s -- game ended!
+                  onGameOver () // that's it -- no players in here for 5s -- game ended!
                | Some (playerId, HumanJoin(x,name), send) when x = gameId ->
-                  return! doAdd (fun () -> map.AddHuman(playerId, name)) playerId send (fun x y heading -> Human (playerId, x, y, heading, name))
+                  doAdd (fun () -> map.AddHuman(playerId, name)) playerId send (Human (playerId, name))
+                  return! loop System.DateTime.Now
                | Some (playerId, ZombieJoin(x,name), send) when x = gameId ->
-                  return! doAdd (fun () -> map.AddZombie(playerId, name)) playerId send (fun x y heading -> Zombie (playerId, x, y, heading, name))
+                  doAdd (fun () -> map.AddZombie(playerId, name)) playerId send (Zombie (playerId, name))
+                  return! loop System.DateTime.Now
                | Some (_, _, send) ->
                   send (No "There are no players in the game yet, so no commands can be issued to players yet.")
                   return! waitForPlayers ()

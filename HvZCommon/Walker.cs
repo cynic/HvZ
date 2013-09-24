@@ -19,6 +19,14 @@ namespace HvZ.Common {
             }
         }
 
+        private List<SupplyItem> items = new List<SupplyItem>(WorldConstants.MaximumItemsCarried);
+
+        internal bool AddItem(SupplyItem what) {
+            if (items.Count >= WorldConstants.MaximumItemsCarried) return false;
+            items.Add(what);
+            return true;
+        }
+
         public uint Id { get; private set; }
         public string Texture { get { return "human"; } }
 

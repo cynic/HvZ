@@ -26,6 +26,10 @@ namespace HvZ.Common {
             return Math.Sqrt(distX * distX + distY * distY);
         }
 
+        public static bool IsCloseEnoughToUse(this IWalker a, ITakeSpace b) {
+            return a.DistanceFrom(b) - a.Radius - b.Radius <= WorldConstants.InteractionDistance;
+        }
+
         /// <summary>Calculates heading needed to face one Entity from another (untested)</summary>
         public static double AngleFrom(this ITakeSpace a, ITakeSpace b) {
             double distX = a.Position.X - b.Position.X;

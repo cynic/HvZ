@@ -77,7 +77,8 @@ namespace HvZ.Common {
             state = CGState.CreateRequested;
             this.Map = map;
             world = new Game(map);
-            world.OnMapChange += (_, __) => OnMapChange(this, EventArgs.Empty);
+            world.OnPlayerAdded += (_, __) => OnMapChange(this, EventArgs.Empty);
+            world.OnPlayerRemoved += (_, __) => OnMapChange(this, EventArgs.Empty);
             connection.ConnectToServer("localhost");
             connection.Send(Command.NewCreate(map.RawMapData));
         }
@@ -138,7 +139,7 @@ namespace HvZ.Common {
             throw new NotImplementedException();
         }
 
-        void ICommandInterpreter.Human(uint walkerId, double x, double y, double heading, string name) {
+        void ICommandInterpreter.Human(uint walkerId, string name) {
             map.AddHuman(walkerId, name);
             if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
         }
@@ -171,18 +172,18 @@ namespace HvZ.Common {
         }
 
         void ICommandInterpreter.TakeFood(uint walkerId, uint resupplyId) {
-            throw new NotImplementedException();
+            world.TakeFood(walkerId, resupplyId);
         }
 
         void ICommandInterpreter.TakeSocks(uint walkerId, uint resupplyId) {
-            throw new NotImplementedException();
+            world.TakeSocks(walkerId, resupplyId);
         }
 
         void ICommandInterpreter.Throw(uint walkerId, double heading) {
             throw new NotImplementedException();
         }
 
-        void ICommandInterpreter.Zombie(uint walkerId, double x, double y, double heading, string name) {
+        void ICommandInterpreter.Zombie(uint walkerId, string name) {
             map.AddZombie(walkerId, name);
             if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
         }
@@ -248,6 +249,13 @@ namespace HvZ.Common {
         int IWalker.MaximumLifespan { get { return Map.walkers[connection.PlayerId].MaximumLifespan; } }
     }
 
+    public class PlayerAddedEventArgs : EventArgs {
+        public uint PlayerId { get; set; }
+    }
+    public class PlayerRemovedEventArgs : EventArgs {
+        public uint PlayerId { get; set; }
+    }
+
     public class Game {
         /* Assumptions:
          * - Humans move at 0.45 per turn.
@@ -260,7 +268,9 @@ namespace HvZ.Common {
         //private Dictionary<uint, Human> humans = new Dictionary<uint, Human>();
         //private Dictionary<uint, Zombie> zombies = new Dictionary<uint, Zombie>();
         private Dictionary<uint, Action> ongoing = new Dictionary<uint, Action>();
-        public event EventHandler OnMapChange;
+        public event EventHandler<PlayerAddedEventArgs> OnPlayerAdded;
+        public event EventHandler<PlayerRemovedEventArgs> OnPlayerRemoved;
+        public event EventHandler OnTurnEnded;
 
         public Game(Map m) {
             map = m;
@@ -278,6 +288,8 @@ namespace HvZ.Common {
                     ongoing[key]();
                 }
             }
+            // now ask the resupplypoints to replenish their stock, if they can.
+            foreach (var r in map.ResupplyPoints) r.Update();
             // now check for death-by-timeout.
             // We do this now because it's possible for a walker to do something on the turn that they're about to die on (e.g. eat food or bite a victim).
             foreach (var w in map.walkers.ToArray()) {
@@ -285,8 +297,10 @@ namespace HvZ.Common {
                 // otherwise ... DEATH!
                 ongoing.Remove(w.Key);
                 map.Kill(w.Key);
-                if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
+                if (OnPlayerRemoved != null)
+                    OnPlayerRemoved(this, new PlayerRemovedEventArgs() { PlayerId = w.Key });
             }
+            if (OnTurnEnded != null) OnTurnEnded(this, EventArgs.Empty);
         }
 
         public bool Forward(uint walkerId, double dist) {
@@ -339,11 +353,23 @@ namespace HvZ.Common {
         public bool Bite(uint walkerId, uint target) {
             return false;
         }
+        // IMPORTANT: you can take 1 item per turn, and it uses up your turn.
+        private bool Take(uint walkerId, uint fromWhere, SupplyItem what) {
+            var pt = map.ResupplyPoints.FirstOrDefault(x => x.Id == fromWhere);
+            if (pt == null) return false; // resupply point doesn't exist.
+            if (!map.humans.ContainsKey(walkerId)) return false; // walker isn't a human, or doesn't exist.
+            var w = map.humans[walkerId];
+            if (!w.IsCloseEnoughToUse(pt)) return false; // too far away to interact with this.
+            if (!pt.Available.Any(x => x == what)) return false; // the desired item doesn't exist here.
+            if (!w.AddItem(what)) return false; // inventory is already full.
+            pt.Remove(what);
+            return true;
+        }
         public bool TakeFood(uint walkerId, uint fromWhere) {
-            return false;
+            return Take(walkerId, fromWhere, SupplyItem.Food);
         }
         public bool TakeSocks(uint walkerId, uint fromWhere) {
-            return false;
+            return Take(walkerId, fromWhere, SupplyItem.Sock);
         }
         public bool Throw(uint walkerId, double heading) {
             return false;
