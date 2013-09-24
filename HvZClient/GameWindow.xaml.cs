@@ -47,12 +47,12 @@ namespace HvZClient {
 
         public GameWindow(string name, string role, Map m, IZombieAI ai) : this(name, role, m) {
             game = new ClientGame(Dispatcher, name, role, m, ai);
-            game.OnPlayerChange += (_, __) => placeObjects();
+            game.OnMapChange += (_, __) => placeObjects();
         }
 
         public GameWindow(string name, string role, Map m, IHumanAI ai) : this(name, role, m) {
             game = new ClientGame(Dispatcher, name, role, m, ai);
-            game.OnPlayerChange += (_, __) => placeObjects();
+            game.OnMapChange += (_, __) => placeObjects();
         }
 
         private void placeWalker(string texture, IWalkerExtended walker) {

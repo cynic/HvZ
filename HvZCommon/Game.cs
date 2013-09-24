@@ -77,7 +77,7 @@ namespace HvZ.Common {
             state = CGState.CreateRequested;
             this.Map = map;
             world = new Game(map);
-            world.OnPlayerChange += (_, __) => OnPlayerChange(this, EventArgs.Empty);
+            world.OnMapChange += (_, __) => OnMapChange(this, EventArgs.Empty);
             connection.ConnectToServer("localhost");
             connection.Send(Command.NewCreate(map.RawMapData));
         }
@@ -140,7 +140,7 @@ namespace HvZ.Common {
 
         void ICommandInterpreter.Human(uint walkerId, double x, double y, double heading, string name) {
             map.AddHuman(walkerId, name);
-            if (OnPlayerChange != null) OnPlayerChange(this, EventArgs.Empty);
+            if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
         }
 
         void ICommandInterpreter.Left(uint walkerId, double degrees) {
@@ -184,11 +184,11 @@ namespace HvZ.Common {
 
         void ICommandInterpreter.Zombie(uint walkerId, double x, double y, double heading, string name) {
             map.AddZombie(walkerId, name);
-            if (OnPlayerChange != null) OnPlayerChange(this, EventArgs.Empty);
+            if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
-        public event EventHandler OnPlayerChange;
+        public event EventHandler OnMapChange;
 
         void IHumanPlayer.Eat() {
             connection.Send(Command.NewEat(connection.PlayerId));
@@ -264,7 +264,7 @@ namespace HvZ.Common {
         //private Dictionary<uint, Human> humans = new Dictionary<uint, Human>();
         //private Dictionary<uint, Zombie> zombies = new Dictionary<uint, Zombie>();
         private Dictionary<uint, Action> ongoing = new Dictionary<uint, Action>();
-        public event EventHandler OnPlayerChange;
+        public event EventHandler OnMapChange;
 
         public Game(Map m) {
             map = m;
@@ -289,7 +289,7 @@ namespace HvZ.Common {
                 // otherwise ... DEATH!
                 ongoing.Remove(w.Key);
                 map.Kill(w.Key);
-                if (OnPlayerChange != null) OnPlayerChange(this, EventArgs.Empty);
+                if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
             }
         }
 
