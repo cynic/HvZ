@@ -14,16 +14,19 @@ namespace HvZ.Common {
         internal Dictionary<uint, Zombie> zombies = new Dictionary<uint, Zombie>();
         internal Dictionary<uint, Human> humans = new Dictionary<uint, Human>();
         internal Dictionary<uint, IWalkerExtended> walkers = new Dictionary<uint, IWalkerExtended>();
+        internal List<SpawnPoint> spawners = new List<SpawnPoint>();
         internal List<Obstacle> obstacles = new List<Obstacle>();
         internal List<ResupplyPoint> resupply = new List<ResupplyPoint>();
 
         public IEnumerable<Human> Humans { get { return humans.Values; } }
         public IEnumerable<Zombie> Zombies { get { return zombies.Values; } }
-        public IEnumerable<Obstacle> Obstacles { get { return obstacles; } }
+        public IEnumerable<IVisual> Obstacles {
+            get {
+                foreach (var o in obstacles) yield return o;
+                foreach (var s in spawners) yield return s;
+            }
+        }
         public IEnumerable<ResupplyPoint> ResupplyPoints { get { return resupply; } }
-
-        public int PlayersAllowed { get; private set; }
-        public int PlayersInGame { get; private set; }
 
         public string RawMapData { get; private set; }
 
@@ -39,36 +42,11 @@ namespace HvZ.Common {
             return zombies.ContainsKey(id);
         }
 
-        private void GetBodyForTransfer(out double xpos, out double ypos, out double heading) {
-            // find something that's computer-controlled; it won't have a name.
-            IWalkerExtended walker = walkers.Select(x => x.Value).FirstOrDefault(x => x.Name == null);
-            if (walker == null) {
-                throw new Exception("Shouldn't be here; map accounting has gone crazy.");
-            }
-            // Now steal its attributes and kill it.
-            xpos = walker.Position.X;
-            ypos = walker.Position.Y;
-            heading = walker.Heading;
-            if ((humans.Remove(walker.Id) || zombies.Remove(walker.Id)) && walkers.Remove(walker.Id)) {
-                return;
-            } else {
-                throw new Exception("Map accounting is incorrect.  Fix it.");
-            }
-        }
-
         public void SetHeading(uint id, double newHeading) {
             if (humans.ContainsKey(id)) {
                 humans[id].Heading = newHeading;
             } else {
                 zombies[id].Heading = newHeading;
-            }
-        }
-
-        public void Harm(uint id, double amount) {
-            if (humans.ContainsKey(id)) {
-                //
-            } else {
-                //
             }
         }
 
@@ -89,7 +67,7 @@ namespace HvZ.Common {
                 }
             }
             // double-check against obstacles.
-            foreach (var o in obstacles) {
+            foreach (var o in Obstacles) { // capital-O Obstacles.  Includes spawnpoints.
                 if (o.Intersects(walker)) {
                     // reset back to the old values.
                     pos.X = oldX;
@@ -98,62 +76,34 @@ namespace HvZ.Common {
             }
         }
 
-        public void SetHuman(uint id, double x, double y, double heading, string name) {
-            // find the player with x,y coordinates specified.  Replace with this one.
-            var w = walkers
-                .First(walker => walker.Value.Position.X == x && walker.Value.Position.Y == y).Value;
-            walkers.Remove(w.Id);
-            humans.Remove(w.Id);
-            zombies.Remove(w.Id);
-            var h = new Human(id, name, this, x, y, heading);
-            humans.Add(id, h);
-            walkers.Add(id, h);
-            PlayersInGame++;
-        }
-
-        public void SetZombie(uint id, double x, double y, double heading, string name) {
-            // find the player with x,y coordinates specified.  Replace with this one.
-            var w = walkers
-                .First(walker => Math.Round(walker.Value.Position.X, 1) == Math.Round(x, 1) && Math.Round(walker.Value.Position.Y, 1) == Math.Round(y, 1)).Value;
-            walkers.Remove(w.Id);
-            humans.Remove(w.Id);
-            zombies.Remove(w.Id);
-            var z = new Zombie(id, name, this, x, y, heading);
-            zombies.Add(id, z);
-            walkers.Add(id, z);
-            PlayersInGame++;
+        public void Kill(uint id) {
+            humans.Remove(id);
+            zombies.Remove(id);
+            var w = walkers[id];
+            walkers.Remove(id);
+            spawners.Add(new SpawnPoint(w.Position.X, w.Position.Y, Math.Max(Human.HumanRadius, Zombie.ZombieRadius)));
         }
 
         public bool AddHuman(uint id, string name) {
-            if (PlayersInGame == PlayersAllowed) return false; // too many already in-game.
-            double xpos, ypos, heading;
-            try {
-                GetBodyForTransfer(out xpos, out ypos, out heading);
-            } catch (Exception e) {
-                Console.WriteLine("AddHuman(): {0}", e);
-                return false;
-            }
-            var h = new Human(id, name, this, xpos, ypos, heading);
+            if (spawners.Count == 0) return false; // too many already in-game.
+            var spawnIdx = Math.Abs((int)id) % spawners.Count;
+            var spawner = spawners[spawnIdx];
+            var h = new Human(id, name, this, spawner.Position.X, spawner.Position.Y, 0);
             humans.Add(id, h);
             walkers.Add(id, h);
-            PlayersInGame++;
+            spawners.RemoveAt(spawnIdx);
             return true;
         }
 
         public bool AddZombie(uint id, string name) {
             // mostly copypasta from above
-            if (PlayersInGame == PlayersAllowed) return false; // too many already in-game.
-            double xpos, ypos, heading;
-            try {
-                GetBodyForTransfer(out xpos, out ypos, out heading);
-            } catch (Exception e) {
-                Console.WriteLine("AddZombie(): {0}", e);
-                return false;
-            }
-            var z = new Zombie(id, name, this, xpos, ypos, heading);
+            if (spawners.Count == 0) return false; // too many already in-game.
+            var spawnIdx = Math.Abs((int)id) % spawners.Count;
+            var spawner = spawners[spawnIdx];
+            var z = new Zombie(id, name, this, spawner.Position.X, spawner.Position.Y, 0);
             zombies.Add(id, z);
             walkers.Add(id, z);
-            PlayersInGame++;
+            spawners.RemoveAt(spawnIdx);
             return true;
         }
 
@@ -161,11 +111,8 @@ namespace HvZ.Common {
             Width = lines.Max(x => x.Length);
             Height = lines.Length;
             terrain = new Terrain[Width * Height];
-            var idstart = UInt32.MaxValue;
             for (int row = 0; row < Height; ++row) {
                 for (int column = 0; column < lines[row].Length; ++column) {
-                    uint id = 0;
-                    IWalkerExtended w = null;
                     switch (Char.ToLower(lines[row][column])) {
                         case '.':
                         case 's': terrain[row * Width + column] = Terrain.Ground; break;
@@ -187,34 +134,11 @@ namespace HvZ.Common {
                             break;
                         case 'x':
                             terrain[row * Width + column] = Terrain.Ground;
-                            PlayersAllowed++;
-                            // now throw in a player.
-                            id = idstart--;
-                            if (PlayersAllowed % 2 == 0) {
-                                w = new Human(id, null, this, column, row, 0);
-                                humans.Add(id, (Human)w);
-                                walkers.Add(id, w);
-                            } else {
-                                w = new Zombie(id, null, this, column, row, 0);
-                                zombies.Add(id, (Zombie)w);
-                                walkers.Add(id, w);
-                            }
+                            spawners.Add(new SpawnPoint(column, row, Math.Max(Human.HumanRadius, Zombie.ZombieRadius)));
                             break;
                         case 'r':
                             terrain[row * Width + column] = Terrain.Ground;
                             resupply.Add(new ResupplyPoint(column, row));
-                            break;
-                        case 'h':
-                            id = idstart--;
-                            w = new Human(id, null, this, column, row, 0);
-                            humans.Add(id, (Human)w);
-                            walkers.Add(id, w);
-                            break;
-                        case 'z':
-                            id = idstart--;
-                            w = new Zombie(id, null, this, column, row, 0);
-                            zombies.Add(id, (Zombie)w);
-                            walkers.Add(id, w);
                             break;
                         default:
                             throw new System.NotImplementedException(String.Format("There's something wrong with the map: I don't know how to handle '{0}' characters.", lines[row][column]));

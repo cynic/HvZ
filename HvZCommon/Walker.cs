@@ -8,7 +8,8 @@ namespace HvZ.Common {
     public interface IWalkerExtended : IWalker, IVisual, IIdentified, INotifyPropertyChanged { }
 
     public class Human : IWalkerExtended {
-        internal const int HumanLifespan = 300; // that's 30 seconds at 0.1s per turn.
+        internal const int HumanLifespan = 600; // e.g. 600 = 60 seconds at 0.1s per turn.
+        internal const double HumanRadius = 0.95;
         private Map map;
 
         double heading;
@@ -45,14 +46,15 @@ namespace HvZ.Common {
             map = m;
             Position = new Position(x, y);
             Heading = heading;
-            Radius = 0.95;
+            Radius = HumanRadius;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
     }
 
     public class Zombie : IWalkerExtended {
-        internal const int ZombieLifespan = 300; // 30s at 0.1s per turn
+        internal const int ZombieLifespan = 600; // e.g. 600 = 60s at 0.1s per turn
+        internal const double ZombieRadius = 0.95;
         private Map map;
 
         double heading;
@@ -89,7 +91,7 @@ namespace HvZ.Common {
             map = m;
             Position = new Position(x, y);
             Heading = heading;
-            Radius = 0.95;
+            Radius = ZombieRadius;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

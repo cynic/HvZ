@@ -47,12 +47,12 @@ namespace HvZClient {
 
         public GameWindow(string name, string role, Map m, IZombieAI ai) : this(name, role, m) {
             game = new ClientGame(Dispatcher, name, role, m, ai);
-            game.OnPlayerJoin += (_, __) => placeObjects();
+            game.OnPlayerChange += (_, __) => placeObjects();
         }
 
         public GameWindow(string name, string role, Map m, IHumanAI ai) : this(name, role, m) {
             game = new ClientGame(Dispatcher, name, role, m, ai);
-            game.OnPlayerJoin += (_, __) => placeObjects();
+            game.OnPlayerChange += (_, __) => placeObjects();
         }
 
         private void placeWalker(string texture, IWalkerExtended walker) {
@@ -117,9 +117,9 @@ namespace HvZClient {
             GUIMap.Children.Add(liferec);
         }
 
-        private void placeObstacle(Obstacle item) {
+        private void placeObstacle(IVisual item) {
             var e = new Ellipse() { Width = item.Radius * 2, Height = item.Radius * 2 };
-            e.Fill = (ImageBrush)Resources["obstacle"];
+            e.Fill = (ImageBrush)Resources[item.Texture];
             e.Opacity = 0.65;
             var translate = new TranslateTransform(item.Position.X - item.Radius, item.Position.Y - item.Radius);
             e.RenderTransform = translate;

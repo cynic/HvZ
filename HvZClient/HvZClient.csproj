@@ -156,6 +156,7 @@
     <Resource Include="Images\splash.png" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Images\box.png" />
     <Content Include="Maps\Nether.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
