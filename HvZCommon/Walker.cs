@@ -8,8 +8,6 @@ namespace HvZ.Common {
     public interface IWalkerExtended : IWalker, IVisual, IIdentified, INotifyPropertyChanged { }
 
     public class Human : IWalkerExtended {
-        internal const int HumanLifespan = 600; // e.g. 600 = 60 seconds at 0.1s per turn.
-        internal const double HumanRadius = 0.95;
         private Map map;
 
         double heading;
@@ -29,7 +27,7 @@ namespace HvZ.Common {
 
         public string Name { get; private set; }
 
-        int lifespan = HumanLifespan;
+        int lifespan = WorldConstants.HumanLifespan;
         public int Lifespan {
             get { return lifespan; }
             internal set {
@@ -38,7 +36,7 @@ namespace HvZ.Common {
             }
         }
 
-        public int MaximumLifespan { get { return HumanLifespan; } }
+        public int MaximumLifespan { get { return WorldConstants.HumanLifespan; } }
 
         public Human(uint id, string name, Map m, double x, double y, double heading) {
             Id = id;
@@ -46,15 +44,13 @@ namespace HvZ.Common {
             map = m;
             Position = new Position(x, y);
             Heading = heading;
-            Radius = HumanRadius;
+            Radius = WorldConstants.WalkerRadius;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
     }
 
     public class Zombie : IWalkerExtended {
-        internal const int ZombieLifespan = 600; // e.g. 600 = 60s at 0.1s per turn
-        internal const double ZombieRadius = 0.95;
         private Map map;
 
         double heading;
@@ -69,7 +65,7 @@ namespace HvZ.Common {
         public uint Id { get; private set; }
         public string Name { get; private set; }
 
-        int lifespan = ZombieLifespan;
+        int lifespan = WorldConstants.ZombieLifespan;
         public int Lifespan {
             get { return lifespan; }
             internal set {
@@ -78,7 +74,7 @@ namespace HvZ.Common {
             }
         }
 
-        public int MaximumLifespan { get { return ZombieLifespan; } }
+        public int MaximumLifespan { get { return WorldConstants.ZombieLifespan; } }
 
         public string Texture { get { return "zombie"; } }
 
@@ -91,7 +87,7 @@ namespace HvZ.Common {
             map = m;
             Position = new Position(x, y);
             Heading = heading;
-            Radius = ZombieRadius;
+            Radius = WorldConstants.WalkerRadius;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

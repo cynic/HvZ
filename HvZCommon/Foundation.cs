@@ -9,4 +9,19 @@ namespace HvZ.Common {
     public interface IVisual : ITakeSpace {
         string Texture { get; }
     }
+
+    internal static class WorldConstants {
+        internal const double WalkerRadius = 0.95; // shared by Human, Zombie, and Box
+        // terrain covered per turn
+        internal const double HumanSpeed = 0.45;
+        internal const double ZombieSpeed = 0.4;
+        // degrees rotated per turn
+        internal const double HumanTurnRate = 20.0;
+        internal const double ZombieTurnRate = 20.0;
+        // Reduced by 1 per turn, so e.g. 600 = 60s wall-clock duration at 0.1s per turn
+        internal const int HumanLifespan = 600;
+        internal const int ZombieLifespan = 600;
+        // Number of small steps within a single turn.  Improves resolution of movement, at the cost of some CPU time.
+        internal const int StepsPerTurn = 25;
+    }
 }

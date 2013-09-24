@@ -255,10 +255,6 @@ namespace HvZ.Common {
          * - Turn-rate for humans and zombies is 20 degrees per turn.
          */
         private Random rng = new Random(12345); // fixed seed, deliberately non-static.
-        private const double humanMoveRate = 0.45;
-        private const double zombieMoveRate = 0.4;
-        private const double turnRate = 20.0;
-        private const int stepsPerTurn = 25;
 
         private Map map;
         //private Dictionary<uint, Human> humans = new Dictionary<uint, Human>();
@@ -275,7 +271,7 @@ namespace HvZ.Common {
             foreach (var h in map.Humans) if (h.Lifespan > 0) --h.Lifespan;
             foreach (var z in map.Zombies) if (z.Lifespan > 0) --z.Lifespan;
             // now do whatever is required on the turn.
-            for (int i = 0; i < stepsPerTurn; ++i) {
+            for (int i = 0; i < WorldConstants.StepsPerTurn; ++i) {
                 // permute order.
                 foreach (var key in ongoing.Keys.OrderBy(_ => rng.Next())) {
                     // execute action.
@@ -295,7 +291,7 @@ namespace HvZ.Common {
 
         public bool Forward(uint walkerId, double dist) {
             double distRemaining = dist;
-            double distPerStep = (map.IsHuman(walkerId) ? humanMoveRate : zombieMoveRate) / stepsPerTurn;
+            double distPerStep = (map.IsHuman(walkerId) ? WorldConstants.HumanSpeed : WorldConstants.ZombieSpeed) / WorldConstants.StepsPerTurn;
             var walker = map.Walker(walkerId);
             var distXPerStep = distPerStep * Math.Sin(walker.Heading.ToRadians());
             var distYPerStep = -distPerStep * Math.Cos(walker.Heading.ToRadians());
@@ -311,7 +307,7 @@ namespace HvZ.Common {
 
         public bool Left(uint walkerId, double degrees) {
             double turnRemaining = degrees;
-            double turnPerStep = turnRate / stepsPerTurn;
+            double turnPerStep = (map.IsHuman(walkerId) ? WorldConstants.HumanTurnRate : WorldConstants.ZombieTurnRate) / WorldConstants.StepsPerTurn;
             var walker = map.Walker(walkerId);
             Action act = () => {
                 if (turnRemaining > 0.0) {
@@ -325,7 +321,7 @@ namespace HvZ.Common {
 
         public bool Right(uint walkerId, double degrees) {
             double turnRemaining = degrees;
-            double turnPerStep = turnRate / stepsPerTurn;
+            double turnPerStep = (map.IsHuman(walkerId) ? WorldConstants.HumanTurnRate : WorldConstants.ZombieTurnRate) / WorldConstants.StepsPerTurn;
             var walker = map.Walker(walkerId);
             Action act = () => {
                 if (turnRemaining > 0.0) {

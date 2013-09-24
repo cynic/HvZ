@@ -81,7 +81,7 @@ namespace HvZ.Common {
             zombies.Remove(id);
             var w = walkers[id];
             walkers.Remove(id);
-            spawners.Add(new SpawnPoint(w.Position.X, w.Position.Y, Math.Max(Human.HumanRadius, Zombie.ZombieRadius)));
+            spawners.Add(new SpawnPoint(w.Position.X, w.Position.Y, WorldConstants.WalkerRadius));
         }
 
         public bool AddHuman(uint id, string name) {
@@ -134,7 +134,7 @@ namespace HvZ.Common {
                             break;
                         case 'x':
                             terrain[row * Width + column] = Terrain.Ground;
-                            spawners.Add(new SpawnPoint(column, row, Math.Max(Human.HumanRadius, Zombie.ZombieRadius)));
+                            spawners.Add(new SpawnPoint(column, row, WorldConstants.WalkerRadius));
                             break;
                         case 'r':
                             terrain[row * Width + column] = Terrain.Ground;
