@@ -47,6 +47,7 @@ namespace HvZ.Common {
             }
         }
         Action requestDecision;
+        Action<string> noAction;
         Game world;
 
         public int Width { get { return map.Width; } }
@@ -85,12 +86,14 @@ namespace HvZ.Common {
 
         public ClientGame(System.Windows.Threading.Dispatcher dispatcher, string name, string role, Map map, AI.IHumanAI humanAI)
             : this(dispatcher, name, role, map) {
-                requestDecision = () => humanAI.DoSomething(this, new List<IWalker>(map.Zombies), new List<IWalker>(map.Humans.Where(x => x.Id != connection.PlayerId)), new List<ITakeSpace>(map.Obstacles), new List<ITakeSpace>(map.ResupplyPoints));
+                requestDecision = () => humanAI.DoSomething(this, new List<IWalker>(map.Zombies), new List<IWalker>(map.Humans.Where(x => x.Id != connection.PlayerId)), new List<ITakeSpace>(map.Obstacles), new List<ResupplyPoint>(map.ResupplyPoints));
+                noAction = humanAI.Failure;
         }
 
         public ClientGame(System.Windows.Threading.Dispatcher dispatcher, string name, string role, Map map, AI.IZombieAI zombieAI)
             : this(dispatcher, name, role, map) {
-            requestDecision = () => zombieAI.DoSomething(this, new List<IWalker>(map.Zombies.Where(x => x.Id != connection.PlayerId)), new List<IWalker>(map.Humans), new List<ITakeSpace>(map.Obstacles), new List<ITakeSpace>(map.ResupplyPoints));
+            requestDecision = () => zombieAI.DoSomething(this, new List<IWalker>(map.Zombies.Where(x => x.Id != connection.PlayerId)), new List<IWalker>(map.Humans), new List<ITakeSpace>(map.Obstacles), new List<ResupplyPoint>(map.ResupplyPoints));
+            noAction = zombieAI.Failure;
         }
 
         private void connection_OnGameCommand(object sender, CommandEventArgs e) {
@@ -120,7 +123,7 @@ namespace HvZ.Common {
         }
 
         void ICommandInterpreter.Eat(uint walkerId) {
-            throw new NotImplementedException();
+            world.Eat(walkerId);
         }
 
         void ICommandInterpreter.Bite(uint walkerId, uint target) {
@@ -159,12 +162,14 @@ namespace HvZ.Common {
         void ICommandInterpreter.Move() {
             // first, do the moves.
             world.Update();
-            // then ask the AI to make decisions.
-            requestDecision();
+            // If the player still exists, then then ask the AI to make decisions.
+            if (map.walkers.ContainsKey(connection.PlayerId))
+                requestDecision();
         }
 
         void ICommandInterpreter.No(string reason) {
-            throw new Exception(reason);
+            //throw new Exception(reason);
+            noAction(reason);
         }
 
         void ICommandInterpreter.Right(uint walkerId, double degrees) {
@@ -247,6 +252,11 @@ namespace HvZ.Common {
         double IZombiePlayer.MapWidth { get { return Map.Width; } }
 
         int IWalker.MaximumLifespan { get { return Map.walkers[connection.PlayerId].MaximumLifespan; } }
+
+
+        SupplyItem[] IHumanPlayer.Inventory {
+            get { return Map.humans[connection.PlayerId].Items; }
+        }
     }
 
     public class PlayerAddedEventArgs : EventArgs {
@@ -277,33 +287,37 @@ namespace HvZ.Common {
         }
 
         public void Update() {
-            // ensure that all walkers are a bit closer to death.
-            foreach (var h in map.Humans) if (h.Lifespan > 0) --h.Lifespan;
-            foreach (var z in map.Zombies) if (z.Lifespan > 0) --z.Lifespan;
-            // now do whatever is required on the turn.
-            for (int i = 0; i < WorldConstants.StepsPerTurn; ++i) {
-                // permute order.
-                foreach (var key in ongoing.Keys.OrderBy(_ => rng.Next())) {
-                    // execute action.
-                    ongoing[key]();
+            try {
+                // ensure that all walkers are a bit closer to death.
+                foreach (var h in map.Humans) if (h.Lifespan > 0) --h.Lifespan;
+                foreach (var z in map.Zombies) if (z.Lifespan > 0) --z.Lifespan;
+                // now do whatever is required on the turn.
+                for (int i = 0; i < WorldConstants.StepsPerTurn; ++i) {
+                    // permute order.
+                    foreach (var key in ongoing.Keys.OrderBy(_ => rng.Next())) {
+                        // execute action.
+                        ongoing[key]();
+                    }
                 }
+                // now ask the resupplypoints to replenish their stock, if they can.
+                foreach (var r in map.ResupplyPoints) r.Update();
+                // now check for death-by-timeout.
+                // We do this now because it's possible for a walker to do something on the turn that they're about to die on (e.g. eat food or bite a victim).
+                foreach (var w in map.walkers.ToArray()) {
+                    if (w.Value.Lifespan > 0) continue;
+                    // otherwise ... DEATH!
+                    ongoing.Remove(w.Key);
+                    map.Kill(w.Key);
+                    if (OnPlayerRemoved != null)
+                        OnPlayerRemoved(this, new PlayerRemovedEventArgs() { PlayerId = w.Key });
+                }
+                if (OnTurnEnded != null) OnTurnEnded(this, EventArgs.Empty);
+            } catch (Exception e) {
+                Console.WriteLine("Exception during world update!  Fix me!  {0}", e);
             }
-            // now ask the resupplypoints to replenish their stock, if they can.
-            foreach (var r in map.ResupplyPoints) r.Update();
-            // now check for death-by-timeout.
-            // We do this now because it's possible for a walker to do something on the turn that they're about to die on (e.g. eat food or bite a victim).
-            foreach (var w in map.walkers.ToArray()) {
-                if (w.Value.Lifespan > 0) continue;
-                // otherwise ... DEATH!
-                ongoing.Remove(w.Key);
-                map.Kill(w.Key);
-                if (OnPlayerRemoved != null)
-                    OnPlayerRemoved(this, new PlayerRemovedEventArgs() { PlayerId = w.Key });
-            }
-            if (OnTurnEnded != null) OnTurnEnded(this, EventArgs.Empty);
         }
 
-        public bool Forward(uint walkerId, double dist) {
+        public string Forward(uint walkerId, double dist) {
             double distRemaining = dist;
             double distPerStep = (map.IsHuman(walkerId) ? WorldConstants.HumanSpeed : WorldConstants.ZombieSpeed) / WorldConstants.StepsPerTurn;
             var walker = map.Walker(walkerId);
@@ -316,10 +330,10 @@ namespace HvZ.Common {
                 }
             };
             ongoing[walkerId] = act;
-            return true;
+            return null;
         }
 
-        public bool Left(uint walkerId, double degrees) {
+        public string Left(uint walkerId, double degrees) {
             double turnRemaining = degrees;
             double turnPerStep = (map.IsHuman(walkerId) ? WorldConstants.HumanTurnRate : WorldConstants.ZombieTurnRate) / WorldConstants.StepsPerTurn;
             var walker = map.Walker(walkerId);
@@ -330,10 +344,10 @@ namespace HvZ.Common {
                 }
             };
             ongoing[walkerId] = act;
-            return true;
+            return null;
         }
 
-        public bool Right(uint walkerId, double degrees) {
+        public string Right(uint walkerId, double degrees) {
             double turnRemaining = degrees;
             double turnPerStep = (map.IsHuman(walkerId) ? WorldConstants.HumanTurnRate : WorldConstants.ZombieTurnRate) / WorldConstants.StepsPerTurn;
             var walker = map.Walker(walkerId);
@@ -344,35 +358,48 @@ namespace HvZ.Common {
                 }
             };
             ongoing[walkerId] = act;
-            return true;
+            return null;
         }
 
-        public bool Eat(uint walkerId) {
-            return false;
+        // eating takes up a turn.
+        public string Eat(uint walkerId) {
+            if (!map.humans.ContainsKey(walkerId)) return "your human has been removed from the game";
+            var h = map.humans[walkerId];
+            bool eaten = false;
+            if (!h.Items.Contains(SupplyItem.Food)) return "you don't have any food in your inventory.";
+            Action act = () => {
+                if (eaten) return; // done.
+                h.RemoveItem(SupplyItem.Food);
+                h.Lifespan = h.MaximumLifespan;
+                eaten = true;
+            };
+            ongoing[walkerId] = act;
+            return null;
         }
-        public bool Bite(uint walkerId, uint target) {
-            return false;
+
+        public string Bite(uint walkerId, uint target) {
+            return "blah";
         }
-        // IMPORTANT: you can take 1 item per turn, and it uses up your turn.
-        private bool Take(uint walkerId, uint fromWhere, SupplyItem what) {
+        
+        private string Take(uint walkerId, uint fromWhere, SupplyItem what) {
             var pt = map.ResupplyPoints.FirstOrDefault(x => x.Id == fromWhere);
-            if (pt == null) return false; // resupply point doesn't exist.
-            if (!map.humans.ContainsKey(walkerId)) return false; // walker isn't a human, or doesn't exist.
+            if (pt == null) return "the resupply point you've referred to doesn't exist";
+            if (!map.humans.ContainsKey(walkerId)) return "your human has been removed from the game"; // walker isn't a human, or doesn't exist.
             var w = map.humans[walkerId];
-            if (!w.IsCloseEnoughToUse(pt)) return false; // too far away to interact with this.
-            if (!pt.Available.Any(x => x == what)) return false; // the desired item doesn't exist here.
-            if (!w.AddItem(what)) return false; // inventory is already full.
+            if (!w.IsCloseEnoughToUse(pt)) return "you're still too far away from the resupply point to interact with it"; // too far away to interact with this.
+            if (!pt.Available.Any(x => x == what)) return "the item you wanted to take isn't at this resupply point"; // the desired item doesn't exist here.
+            if (!w.AddItem(what)) return "your inventory is already full"; // inventory is already full.
             pt.Remove(what);
-            return true;
+            return null;
         }
-        public bool TakeFood(uint walkerId, uint fromWhere) {
+        public string TakeFood(uint walkerId, uint fromWhere) {
             return Take(walkerId, fromWhere, SupplyItem.Food);
         }
-        public bool TakeSocks(uint walkerId, uint fromWhere) {
+        public string TakeSocks(uint walkerId, uint fromWhere) {
             return Take(walkerId, fromWhere, SupplyItem.Sock);
         }
-        public bool Throw(uint walkerId, double heading) {
-            return false;
+        public string Throw(uint walkerId, double heading) {
+            return "bleh";
         }
     }
 }

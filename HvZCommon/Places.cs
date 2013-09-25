@@ -4,10 +4,6 @@ using System.Linq;
 using System.Text;
 
 namespace HvZ.Common {
-    public enum SupplyItem {
-        Food, Sock
-    }
-
     /// <summary>
     /// Supply point provides food + weapons.
     /// </summary>
@@ -38,7 +34,9 @@ namespace HvZ.Common {
         string IVisual.Texture { get { return "supply"; } }
 
         internal void Remove(SupplyItem item) {
-            throw new NotImplementedException();
+            // there might be a game-semantics race-condition bug here.  I probably don't care enough to fix it :).
+            // If it gets horribly abused, maybe I should start caring...
+            stored.Remove(item);
         }
 
         public uint Id { get; private set; }

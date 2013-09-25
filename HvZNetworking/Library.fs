@@ -7,6 +7,10 @@ module Mxyzptlk =
 type IIdentified =
    abstract member Id : uint32 with get
 
+type SupplyItem =
+| Food = 0
+| Sock = 1
+
 type Position(x : float, y : float) =
    let evt = Event<_,_>()
    let mutable x = x
@@ -71,6 +75,21 @@ type Command =
 | Zombie of uint32 * string // walkerId * name /// also functions as JoinOK
 | Move
 | No of string // reason for rejection
+with
+   override __.ToString () =
+      match __ with
+      | Forward (_,d) -> sprintf "walk forward %f units" d
+      | Left (_,d) -> sprintf "turn left by %f degrees" d
+      | Right(_,d) -> sprintf "turn right by %f degrees" d
+      | Eat _ -> "eat food"
+      | Bite _ -> "bite a human"
+      | TakeFood _ -> "take some food from a resupply-point"
+      | TakeSocks _ -> "take some socks from a resupply-point"
+      | Throw _ -> "throw some socks"
+      | ZombieJoin (_,name) -> sprintf "join the game as a zombie named %s" name
+      | HumanJoin (_,name) -> sprintf "join the game as a human named %s" name
+      | Create _ -> "create a game"
+      | _ -> sprintf "%O" __
 
 type ICommandInterpreter =
    abstract member Forward : walkerId:uint32 -> distance:float -> unit
@@ -119,6 +138,31 @@ type Command with
 type ClientStatus =
 | InGame of string // gameId
 | OutOfGame
+
+namespace HvZ.AI
+open HvZ.Common
+
+type IHumanPlayer =
+   inherit IWalker
+   abstract member GoForward: distance:float -> unit
+   abstract member TurnLeft: degrees:float -> unit
+   abstract member TurnRight: degrees:float -> unit
+   abstract member Eat: unit -> unit
+   abstract member TakeFoodFrom: place:IIdentified -> unit
+   abstract member TakeSocksFrom: place:IIdentified -> unit
+   abstract member Throw: heading:float -> unit
+   abstract member MapWidth : float with get
+   abstract member MapHeight : float with get
+   abstract member Inventory : SupplyItem[] with get
+
+type IZombiePlayer =
+   inherit IWalker
+   abstract member GoForward: distance:float -> unit
+   abstract member TurnLeft: degrees:float -> unit
+   abstract member TurnRight: degrees:float -> unit
+   abstract member Eat: target:IIdentified -> unit
+   abstract member MapWidth : float with get
+   abstract member MapHeight : float with get
 
 namespace HvZ.Networking
 
@@ -309,30 +353,6 @@ module Internal =
          failwithf "The server sent me a weird command (%s).  Tell your lecturer." s
       connection client onClosed onCommandReceived onAbnormalCommand
       |> ignore
-
-namespace HvZ.AI
-open HvZ.Common
-
-type IHumanPlayer =
-   inherit IWalker
-   abstract member GoForward: distance:float -> unit
-   abstract member TurnLeft: degrees:float -> unit
-   abstract member TurnRight: degrees:float -> unit
-   abstract member Eat: unit -> unit
-   abstract member TakeFoodFrom: place:IIdentified -> unit
-   abstract member TakeSocksFrom: place:IIdentified -> unit
-   abstract member Throw: heading:float -> unit
-   abstract member MapWidth : float with get
-   abstract member MapHeight : float with get
-
-type IZombiePlayer =
-   inherit IWalker
-   abstract member GoForward: distance:float -> unit
-   abstract member TurnLeft: degrees:float -> unit
-   abstract member TurnRight: degrees:float -> unit
-   abstract member Eat: target:IIdentified -> unit
-   abstract member MapWidth : float with get
-   abstract member MapHeight : float with get
 
 namespace HvZ.Common
 open HvZ.Networking

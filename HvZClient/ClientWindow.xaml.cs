@@ -157,7 +157,7 @@ namespace HvZClient {
                 return;
             }
             var m = new Map(MAP_LOCATION + "\\" + (string)Maps.SelectedValue + ".txt");
-            var gameWindow = new GameWindow(Name_textBox.Text, (Role.SelectedItem as ComboBoxItem).Content.ToString(), m, (HvZ.AI.IHumanAI)new HvZ.AI.RandomWalker());
+            var gameWindow = new GameWindow(Name_textBox.Text, (Role.SelectedItem as ComboBoxItem).Content.ToString(), m, new HvZ.AI.GreedyHuman());
             gameWindow.Owner = this;
             gameWindow.Show();
         }

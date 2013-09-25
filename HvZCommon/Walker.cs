@@ -20,11 +20,15 @@ namespace HvZ.Common {
         }
 
         private List<SupplyItem> items = new List<SupplyItem>(WorldConstants.MaximumItemsCarried);
+        public SupplyItem[] Items { get { return items.ToArray(); } }
 
         internal bool AddItem(SupplyItem what) {
             if (items.Count >= WorldConstants.MaximumItemsCarried) return false;
             items.Add(what);
             return true;
+        }
+        internal bool RemoveItem(SupplyItem what) {
+            return items.Remove(what);
         }
 
         public uint Id { get; private set; }

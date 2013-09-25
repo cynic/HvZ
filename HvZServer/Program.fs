@@ -90,8 +90,10 @@ module Internal =
                      | Some (playerId, cmd, send) ->
                         let checkOwnPlayer wId f =
                            if playerId <> wId then send (No "You can only control your own walker, not anyone else's.")
-                           elif f () then sendAll cmd
-                           else send (No "I couldn't execute that command, sorry.")
+                           else
+                              match f () with // yes, I know I'm killing the traditional C# semantics.
+                              | null -> sendAll cmd
+                              | error -> send (No (sprintf "You asked me to %O, but I couldn't because %s" cmd error))
                         match cmd with
                         | Forward (wId, dist) -> checkOwnPlayer wId (fun () -> myGame.Forward(wId, dist))
                         | Left (wId, degrees) -> checkOwnPlayer wId (fun () -> myGame.Left(wId, degrees))
@@ -149,7 +151,10 @@ module Internal =
                   let gameOver () = gamesList.Remove id |> ignore // maybe also send out a notification that the game doesn't exist any more??
                   try
                      let map = HvZ.Common.Map(map)
-                     gamesList.Add(id, newGame id map gameOver)
+                     let processor = newGame id map gameOver
+                     processor.Error
+                     |> Event.add (printfn "ERROR during game %s: %A" id)
+                     gamesList.Add(id, processor)
                      send (CreateOK id)
                      reply.Reply (id)
                   with
