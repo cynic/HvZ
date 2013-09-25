@@ -62,7 +62,7 @@ namespace HvZ.AI {
                 }
             } else {
                 // I still need to go there...
-                var angleTo = player.AngleTo(supplyPoint);
+                double angleTo = player.AngleTo(supplyPoint) - player.Heading;
                 if (angleTo > 10.0) {
                     player.TurnRight(angleTo);
                 } else {

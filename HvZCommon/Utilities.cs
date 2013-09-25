@@ -30,37 +30,31 @@ namespace HvZ.Common {
             return a.DistanceFrom(b) - a.Radius - b.Radius <= WorldConstants.InteractionDistance;
         }
 
-        /// <summary>Calculates heading needed to face one Entity from another (untested)</summary>
+        /// <summary>
+        /// Calculates heading needed to face one Entity from another.
+        /// Not the angle to turn in order to face a entity that is beyond the scope of this method
+        /// </summary>
         public static double AngleTo(this IWalker a, ITakeSpace b) {
-            /*
-             * There is probably a better way (a one-liner??) to do this.  My trig's too weak to find it.  Instead,
-             * I'm going to use a long and tedious way.  If you know a shorter way to do this, please kill what's
-             * here and replace with something better.
-             */
-            var xA = a.Position.X;
-            var yA = a.Position.Y;
-            var xB = b.Position.X;
-            var yB = b.Position.Y;
-            var dxAB = xA -xB;
-            var dyAB = yA - yB;
-            double distAB = Math.Sqrt(dxAB * dxAB + dyAB * dyAB);
-            var curHeading = (90.0 - a.Heading).ToRadians(); // relative to the x-axis
-            // the heading intersects a circle with radius /distAB/ at some point, call it C.  Find that point of intersection.
-            // x = xA + r cos (heading)
-            // y = yA + r sin (heading)
-            var xC = xA + distAB * Math.Cos(curHeading);
-            var yC = yA + -distAB * Math.Sin(curHeading);
-            // angle ACB = angle ABC.  I want angle CAB.
-            // Bisect CB (call it D).  ACD is a right-angled triangle, where angle CAB = 2 * angle CAD.
-            // note that distAB = distAC = r
-            var dxCB = xC - xB;
-            var dyCB = yC - yB;
-            var distCD = Math.Sqrt(dxCB * dxCB + dyCB * dyCB) / 2.0;
-            // now sin(angle CAD) = distCD / distAB, so angle CAD = arcsin(distCD / distAB)
-            var angleRadians = Math.Asin(distCD / distAB) * 2.0;
-            var angleDegrees = angleRadians.ToDegrees();
-            var angle = (xA * yB - xB * yA < 0 ? 360 - angleDegrees : angleDegrees).PositiveAngle();
-            return angle;
+            double difY = Math.Abs(a.Position.Y - b.Position.Y);
+            double difX = Math.Abs(a.Position.X - b.Position.X);
+
+            double hype = Math.Sqrt(difX*difX + difY * difY);
+            double angle = Math.Asin(difY / hype).ToDegrees();
+
+            bool posY = a.Position.Y > b.Position.Y;
+            bool posX = b.Position.X > a.Position.X;
+
+            if (posY && posX) {
+                angle = 90 - angle;
+            } else if (!posY && posX) {
+                angle += 90;
+            } else if (!posX && posY) {
+                angle += 270;
+            } else {
+                angle = 270 - angle;
+            }
+
+            return angle % 360; // just to be sure
         }
 
         internal static double PositiveAngle(this double x) {
