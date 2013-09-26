@@ -44,6 +44,8 @@ namespace HvZ.AI {
 
         }
 
+        List<uint> visited = new List<uint>();
+
         public void DoSomething(IHumanPlayer player, List<IWalker> zombies, List<IWalker> humans, List<ITakeSpace> obstacles, List<ResupplyPoint> resupply) {
             // am I almost dead??  If so, eat something!
             if (player.Lifespan == 1) {
@@ -51,8 +53,10 @@ namespace HvZ.AI {
                 return;
             }
             // find the closest resupply point.
+            if (visited.Count == resupply.Count)
+                visited.Clear(); // start again!
             if (resupply.Count == 0) return; // do nothing!
-            var supplyPoint = resupply.OrderBy(x => x.DistanceFrom(player)).First();
+            var supplyPoint = resupply.OrderBy(x => x.DistanceFrom(player)).Where(x => !visited.Contains(x.Id)).First();
             // am I there already?
             if (supplyPoint.Intersects(player) && supplyPoint.Available.Length > 0) {
                 if (supplyPoint.Available.Contains(SupplyItem.Food)) {
@@ -60,11 +64,14 @@ namespace HvZ.AI {
                 } else {
                     player.TakeSocksFrom(supplyPoint);
                 }
+                visited.Add(supplyPoint.Id);
             } else {
                 // I still need to go there...
-                double angleTo = player.AngleTo(supplyPoint) - player.Heading;
-                if (angleTo > 10.0) {
+                double angleTo = player.AngleTo(supplyPoint);
+                if (angleTo >= 10.0) {
                     player.TurnRight(angleTo);
+                } else if (angleTo <= -10.0) {
+                    player.TurnLeft(Math.Abs(angleTo));
                 } else {
                     player.GoForward(player.DistanceFrom(supplyPoint));
                 }
