@@ -64,6 +64,7 @@ namespace HvZ.Common {
                     // reset back to the old values.
                     pos.X = oldX;
                     pos.Y = oldY;
+                    return;
                 }
             }
             // double-check against obstacles.
@@ -72,6 +73,7 @@ namespace HvZ.Common {
                     // reset back to the old values.
                     pos.X = oldX;
                     pos.Y = oldY;
+                    return;
                 }
             }
         }

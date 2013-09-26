@@ -265,6 +265,10 @@ namespace HvZ.Common {
     public class PlayerRemovedEventArgs : EventArgs {
         public uint PlayerId { get; set; }
     }
+    public class CollisionEventArgs : EventArgs {
+        public uint PlayerId { get; set; }
+        public ITakeSpace CollidedWith { get; set; }
+    }
 
     public class Game {
         /* Assumptions:
@@ -280,6 +284,7 @@ namespace HvZ.Common {
         private Dictionary<uint, Action> ongoing = new Dictionary<uint, Action>();
         public event EventHandler<PlayerAddedEventArgs> OnPlayerAdded;
         public event EventHandler<PlayerRemovedEventArgs> OnPlayerRemoved;
+        public event EventHandler<CollisionEventArgs> OnPlayerCollision;
         public event EventHandler OnTurnEnded;
 
         public Game(Map m) {

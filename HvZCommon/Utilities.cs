@@ -10,12 +10,16 @@ namespace HvZ.Common {
         public static readonly Random rand = new Random();
 
         public static bool Intersects(this ITakeSpace a, ITakeSpace b) {
+            return Intersects(a, b.Position.X, b.Position.Y, b.Radius);
+        }
+
+        public static bool Intersects(this ITakeSpace a, double x, double y, double radius) {
             // thanks to: http://stackoverflow.com/questions/8367512/algorithm-to-detect-if-a-circles-intersect-with-any-other-circle-in-the-same-pla
-            var dX = a.Position.X - b.Position.X;
-            var dY = a.Position.Y - b.Position.Y;
+            var dX = a.Position.X - x;
+            var dY = a.Position.Y - y;
             var distBetween = Math.Sqrt((dX * dX) + (dY * dY));
-            var sum = Math.Abs(a.Radius + b.Radius);
-            var diff = Math.Abs(a.Radius - b.Radius);
+            var sum = Math.Abs(a.Radius + radius);
+            var diff = Math.Abs(a.Radius - radius);
             return distBetween >= diff && distBetween <= sum;
         }
 
