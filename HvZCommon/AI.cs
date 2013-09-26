@@ -67,7 +67,7 @@ namespace HvZ.AI {
                 visited.Add(supplyPoint.Id);
             } else {
                 // I still need to go there...
-                double angleTo = player.AngleTo(supplyPoint);
+                double angleTo = player.AngleOfTurn(supplyPoint);
                 if (angleTo >= 10.0) {
                     player.TurnRight(angleTo);
                 } else if (angleTo <= -10.0) {

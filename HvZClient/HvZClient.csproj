@@ -156,6 +156,7 @@
     <Resource Include="Images\splash.png" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Images\zombox.png" />
     <Content Include="Maps\Plentiful.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

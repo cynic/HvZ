@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.ComponentModel;
+using System.Windows;
 
 namespace HvZ.Common {
     public static class Utils {
@@ -23,7 +24,7 @@ namespace HvZ.Common {
             return distBetween >= diff && distBetween <= sum;
         }
 
-        /// <summary>Calculates straight line distance between two Entities (untested)</summary>
+        /// <summary>Calculates straight line distance between two Entities (apparently tested)</summary>
         public static double DistanceFrom(this ITakeSpace a, ITakeSpace b) {
             double distX = a.Position.X - b.Position.X;
             double distY = a.Position.Y - b.Position.Y;
@@ -36,23 +37,25 @@ namespace HvZ.Common {
 
         /// <summary>Calculates the number of degrees of turn needed to face a particular thing</summary>
         /// <returns>The angle to turn.  A negative number means a left turn, a positive number means a right turn.</returns>
-        public static double AngleTo(this IWalker a, ITakeSpace b) {
+        public static double AngleOfTurn(this IWalker a, ITakeSpace b) {
             /*
              * Thanks to Chris for inspiring me to fix this; my version didn't work, and his version didn't work either.
+             * (Atleast for what Yusuf was wanting them to do. XD )
+             * 
              * GreedyHuman fails on the Plentiful map with either implementation.
              * On the other hand, this version works well, gives left-or-right turns, and it's short & clean too.
              */
-            var distToTarget = a.DistanceFrom(b);
-            var curHeading = (90.0 - a.Heading).ToRadians(); // relative to the x-axis
+            double distToTarget = a.DistanceFrom(b);
+            double curHeading = (90.0 - a.Heading).ToRadians(); // relative to the x-axis
             // the heading intersects a circle with radius /distAB/ at some point, call it C.  Find that point of intersection.
             // x = xA + r cos (heading)
             // y = yA + r sin (heading)
-            var xC = a.Position.X + distToTarget * Math.Cos(curHeading);
-            var yC = a.Position.Y + -distToTarget * Math.Sin(curHeading);
+            double xC = a.Position.X + distToTarget * Math.Cos(curHeading);
+            double yC = a.Position.Y + -distToTarget * Math.Sin(curHeading);
             // let the built-in vector math sort it all out :-).
-            var vHeading = new System.Windows.Vector(a.Position.X - xC, a.Position.Y - yC);
-            var vTarget = new System.Windows.Vector(a.Position.X - b.Position.X, a.Position.Y - b.Position.Y);
-            return System.Windows.Vector.AngleBetween(vHeading, vTarget);
+            Vector vHeading = new Vector(a.Position.X - xC, a.Position.Y - yC);
+            Vector vTarget = new Vector(a.Position.X - b.Position.X, a.Position.Y - b.Position.Y);
+            return Vector.AngleBetween(vHeading, vTarget);
         }
 
         internal static double PositiveAngle(this double x) {
