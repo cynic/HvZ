@@ -34,11 +34,6 @@ namespace HvZClient {
             }
         }
 
-        protected override void OnContentRendered(EventArgs e) {
-            QuoteGenerator.RegisterQuoteListener(quote);
-            base.OnContentRendered(e);
-        }
-
         private void Maps_SelectionChanged(object sender, SelectionChangedEventArgs e) {
             if (e.AddedItems.Count == 0) return; // nothing to do.
             var filename = (string)e.AddedItems[0];
