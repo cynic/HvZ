@@ -55,6 +55,18 @@ namespace HvZ.Common {
             return System.Windows.Vector.AngleBetween(vHeading, vTarget);
         }
 
+        public static double AngleAwayFrom(this IWalker a, ITakeSpace b) {
+            var angleTo = a.AngleTo(b);
+            if (angleTo + 180.0 >= 180.0)
+                return 180.0 - angleTo;
+            return angleTo + 180.0;
+        }
+
+        public static double AngleAvoiding(this IWalker a, ITakeSpace b) {
+            var angleTo = a.AngleTo(b);
+            return angleTo + 90.0;
+        }
+
         internal static double PositiveAngle(this double x) {
             return (360 + (x % 360)) % 360;
         }

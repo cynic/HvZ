@@ -28,6 +28,8 @@ namespace HvZ.Common {
         }
         public IEnumerable<ResupplyPoint> ResupplyPoints { get { return resupply; } }
 
+        internal event EventHandler<CollisionEventArgs> OnPlayerCollision;
+
         public string RawMapData { get; private set; }
 
         public IWalker Walker(uint id) {
@@ -50,32 +52,40 @@ namespace HvZ.Common {
             }
         }
 
+        public void SetMovementState(uint id, MoveState newState) {
+            if (humans.ContainsKey(id)) {
+                humans[id].Movement = newState;
+            } else {
+                zombies[id].Movement = newState;
+            }
+        }
+
         public void SetPosition(uint id, double x, double y) {
             var walker = walkers[id];
             var pos = walker.Position;
             var oldX = pos.X;
             var oldY = pos.Y;
-            pos.X = Math.Max(walker.Radius, Math.Min(Width - walkers[id].Radius, x));
-            pos.Y = Math.Max(walker.Radius, Math.Min(Height - walkers[id].Radius, y));
+            var newX = Math.Max(walker.Radius, Math.Min(Width - walkers[id].Radius, x));
+            var newY = Math.Max(walker.Radius, Math.Min(Height - walkers[id].Radius, y));
             // double-check against walkers.
             foreach (var kvp in walkers) {
                 if (kvp.Key == id) continue;
-                if (kvp.Value.Intersects(walker)) {
-                    // reset back to the old values.
-                    pos.X = oldX;
-                    pos.Y = oldY;
+                if (kvp.Value.Intersects(newX, newY, walker.Radius)) {
+                    SetMovementState(id, MoveState.Stopped);
+                    if (OnPlayerCollision != null) OnPlayerCollision(this, new CollisionEventArgs() { CollidedWith = kvp.Value, PlayerId = id });
                     return;
                 }
             }
             // double-check against obstacles.
             foreach (var o in Obstacles) { // capital-O Obstacles.  Includes spawnpoints.
-                if (o.Intersects(walker)) {
-                    // reset back to the old values.
-                    pos.X = oldX;
-                    pos.Y = oldY;
+                if (o.Intersects(newX, newY, walker.Radius)) {
+                    SetMovementState(id, MoveState.Stopped);
+                    if (OnPlayerCollision != null) OnPlayerCollision(this, new CollisionEventArgs() { CollidedWith = o, PlayerId = id });
                     return;
                 }
             }
+            pos.X = newX;
+            pos.Y = newY;
         }
 
         public void Kill(uint id) {

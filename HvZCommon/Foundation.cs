@@ -19,8 +19,8 @@ namespace HvZ.Common {
         internal const double HumanTurnRate = 20.0;
         internal const double ZombieTurnRate = 20.0;
         // Reduced by 1 per turn, so e.g. 600 = 60s wall-clock duration at 0.1s per turn
-        internal const int HumanLifespan = 100;
-        internal const int ZombieLifespan = 100;
+        internal const int HumanLifespan = 200;
+        internal const int ZombieLifespan = 200;
         // Number of small steps within a single turn.  Improves resolution of movement, at the cost of some CPU time.
         internal const int StepsPerTurn = 25;
         // Determines food/weapon generation at ResupplyPoints.  An item is generated every /n/ turns, where n = ResupplyDelay.

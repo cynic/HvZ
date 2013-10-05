@@ -36,8 +36,9 @@ namespace HvZ.Common {
 
         public Position Position { get; set; }
         public double Radius { get; private set; }
-
         public string Name { get; private set; }
+
+        public MoveState Movement { get; internal set; }
 
         int lifespan = WorldConstants.HumanLifespan;
         public int Lifespan {
@@ -76,6 +77,7 @@ namespace HvZ.Common {
 
         public uint Id { get; private set; }
         public string Name { get; private set; }
+        public MoveState Movement { get; internal set; }
 
         int lifespan = WorldConstants.ZombieLifespan;
         public int Lifespan {

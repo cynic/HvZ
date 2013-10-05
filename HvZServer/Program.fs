@@ -96,8 +96,7 @@ module Internal =
                               | error -> send (No (sprintf "You asked me to %O, but I couldn't because %s" cmd error))
                         match cmd with
                         | Forward (wId, dist) -> checkOwnPlayer wId (fun () -> myGame.Forward(wId, dist))
-                        | Left (wId, degrees) -> checkOwnPlayer wId (fun () -> myGame.Left(wId, degrees))
-                        | Right (wId, degrees) -> checkOwnPlayer wId (fun () -> myGame.Right(wId, degrees))
+                        | Turn (wId, degrees) -> checkOwnPlayer wId (fun () -> myGame.Turn(wId, degrees))
                         | Eat wId -> checkOwnPlayer wId (fun () -> myGame.Eat(wId))
                         | TakeFood (wId, fromWhere) -> checkOwnPlayer wId (fun () -> myGame.TakeFood(wId, fromWhere))
                         | TakeSocks (wId, fromWhere) -> checkOwnPlayer wId (fun () -> myGame.TakeSocks(wId, fromWhere))

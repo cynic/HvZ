@@ -78,8 +78,8 @@ namespace HvZ.Common {
             state = CGState.CreateRequested;
             this.Map = map;
             world = new Game(map);
-            world.OnPlayerAdded += (_, __) => OnMapChange(this, EventArgs.Empty);
-            world.OnPlayerRemoved += (_, __) => OnMapChange(this, EventArgs.Empty);
+            world.OnPlayerAdded += (_, __) => { if (OnMapChange != null) OnMapChange(this, EventArgs.Empty); };
+            world.OnPlayerRemoved += (_, __) => { if (OnMapChange != null) OnMapChange(this, EventArgs.Empty); };
             connection.ConnectToServer("localhost");
             connection.Send(Command.NewCreate(map.RawMapData));
         }
@@ -88,12 +88,14 @@ namespace HvZ.Common {
             : this(dispatcher, name, role, map) {
                 requestDecision = () => humanAI.DoSomething(this, new List<IWalker>(map.Zombies), new List<IWalker>(map.Humans.Where(x => x.Id != connection.PlayerId)), new List<ITakeSpace>(map.Obstacles), new List<ResupplyPoint>(map.ResupplyPoints));
                 noAction = humanAI.Failure;
+                world.OnPlayerCollision += (_, e) => { if (e.PlayerId == connection.PlayerId) humanAI.Collision(this, e.CollidedWith); };
         }
 
         public ClientGame(System.Windows.Threading.Dispatcher dispatcher, string name, string role, Map map, AI.IZombieAI zombieAI)
             : this(dispatcher, name, role, map) {
             requestDecision = () => zombieAI.DoSomething(this, new List<IWalker>(map.Zombies.Where(x => x.Id != connection.PlayerId)), new List<IWalker>(map.Humans), new List<ITakeSpace>(map.Obstacles), new List<ResupplyPoint>(map.ResupplyPoints));
             noAction = zombieAI.Failure;
+            world.OnPlayerCollision += (_, e) => { if (e.PlayerId == connection.PlayerId) zombieAI.Collision(this, e.CollidedWith); };
         }
 
         private void connection_OnGameCommand(object sender, CommandEventArgs e) {
@@ -147,8 +149,8 @@ namespace HvZ.Common {
             if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
         }
 
-        void ICommandInterpreter.Left(uint walkerId, double degrees) {
-            world.Left(walkerId, degrees);
+        void ICommandInterpreter.Turn(uint walkerId, double degrees) {
+            world.Turn(walkerId, degrees);
         }
 
         void ICommandInterpreter.ListEnd() {
@@ -170,10 +172,6 @@ namespace HvZ.Common {
         void ICommandInterpreter.No(string reason) {
             //throw new Exception(reason);
             noAction(reason);
-        }
-
-        void ICommandInterpreter.Right(uint walkerId, double degrees) {
-            world.Right(walkerId, degrees);
         }
 
         void ICommandInterpreter.TakeFood(uint walkerId, uint resupplyId) {
@@ -216,12 +214,8 @@ namespace HvZ.Common {
             connection.Send(Command.NewThrow(connection.PlayerId, heading));
         }
 
-        void IHumanPlayer.TurnLeft(double degrees) {
-            connection.Send(Command.NewLeft(connection.PlayerId, degrees));
-        }
-
-        void IHumanPlayer.TurnRight(double degrees) {
-            connection.Send(Command.NewRight(connection.PlayerId, degrees));
+        void IHumanPlayer.Turn(double degrees) {
+            connection.Send(Command.NewTurn(connection.PlayerId, degrees));
         }
 
         void IZombiePlayer.Eat(IIdentified target) {
@@ -232,12 +226,8 @@ namespace HvZ.Common {
             connection.Send(Command.NewForward(connection.PlayerId, distance));
         }
 
-        void IZombiePlayer.TurnLeft(double degrees) {
-            connection.Send(Command.NewLeft(connection.PlayerId, degrees));
-        }
-
-        void IZombiePlayer.TurnRight(double degrees) {
-            connection.Send(Command.NewRight(connection.PlayerId, degrees));
+        void IZombiePlayer.Turn(double degrees) {
+            connection.Send(Command.NewTurn(connection.PlayerId, degrees));
         }
 
         Position ITakeSpace.Position { get { return Map.walkers[connection.PlayerId].Position; } }
@@ -256,6 +246,10 @@ namespace HvZ.Common {
 
         SupplyItem[] IHumanPlayer.Inventory {
             get { return Map.humans[connection.PlayerId].Items; }
+        }
+
+        public MoveState Movement {
+            get { return Map.walkers[connection.PlayerId].Movement; }
         }
     }
 
@@ -289,6 +283,7 @@ namespace HvZ.Common {
 
         public Game(Map m) {
             map = m;
+            map.OnPlayerCollision += (_, e) => { if (OnPlayerCollision != null) OnPlayerCollision(this, e); };
         }
 
         public void Update() {
@@ -328,38 +323,33 @@ namespace HvZ.Common {
             var walker = map.Walker(walkerId);
             var distXPerStep = distPerStep * Math.Sin(walker.Heading.ToRadians());
             var distYPerStep = -distPerStep * Math.Cos(walker.Heading.ToRadians());
+            map.SetMovementState(walkerId, MoveState.Moving);
             Action act = () => {
                 if (distRemaining > 0.0) {
                     distRemaining -= distPerStep;
                     map.SetPosition(walkerId, walker.Position.X + distXPerStep, walker.Position.Y + distYPerStep);
+                } else {
+                    map.SetMovementState(walkerId, MoveState.Stopped);
                 }
             };
             ongoing[walkerId] = act;
             return null;
         }
 
-        public string Left(uint walkerId, double degrees) {
-            double turnRemaining = degrees;
+        public string Turn(uint walkerId, double degrees) {
+            double turnRemaining = Math.Abs(degrees);
             double turnPerStep = (map.IsHuman(walkerId) ? WorldConstants.HumanTurnRate : WorldConstants.ZombieTurnRate) / WorldConstants.StepsPerTurn;
             var walker = map.Walker(walkerId);
+            bool leftTurn = degrees < 0;
+            map.SetMovementState(walkerId, MoveState.Moving);
             Action act = () => {
                 if (turnRemaining > 0.0) {
-                    turnRemaining -= turnPerStep;
-                    map.SetHeading(walkerId, walker.Heading - turnPerStep);
-                }
-            };
-            ongoing[walkerId] = act;
-            return null;
-        }
-
-        public string Right(uint walkerId, double degrees) {
-            double turnRemaining = degrees;
-            double turnPerStep = (map.IsHuman(walkerId) ? WorldConstants.HumanTurnRate : WorldConstants.ZombieTurnRate) / WorldConstants.StepsPerTurn;
-            var walker = map.Walker(walkerId);
-            Action act = () => {
-                if (turnRemaining > 0.0) {
-                    turnRemaining -= turnPerStep;
-                    map.SetHeading(walkerId, walker.Heading + turnPerStep);
+                    double thisStep = Math.Min(turnRemaining, turnPerStep);
+                    var newHeading = leftTurn ? walker.Heading - thisStep : walker.Heading + thisStep;
+                    map.SetHeading(walkerId, newHeading);
+                    turnRemaining = Math.Round(turnRemaining - thisStep, 5);
+                } else {
+                    map.SetMovementState(walkerId, MoveState.Stopped);
                 }
             };
             ongoing[walkerId] = act;

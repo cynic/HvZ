@@ -35,6 +35,10 @@ type ITakeSpace =
    abstract member Position : Position with get
    abstract member Radius : float with get
 
+type MoveState =
+| Stopped = 0
+| Moving = 1
+
 type IWalker =
    inherit ITakeSpace
    /// <summary>heading is in degrees, 0 is directly upwards</summary>
@@ -42,6 +46,7 @@ type IWalker =
    abstract member Name : string with get
    abstract member Lifespan : int with get
    abstract member MaximumLifespan : int with get
+   abstract member Movement : MoveState with get
 
 (*
 How to add new commands:
@@ -56,8 +61,7 @@ aaand, that's it.  You've now successfully got a Brand Spanking New valid protoc
 
 type Command =
 | Forward of uint32 * float // walkerId * distance
-| Left of uint32 * float // walkerId * degrees
-| Right of uint32 * float // walkerId * degrees
+| Turn of uint32 * float // walkerId * degrees
 | Eat of uint32 // walkerId
 | Bite of uint32 * uint32 // biter * bitten
 | TakeFood of uint32 * uint32 // who-takes-it * taken-from-where
@@ -79,8 +83,7 @@ with
    override __.ToString () =
       match __ with
       | Forward (_,d) -> sprintf "walk forward %f units" d
-      | Left (_,d) -> sprintf "turn left by %f degrees" d
-      | Right(_,d) -> sprintf "turn right by %f degrees" d
+      | Turn (_,d) -> sprintf "turn by %f degrees" d
       | Eat _ -> "eat food"
       | Bite _ -> "bite a human"
       | TakeFood _ -> "take some food from a resupply-point"
@@ -93,8 +96,7 @@ with
 
 type ICommandInterpreter =
    abstract member Forward : walkerId:uint32 -> distance:float -> unit
-   abstract member Left : walkerId:uint32 -> degrees:float -> unit
-   abstract member Right : walkerId:uint32 -> degrees:float -> unit
+   abstract member Turn : walkerId:uint32 -> degrees:float -> unit
    abstract member Eat : walkerId:uint32 -> unit
    abstract member Bite : walkerId:uint32 -> target:uint32 -> unit
    abstract member TakeFood : walkerId:uint32 -> resupplyId:uint32 -> unit // who-takes-it -> taken-from-where
@@ -116,8 +118,7 @@ type Command with
    static member Dispatch cmd (x : ICommandInterpreter) =
       match cmd with
       | Forward (wId, dist) -> x.Forward wId dist
-      | Left (wId, degrees) -> x.Left wId degrees
-      | Right (wId, degrees) -> x.Right wId degrees
+      | Turn (wId, degrees) -> x.Turn wId degrees
       | Eat wId -> x.Eat wId
       | TakeFood (wId, fromWhere) -> x.TakeFood wId fromWhere
       | TakeSocks (wId, fromWhere) -> x.TakeSocks wId fromWhere
@@ -145,8 +146,7 @@ open HvZ.Common
 type IHumanPlayer =
    inherit IWalker
    abstract member GoForward: distance:float -> unit
-   abstract member TurnLeft: degrees:float -> unit
-   abstract member TurnRight: degrees:float -> unit
+   abstract member Turn: degrees:float -> unit
    abstract member Eat: unit -> unit
    abstract member TakeFoodFrom: place:IIdentified -> unit
    abstract member TakeSocksFrom: place:IIdentified -> unit
@@ -154,15 +154,16 @@ type IHumanPlayer =
    abstract member MapWidth : float with get
    abstract member MapHeight : float with get
    abstract member Inventory : SupplyItem[] with get
+   abstract member Movement : MoveState with get
 
 type IZombiePlayer =
    inherit IWalker
    abstract member GoForward: distance:float -> unit
-   abstract member TurnLeft: degrees:float -> unit
-   abstract member TurnRight: degrees:float -> unit
+   abstract member Turn: degrees:float -> unit
    abstract member Eat: target:IIdentified -> unit
    abstract member MapWidth : float with get
    abstract member MapHeight : float with get
+   abstract member Movement : MoveState with get
 
 namespace HvZ.Networking
 
@@ -180,8 +181,7 @@ module Internal =
       let s =
          match cmd with
          | Forward (wId, dist) -> sprintf "forward %d %.2f" wId dist
-         | Left (wId, degrees) -> sprintf "left %d %.2f" wId degrees
-         | Right (wId, degrees) -> sprintf "right %d %.2f" wId degrees
+         | Turn (wId, degrees) -> sprintf "turn %d %.2f" wId degrees
          | Eat wId -> sprintf "eat %d" wId
          | Bite (wId, target) -> sprintf "bite %d %d" wId target
          | TakeFood (wId, fromWhere) -> sprintf "takefood %d %d" wId fromWhere
@@ -214,9 +214,8 @@ module Internal =
          let re = Regex(reString, RegexOptions.Compiled ||| RegexOptions.IgnoreCase ||| RegexOptions.Singleline)
          re, f
       let matchers = [|
-         makeMatcher @"^forward (\d+) (\d+\.\d{2})$" (fun m -> Forward(uint32 m.[1], float m.[2]))
-         makeMatcher @"^left (\d+) (\d+\.\d{2})$" (fun m -> Left(uint32 m.[1], float m.[2]))
-         makeMatcher @"^right (\d+) (\d+\.\d{2})$" (fun m -> Right(uint32 m.[1], float m.[2]))
+         makeMatcher @"^forward (\d+) (\d{0,6}\.\d{2})$" (fun m -> Forward(uint32 m.[1], float m.[2]))
+         makeMatcher @"^turn (\d+) (-?\d{0,5}\.\d{2})$" (fun m -> Turn(uint32 m.[1], float m.[2]))
          makeMatcher @"^eat (\d+)$" (fun m -> Eat(uint32 m.[1]))
          makeMatcher @"^bite (\d+) (\d+)$" (fun m -> Bite(uint32 m.[1], uint32 m.[2]))
          makeMatcher @"^takefood (\d+) (\d+)$" (fun m -> TakeFood(uint32 m.[1], uint32 m.[2]))

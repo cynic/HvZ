@@ -7,11 +7,13 @@ using HvZ.Common;
 namespace HvZ.AI {
     public interface IHumanAI {
         void Failure(string reason);
+        void Collision(IHumanPlayer player, ITakeSpace other);
         void DoSomething(IHumanPlayer player, List<IWalker> zombies, List<IWalker> humans, List<ITakeSpace> obstacles, List<ResupplyPoint> resupply);
     }
 
     public interface IZombieAI {
         void Failure(string reason);
+        void Collision(IZombiePlayer player, ITakeSpace other);
         void DoSomething(IZombiePlayer player, List<IWalker> zombies, List<IWalker> humans, List<ITakeSpace> obstacles, List<ResupplyPoint> resupply);
     }
 
@@ -19,23 +21,29 @@ namespace HvZ.AI {
         Random rng = new Random();
 
         void IHumanAI.DoSomething(IHumanPlayer player, List<IWalker> zombies, List<IWalker> humans, List<ITakeSpace> obstacles, List<ResupplyPoint> resupply) {
-            switch (rng.Next(50)) {
-                case 0: player.TurnLeft(rng.NextDouble() * 300.0); break;
-                case 1: player.TurnRight(rng.NextDouble() * 300.0); break;
-                case 2: player.GoForward(rng.NextDouble()*20.0); break;
+            if (player.Movement == MoveState.Moving) return;
+            switch (rng.Next(2)) {
+                case 0: player.Turn((rng.NextDouble() > 0.5 ? -1 : 1) * rng.NextDouble() * 300.0); break;
+                case 1: player.GoForward(rng.NextDouble() * 20.0); break;
             }
         }
 
         void IZombieAI.DoSomething(IZombiePlayer player, List<IWalker> zombies, List<IWalker> humans, List<ITakeSpace> obstacles, List<ResupplyPoint> resupply) {
-            switch (rng.Next(50)) {
-                case 0: player.TurnLeft(rng.NextDouble() * 300.0); break;
-                case 1: player.TurnRight(rng.NextDouble() * 300.0); break;
-                case 2: player.GoForward(rng.NextDouble()*20.0); break;
+            if (player.Movement == MoveState.Moving) return;
+            switch (rng.Next(2)) {
+                case 0: player.Turn((rng.NextDouble() > 0.5 ? -1 : 1) * rng.NextDouble() * 300.0); break;
+                case 1: player.GoForward(rng.NextDouble() * 20.0); break;
             }
         }
 
         public void Failure(string what) {
             throw new Exception(what);
+        }
+
+        void IHumanAI.Collision(IHumanPlayer player, ITakeSpace other) {
+        }
+
+        void IZombieAI.Collision(IZombiePlayer player, ITakeSpace other) {
         }
     }
 
@@ -50,6 +58,10 @@ namespace HvZ.AI {
             // am I almost dead??  If so, eat something!
             if (player.Lifespan == 1) {
                 player.Eat();
+                return;
+            }
+            // am I already moving?  If so, duck out until I've stopped.
+            if (player.Movement == MoveState.Moving) {
                 return;
             }
             // find the closest resupply point.
@@ -68,14 +80,17 @@ namespace HvZ.AI {
             } else {
                 // I still need to go there...
                 double angleTo = player.AngleTo(supplyPoint);
-                if (angleTo >= 10.0) {
-                    player.TurnRight(angleTo);
-                } else if (angleTo <= -10.0) {
-                    player.TurnLeft(Math.Abs(angleTo));
+                if (Math.Abs(angleTo) >= 10.0) {
+                    player.Turn(angleTo);
                 } else {
                     player.GoForward(player.DistanceFrom(supplyPoint));
                 }
             }
+        }
+
+        public void Collision(IHumanPlayer player, ITakeSpace other) {
+            var angle = player.AngleAvoiding(other);
+            player.Turn(angle);
         }
     }
 
