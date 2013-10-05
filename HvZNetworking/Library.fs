@@ -31,6 +31,8 @@ type Position(x : float, y : float) =
       [<CLIEvent>]
       member __.PropertyChanged = evt.Publish
 
+   override __.ToString () = sprintf "(%.2f, %.2f)" __.X __.Y
+
 type ITakeSpace =
    abstract member Position : Position with get
    abstract member Radius : float with get

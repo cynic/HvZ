@@ -8,6 +8,11 @@ namespace HvZ.Common {
     public interface IWalkerExtended : IWalker, IVisual, IIdentified, INotifyPropertyChanged { }
 
     public class Human : IWalkerExtended {
+        public override string ToString() {
+            var s = items.Count(x => x == SupplyItem.Sock);
+            var f = items.Count(x => x == SupplyItem.Food);
+            return String.Format("Human {0}, {1}, at {2} heading {3} with {4} socks & {5} food", Name, Movement, Position, Heading, s, f);
+        }
         private Map map;
 
         double heading;
@@ -21,6 +26,12 @@ namespace HvZ.Common {
 
         private List<SupplyItem> items = new List<SupplyItem>(WorldConstants.MaximumItemsCarried);
         public SupplyItem[] Items { get { return items.ToArray(); } }
+
+        internal bool InventoryIsFull {
+            get {
+                return items.Count >= WorldConstants.MaximumItemsCarried;
+            }
+        }
 
         internal bool AddItem(SupplyItem what) {
             if (items.Count >= WorldConstants.MaximumItemsCarried) return false;
@@ -64,6 +75,10 @@ namespace HvZ.Common {
     }
 
     public class Zombie : IWalkerExtended {
+        public override string ToString() {
+            return String.Format("Zombie {0}, {1}, at {2} heading {3}", Name, Movement, Position, Heading);
+        }
+
         private Map map;
 
         double heading;

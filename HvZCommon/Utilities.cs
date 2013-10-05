@@ -20,8 +20,8 @@ namespace HvZ.Common {
             var dY = a.Position.Y - y;
             var distBetween = Math.Sqrt((dX * dX) + (dY * dY));
             var sum = Math.Abs(a.Radius + radius);
-            var diff = Math.Abs(a.Radius - radius);
-            return distBetween >= diff && distBetween <= sum;
+            //var diff = Math.Abs(a.Radius - radius);
+            return /*distBetween >= diff &&*/ distBetween <= sum;
         }
 
         /// <summary>Calculates straight line distance between two Entities (apparently tested)</summary>

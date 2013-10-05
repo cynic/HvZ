@@ -89,6 +89,7 @@ namespace HvZ.AI {
         }
 
         public void Collision(IHumanPlayer player, ITakeSpace other) {
+            if (player.Movement == MoveState.Moving) return; // nothing to do?
             var angle = player.AngleAvoiding(other);
             player.Turn(angle);
         }

@@ -251,6 +251,13 @@ namespace HvZ.Common {
         public MoveState Movement {
             get { return Map.walkers[connection.PlayerId].Movement; }
         }
+
+        public override string ToString() {
+            if (Microsoft.FSharp.Core.FSharpOption<uint>.get_IsNone(connection.playerId)) {
+                return base.ToString();
+            }
+            return map.walkers[connection.PlayerId].ToString();
+        }
     }
 
     public class PlayerAddedEventArgs : EventArgs {
@@ -326,7 +333,7 @@ namespace HvZ.Common {
             map.SetMovementState(walkerId, MoveState.Moving);
             Action act = () => {
                 if (distRemaining > 0.0) {
-                    distRemaining -= distPerStep;
+                    distRemaining -= Math.Min(distPerStep, distRemaining);
                     map.SetPosition(walkerId, walker.Position.X + distXPerStep, walker.Position.Y + distYPerStep);
                 } else {
                     map.SetMovementState(walkerId, MoveState.Stopped);
@@ -362,6 +369,7 @@ namespace HvZ.Common {
             var h = map.humans[walkerId];
             bool eaten = false;
             if (!h.Items.Contains(SupplyItem.Food)) return "you don't have any food in your inventory.";
+            map.SetMovementState(walkerId, MoveState.Stopped);
             Action act = () => {
                 if (eaten) return; // done.
                 h.RemoveItem(SupplyItem.Food);
@@ -376,6 +384,7 @@ namespace HvZ.Common {
             return "blah";
         }
         
+        // taking something takes up a turn
         private string Take(uint walkerId, uint fromWhere, SupplyItem what) {
             var pt = map.ResupplyPoints.FirstOrDefault(x => x.Id == fromWhere);
             if (pt == null) return "the resupply point you've referred to doesn't exist";
@@ -383,8 +392,16 @@ namespace HvZ.Common {
             var w = map.humans[walkerId];
             if (!w.IsCloseEnoughToUse(pt)) return "you're still too far away from the resupply point to interact with it"; // too far away to interact with this.
             if (!pt.Available.Any(x => x == what)) return "the item you wanted to take isn't at this resupply point"; // the desired item doesn't exist here.
-            if (!w.AddItem(what)) return "your inventory is already full"; // inventory is already full.
-            pt.Remove(what);
+            if (w.InventoryIsFull) return "your inventory is already full";
+            bool taken = false;
+            map.SetMovementState(walkerId, MoveState.Stopped);
+            Action act = () => {
+                if (taken) return;
+                w.AddItem(what);
+                pt.Remove(what);
+                taken = true;
+            };
+            ongoing[walkerId] = act;
             return null;
         }
         public string TakeFood(uint walkerId, uint fromWhere) {
