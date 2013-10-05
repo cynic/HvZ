@@ -6,18 +6,11 @@ using System.Text;
 using HvZ.AI;
 
 namespace HvZ.Common {
-    public enum CGState {
-        Invalid,
-        CreateRequested,
-        JoinRequested,
-        InGame
-    }
-
-    public enum Role {
+    enum Role {
         Invalid, Human, Zombie
     }
 
-    public class FailureEventArgs : EventArgs {
+    class FailureEventArgs : EventArgs {
         public FailureEventArgs(string reason) {
             Reason = reason;
         }
@@ -30,11 +23,10 @@ namespace HvZ.Common {
      * joining a game, the client has no say.
      */
 
-    public class ClientGame : ICommandInterpreter, INotifyPropertyChanged, IHumanPlayer, IZombiePlayer {
+    class ClientGame : ICommandInterpreter, INotifyPropertyChanged, IHumanPlayer, IZombiePlayer {
         private HvZConnection connection = new HvZConnection();
         private string gameId = null;
 
-        CGState state = CGState.Invalid;
         Role role = Role.Invalid;
         string playerName;
 
@@ -75,7 +67,6 @@ namespace HvZ.Common {
             }
             this.dispatcher = dispatcher;
             playerName = name;
-            state = CGState.CreateRequested;
             this.Map = map;
             world = new Game(map);
             world.OnPlayerAdded += (_, __) => { if (OnMapChange != null) OnMapChange(this, EventArgs.Empty); };
@@ -260,18 +251,18 @@ namespace HvZ.Common {
         }
     }
 
-    public class PlayerAddedEventArgs : EventArgs {
+    internal class PlayerAddedEventArgs : EventArgs {
         public uint PlayerId { get; set; }
     }
-    public class PlayerRemovedEventArgs : EventArgs {
+    internal class PlayerRemovedEventArgs : EventArgs {
         public uint PlayerId { get; set; }
     }
-    public class CollisionEventArgs : EventArgs {
+    internal class CollisionEventArgs : EventArgs {
         public uint PlayerId { get; set; }
         public ITakeSpace CollidedWith { get; set; }
     }
 
-    public class Game {
+    class Game {
         /* Assumptions:
          * - Humans move at 0.45 per turn.
          * - Zombies move at 0.4 per turn.

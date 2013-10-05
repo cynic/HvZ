@@ -13,11 +13,11 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using HvZ.Common;
 
-namespace HvZClient {
+namespace HvZ.Client {
     /// <summary>
     /// Interaction logic for ClientWindow.xaml
     /// </summary>
-    public partial class ClientWindow : Window {
+    partial class ClientWindow : Window {
         internal static readonly string MAP_LOCATION = "Maps";
 
         private HvZConnection connection = new HvZConnection();

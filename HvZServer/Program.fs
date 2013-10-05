@@ -38,11 +38,11 @@ open System.Text
 open System
 
 module Internal =
-   type GamesMessage =
+   type internal GamesMessage =
    | Request of string * uint32 * Command * (Command -> unit) // gameid, playerid, command, send
    | Create of string[] * (Command -> unit) * AsyncReplyChannel<string> // map, send, reply
 
-   let newGame gameId (map : Map) onGameOver =
+   let internal newGame gameId (map : HvZ.Map) onGameOver =
       let delay_between_moves = 100 // ms
       let playerSends = System.Collections.Generic.List()
       let myGame = new HvZ.Common.Game(map)
@@ -131,7 +131,7 @@ module Internal =
          waitForPlayers ()
       )
 
-   let gamesProcessor =
+   let internal gamesProcessor =
       let gamesList = System.Collections.Generic.Dictionary<string, MailboxProcessor<_>>()
       let nextGamesId =
          let s = Seq.initInfinite (fun _ -> Array.sub (System.Guid.NewGuid().ToByteArray()) 0 15 |> System.Convert.ToBase64String)
@@ -149,7 +149,7 @@ module Internal =
                   printfn "Creating a new game, id=%s" id
                   let gameOver () = gamesList.Remove id |> ignore // maybe also send out a notification that the game doesn't exist any more??
                   try
-                     let map = HvZ.Common.Map(map)
+                     let map = HvZ.Map(map)
                      let processor = newGame id map gameOver
                      processor.Error
                      |> Event.add (printfn "ERROR during game %s: %A" id)
@@ -170,7 +170,7 @@ module Internal =
          loop ()
       )
 
-let handleRequest playerId status cmd send =
+let internal handleRequest playerId status cmd send =
 (*
    printfn "Received %A from player %d" cmd playerId
    let send x =

@@ -5,10 +5,12 @@ using System.Linq;
 using System.Text;
 using System.ComponentModel;
 using System.Windows;
+using HvZ.Common;
 
-namespace HvZ.Common {
-    public static class Utils {
-        public static readonly Random rand = new Random();
+namespace HvZ {
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static class Extensions {
+        internal static readonly Random rand = new Random();
 
         public static bool Intersects(this ITakeSpace a, ITakeSpace b) {
             return Intersects(a, b.Position.X, b.Position.Y, b.Radius);
@@ -82,10 +84,6 @@ namespace HvZ.Common {
             return (x * Math.PI) / 180.0;
         }
 
-        public static T PickNext<T>(this T[] array) {
-            return array[DateTime.Now.Second%array.Length];
-        }
-
         public static T PickOne<T>(this T[] array) {
             return array[rand.Next(array.Length)];
         }
@@ -96,10 +94,6 @@ namespace HvZ.Common {
 
         public static T[] Tail<T>(this T[] array) {
             return array.Skip(1).ToArray();
-        }
-
-        public static IEnumerable<T> Tail<T>(this IEnumerable<T> array) {
-            return array.Skip(1);
         }
     }
 }

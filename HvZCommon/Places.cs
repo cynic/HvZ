@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using HvZ.Common;
 
-namespace HvZ.Common {
+namespace HvZ {
     /// <summary>
     /// Supply point provides food + weapons.
     /// </summary>

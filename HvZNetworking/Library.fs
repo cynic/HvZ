@@ -1,7 +1,9 @@
-﻿namespace HvZ.Common
+﻿namespace HvZ
 
-module Mxyzptlk =
+module internal Mxyzptlk =
    [<assembly:System.Runtime.CompilerServices.InternalsVisibleTo("HvZCommon")>]
+   [<assembly:System.Runtime.CompilerServices.InternalsVisibleTo("HvZ")>]
+   [<assembly:System.Runtime.CompilerServices.InternalsVisibleTo("HvZServer")>]
    do ()
 
 type IIdentified =
@@ -50,6 +52,9 @@ type IWalker =
    abstract member MaximumLifespan : int with get
    abstract member Movement : MoveState with get
 
+namespace HvZ.Common
+open HvZ
+
 (*
 How to add new commands:
 
@@ -61,7 +66,7 @@ How to add new commands:
 aaand, that's it.  You've now successfully got a Brand Spanking New valid protocol command.  Congratulations.
 *)
 
-type Command =
+type internal Command =
 | Forward of uint32 * float // walkerId * distance
 | Turn of uint32 * float // walkerId * degrees
 | Eat of uint32 // walkerId
@@ -96,7 +101,7 @@ with
       | Create _ -> "create a game"
       | _ -> sprintf "%O" __
 
-type ICommandInterpreter =
+type internal ICommandInterpreter =
    abstract member Forward : walkerId:uint32 -> distance:float -> unit
    abstract member Turn : walkerId:uint32 -> degrees:float -> unit
    abstract member Eat : walkerId:uint32 -> unit
@@ -116,7 +121,7 @@ type ICommandInterpreter =
    abstract member No : reason:string -> unit // reason for rejection
 
 [<Extension>]
-type Command with
+type internal Command with
    static member Dispatch cmd (x : ICommandInterpreter) =
       match cmd with
       | Forward (wId, dist) -> x.Forward wId dist
@@ -138,11 +143,12 @@ type Command with
       | No why -> x.No why
       | _ -> printfn "I shouldn't be receiving %A commands..." cmd // ignore?
 
-type ClientStatus =
+type internal ClientStatus =
 | InGame of string // gameId
 | OutOfGame
 
 namespace HvZ.AI
+open HvZ
 open HvZ.Common
 
 type IHumanPlayer =
@@ -174,12 +180,12 @@ open System.Net
 open System.Net.Sockets
 
 [<AutoOpen>]
-module Internal =
+module internal Internal =
    open HvZ.Common
    open System.Text
    open System.Text.RegularExpressions
 
-   let toProtocol cmd =
+   let internal toProtocol cmd =
       let s =
          match cmd with
          | Forward (wId, dist) -> sprintf "forward %d %.2f" wId dist
@@ -211,7 +217,7 @@ module Internal =
       else
          Encoding.UTF8.GetBytes (sprintf "%5d%s" byteCount s)
 
-   let fromString =
+   let internal fromString =
       let makeMatcher reString (f : _[] -> Command) = 
          let re = Regex(reString, RegexOptions.Compiled ||| RegexOptions.IgnoreCase ||| RegexOptions.Singleline)
          re, f
@@ -248,37 +254,37 @@ module Internal =
             else None
          )
 
-   let writeTo (s : System.IO.Stream) c =
+   let internal writeTo (s : System.IO.Stream) c =
       let arr = toProtocol c
       s.Write (arr, 0, arr.Length)
 
-   let nextPlayerId =
+   let private nextPlayerId =
       let v = ref 0
       fun () ->
          System.Threading.Interlocked.Increment v |> uint32
 
-   type ParseCommandResult =
+   type private ParseCommandResult =
    | Corrupt
    | OK of int // int = offset for new command reception
    
-   type ShutdownReason =
+   type internal ShutdownReason =
    | CorruptStream
    | StreamClosed
 
-   let safeGetString buf =
+   let private safeGetString buf =
       try
          Some (Encoding.UTF8.GetString buf)
       with
       | _ -> None
 
-   let safeGetInt str =
+   let private safeGetInt str =
       safeGetString str
       |> Option.bind (fun s ->
          System.Int32.TryParse s
          |> fun (ok, i) -> if ok then Some i else None
       )
 
-   let connection (client : TcpClient) onClosed onCommandReceived onAbnormalCommand =
+   let internal connection (client : TcpClient) onClosed onCommandReceived onAbnormalCommand =
       let buffer = Array.zeroCreate (100 * 1024) // enough space for any 5-digit messages.
       let stream = client.GetStream ()
       MailboxProcessor.Start(fun inbox ->
@@ -328,7 +334,7 @@ module Internal =
          receive 0
       )
 
-   let serverHandleTcp (client : TcpClient) handleRequest =
+   let internal serverHandleTcp (client : TcpClient) handleRequest =
       let stream = client.GetStream()
       let clientId = string client.Client.RemoteEndPoint
       let playerId = nextPlayerId ()
@@ -343,7 +349,7 @@ module Internal =
          No (sprintf "I couldn't understand the command you sent (%s)" s) |> writeTo stream
       connection client onClosed onCommandReceived onAbnormalCommand
 
-   let clientHandleTcp (client : TcpClient) onClosed onCommandReceived =
+   let internal clientHandleTcp (client : TcpClient) onClosed onCommandReceived =
       let stream = client.GetStream()
       let playerId = nextPlayerId ()
       let playerId = ref None
@@ -359,12 +365,12 @@ namespace HvZ.Common
 open HvZ.Networking
 open System.Net.Sockets
 
-type CommandEventArgs(player : uint32, command : Command) =
+type internal CommandEventArgs(player : uint32, command : Command) =
    inherit System.EventArgs()
    member __.Player with get () = player
    member __.Command with get () = command
        
-type HvZConnection() as this =
+type internal HvZConnection() as this =
    let mutable status = OutOfGame
    let mutable playerId = None
    let dataEvent = new Event<System.EventHandler<CommandEventArgs>,CommandEventArgs>()

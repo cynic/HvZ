@@ -18,22 +18,12 @@ using System.Windows.Threading;
 using HvZ.AI;
 using HvZ.Common;
 
-namespace HvZClient {
-    public enum CGState {
-        Invalid,
-        CreateRequested,
-        CreationFailed,
-        CreationSucceeded,
-        JoinRequested,
-        JoinFailed,
-        JoinSucceeded
-    }
-
-    public enum Role {
+namespace HvZ.Client {
+    enum Role {
         Invalid, Human, Zombie
     }
     /// <summary>Interaction logic for MainWindow.xaml</summary>
-    public partial class GameWindow : Window {
+    partial class GameWindow : Window {
         ClientGame game;
         // WPF uses retained-mode graphics, not immediate-mode.  See http://msdn.microsoft.com/en-us/library/ms748373.aspx#visual_rendering_behavior .  No need to simulate immediate-mode.
         // A better plan might be to do most of this stuff in XAML, using DataTemplates http://msdn.microsoft.com/en-us/library/ms742521.aspx
@@ -153,16 +143,13 @@ namespace HvZClient {
             var messages = new[] {
                 "Are you sure you want to leave?  Real work is much worse.",
                 "You're trying to say you like TV better than me, right?",
-                "Don't leave - there's food around that corner!",
-                "You know, next time you come in here, I'm going to get you.",
-                "Go ahead and leave.  See if I care.",
+                "You know, next time you play, I'm going to get you.",
+                "You want to leave?  Go ahead, see if I care.",
                 "Get out of here and go back to your boring programs.",
                 "Look, bud.  You leave now and you forfeit your body count.",
-                "Just leave.  When you come back, I'll be waiting with a bat.",
-                "You're lucky I don't smack you for thinking about leaving.",
-                "Don't leave now - there's a dimensional shambler waiting for you in Windows!"
+                "Just leave.  When you come back, I'll be waiting with a bat."
             };
-            if (MessageBox.Show(messages.PickNext(), "Leave Game", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes) {
+            if (MessageBox.Show(messages.PickOne(), "Leave Game", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes) {
                 //Game.theGame.EndGame();
                 Owner.Focus();
             } else {

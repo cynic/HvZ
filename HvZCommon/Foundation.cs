@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 using System.ComponentModel;
 
 namespace HvZ.Common {
-    public interface IVisual : ITakeSpace {
+    interface IVisual : ITakeSpace {
         string Texture { get; }
     }
 
-    internal static class WorldConstants {
+    static class WorldConstants {
         internal const double WalkerRadius = 0.95; // shared by Human, Zombie, and Box
         // terrain covered per turn
         internal const double HumanSpeed = 0.45;

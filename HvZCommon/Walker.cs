@@ -5,9 +5,9 @@ using System.Text;
 using System.ComponentModel;
 
 namespace HvZ.Common {
-    public interface IWalkerExtended : IWalker, IVisual, IIdentified, INotifyPropertyChanged { }
+    internal interface IWalkerExtended : IWalker, IVisual, IIdentified, INotifyPropertyChanged { }
 
-    public class Human : IWalkerExtended {
+    internal class Human : IWalkerExtended {
         public override string ToString() {
             var s = items.Count(x => x == SupplyItem.Sock);
             var f = items.Count(x => x == SupplyItem.Food);
@@ -74,7 +74,7 @@ namespace HvZ.Common {
         public event PropertyChangedEventHandler PropertyChanged;
     }
 
-    public class Zombie : IWalkerExtended {
+    internal class Zombie : IWalkerExtended {
         public override string ToString() {
             return String.Format("Zombie {0}, {1}, at {2} heading {3}", Name, Movement, Position, Heading);
         }

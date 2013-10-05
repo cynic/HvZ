@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
+using HvZ.Common;
 
-namespace HvZ.Common {
+namespace HvZ {
     public class Map {
         internal Dictionary<uint, Zombie> zombies = new Dictionary<uint, Zombie>();
         internal Dictionary<uint, Human> humans = new Dictionary<uint, Human>();
@@ -13,9 +14,9 @@ namespace HvZ.Common {
         internal List<Obstacle> obstacles = new List<Obstacle>();
         internal List<ResupplyPoint> resupply = new List<ResupplyPoint>();
 
-        public IEnumerable<Human> Humans { get { return humans.Values; } }
-        public IEnumerable<Zombie> Zombies { get { return zombies.Values; } }
-        public IEnumerable<IVisual> Obstacles {
+        internal IEnumerable<Human> Humans { get { return humans.Values; } }
+        internal IEnumerable<Zombie> Zombies { get { return zombies.Values; } }
+        internal IEnumerable<IVisual> Obstacles {
             get {
                 foreach (var o in obstacles) yield return o;
                 foreach (var s in spawners) yield return s;
@@ -25,9 +26,9 @@ namespace HvZ.Common {
 
         internal event EventHandler<CollisionEventArgs> OnPlayerCollision;
 
-        public string RawMapData { get; private set; }
+        internal string RawMapData { get; private set; }
 
-        public IWalker Walker(uint id) {
+        internal IWalker Walker(uint id) {
             return walkers[id]; // this will throw if the id isn't found.  That's fine; if it happens, fix the bug.
         }
 
@@ -39,7 +40,7 @@ namespace HvZ.Common {
             return zombies.ContainsKey(id);
         }
 
-        public void SetHeading(uint id, double newHeading) {
+        internal void SetHeading(uint id, double newHeading) {
             if (humans.ContainsKey(id)) {
                 humans[id].Heading = newHeading;
             } else {
@@ -47,7 +48,7 @@ namespace HvZ.Common {
             }
         }
 
-        public void SetMovementState(uint id, MoveState newState) {
+        internal void SetMovementState(uint id, MoveState newState) {
             if (humans.ContainsKey(id)) {
                 humans[id].Movement = newState;
             } else {
@@ -55,7 +56,7 @@ namespace HvZ.Common {
             }
         }
 
-        public void SetPosition(uint id, double x, double y) {
+        internal void SetPosition(uint id, double x, double y) {
             var walker = walkers[id];
             var pos = walker.Position;
             var oldX = pos.X;
@@ -83,7 +84,7 @@ namespace HvZ.Common {
             pos.Y = newY;
         }
 
-        public void Kill(uint id) {
+        internal void Kill(uint id) {
             humans.Remove(id);
             zombies.Remove(id);
             var w = walkers[id];
@@ -91,7 +92,7 @@ namespace HvZ.Common {
             spawners.Add(new SpawnPoint(w.Position.X, w.Position.Y, WorldConstants.WalkerRadius));
         }
 
-        public bool AddHuman(uint id, string name) {
+        internal bool AddHuman(uint id, string name) {
             if (spawners.Count == 0) return false; // too many already in-game.
             var spawnIdx = Math.Abs((int)id) % spawners.Count;
             var spawner = spawners[spawnIdx];
@@ -102,7 +103,7 @@ namespace HvZ.Common {
             return true;
         }
 
-        public bool AddZombie(uint id, string name) {
+        internal bool AddZombie(uint id, string name) {
             // mostly copypasta from above
             if (spawners.Count == 0) return false; // too many already in-game.
             var spawnIdx = Math.Abs((int)id) % spawners.Count;
@@ -154,7 +155,7 @@ namespace HvZ.Common {
             ReadMap(File.ReadAllLines(filename));
         }
 
-        public Map(string[] lines) {
+        internal Map(string[] lines) {
             ReadMap(lines);
         }
 
