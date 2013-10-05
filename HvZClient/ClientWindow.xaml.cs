@@ -39,86 +39,12 @@ namespace HvZClient {
             base.OnContentRendered(e);
         }
 
-        public static ImageBrush ImageFromMap(string filename) {
-            return ImageFromMap(new Map(filename));
-        }
-
-        public static ImageBrush ImageFromMap(Map m) {
-            var arr = new byte[3 * m.Width * m.Height];
-            var imgW = m.Width;
-            var imgH = m.Height;
-            for (int row = 0; row < m.Height; ++row) {
-                for (int column = 0; column < m.Width; column++) {
-                    Color rgb;
-                    switch (m[column, row]) {
-                        case HvZ.Common.Terrain.Empty: rgb = Colors.Black; break;
-                        case HvZ.Common.Terrain.Ground: rgb = Colors.Yellow; break;
-                        default: throw new InvalidOperationException("unrecognized mapitem");
-                    }
-                    int idx = 3 * (row * m.Width + column);
-                    arr[idx] = rgb.R;
-                    arr[idx + 1] = rgb.G;
-                    arr[idx + 2] = rgb.B;
-                }
-            }
-
-            int mult = 6;
-            arr = amplifyResolution(arr, mult, m.Width);
-            var i = BitmapImage.Create(mult * imgW, mult * imgH, 96, 96, PixelFormats.Rgb24, null, arr, mult * 3 * m.Width);
-            /*
-            PngBitmapEncoder encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(i));
-            using (var fs = System.IO.File.Create("c:\\temp\\map1.png")) {
-                encoder.Save(fs);
-            }
-            */
-            var brush = new ImageBrush(i);
-            brush.Stretch = Stretch.Fill;
-            return brush;
-        }
-
-        public static byte[] amplifyResolution(byte[] data, int mult, int width) {
-            if (mult <= 1) {
-                return data;
-            }
-
-            List<byte[][]> lines = new List<byte[][]>();
-            List<byte[]> line = new List<byte[]>();
-
-            for (int i = 0; i < data.Length; i += 3) {
-                byte[] pixel = new byte[3];
-                pixel[0] = data[i];
-                pixel[1] = data[i + 1];
-                pixel[2] = data[i + 2];
-
-                for (int p = 0; p < mult; p++) {
-                    line.Add(pixel);
-                }
-
-                if (line.Count == width * mult) {
-                    for (int p = 0; p < mult; p++) {
-                        lines.Add(line.ToArray());
-                    }
-                    line.Clear();
-                }
-            }
-
-            List<byte> result = new List<byte>();
-            foreach (byte[][] i in lines) {
-                foreach (byte[] k in i) {
-                    result.AddRange(k);
-                }
-            }
-
-            return result.ToArray();
-        }
-
         private void Maps_SelectionChanged(object sender, SelectionChangedEventArgs e) {
             if (e.AddedItems.Count == 0) return; // nothing to do.
             var filename = (string)e.AddedItems[0];
             try {
-                var img = ImageFromMap(MAP_LOCATION + "\\" + filename + ".txt");
-                MapPreview.Background = img;
+                var m = new Map(MAP_LOCATION + "\\" + filename + ".txt");
+                GameWindow.PlaceObjects(MapPreview, m);
             } catch (Exception exc) {
                 Maps.UnselectAll();
                 MessageBox.Show(String.Format("I couldn't load this map.  Reason: {0}", exc.Message));

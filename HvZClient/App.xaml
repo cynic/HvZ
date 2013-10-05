@@ -3,6 +3,11 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="ClientWindow.xaml">
     <Application.Resources>
+        <ImageBrush x:Key="human" ImageSource="Images/human.png" />
+        <ImageBrush x:Key="zombie" ImageSource="Images/zombie.png" />
+        <ImageBrush x:Key="spawnpoint" ImageSource="Images/box.png" />
+        <ImageBrush x:Key="obstacle" ImageSource="Images/obstacle.png" />
+        <ImageBrush x:Key="supply" ImageSource="Images/supplyP.png" />
         <ControlTemplate x:Key="ButtonTemplate" TargetType="{x:Type Button}">
             <ContentPresenter>
                 <ContentPresenter.Content>

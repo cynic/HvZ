@@ -4,13 +4,6 @@
         Title="Hoomanz vs Zombeez" Height="350" Width="525" Background="Black"
         Icon="icon.ico"
         SizeChanged="Window_Resized" Closing="Window_Closing" Loaded="Window_Loaded" RenderOptions.BitmapScalingMode="HighQuality">
-    <Window.Resources>
-        <ImageBrush x:Key="human" ImageSource="Images/human.png" />
-        <ImageBrush x:Key="zombie" ImageSource="Images/zombie.png" />
-        <ImageBrush x:Key="spawnpoint" ImageSource="Images/box.png" />
-        <ImageBrush x:Key="obstacle" ImageSource="Images/obstacle.png" />
-        <ImageBrush x:Key="supply" ImageSource="Images/supplyP.png" />
-    </Window.Resources>
     <Grid Name="ground">
         <Canvas Name="GUIMap" Background="Transparent"/>
         <Canvas Background="Black" Opacity="0.4">

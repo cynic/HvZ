@@ -5,12 +5,7 @@ using System.Text;
 using System.IO;
 
 namespace HvZ.Common {
-    public enum Terrain : byte { // this can only go up to 4 bits (which means 16 possible entries, incl. Empty=0), because of how it's sent over the wire
-        Empty=0, Ground
-    }
-
     public class Map {
-        Terrain[] terrain;
         internal Dictionary<uint, Zombie> zombies = new Dictionary<uint, Zombie>();
         internal Dictionary<uint, Human> humans = new Dictionary<uint, Human>();
         internal Dictionary<uint, IWalkerExtended> walkers = new Dictionary<uint, IWalkerExtended>();
@@ -122,39 +117,32 @@ namespace HvZ.Common {
         private void ReadMap(string[] lines) {
             Width = lines.Max(x => x.Length);
             Height = lines.Length;
-            terrain = new Terrain[Width * Height];
             uint resupplyId = 0;
             for (int row = 0; row < Height; ++row) {
                 for (int column = 0; column < lines[row].Length; ++column) {
                     switch (Char.ToLower(lines[row][column])) {
-                        case '.':
-                        case 's': terrain[row * Width + column] = Terrain.Ground; break;
-                        case ' ': terrain[row * Width + column] = Terrain.Empty; break;
                         case '#':
-                            terrain[row * Width + column] = Terrain.Ground;
                             var large = new Obstacle(column, row, 0.9);
                             obstacles.Add(large);
                             break;
                         case '@':
-                            terrain[row * Width + column] = Terrain.Ground;
                             var medium = new Obstacle(column, row, 0.45);
                             obstacles.Add(medium);
                             break;
                         case '!':
-                            terrain[row * Width + column] = Terrain.Ground;
                             var small = new Obstacle(column, row, 0.15);
                             obstacles.Add(small);
                             break;
                         case 'x':
-                            terrain[row * Width + column] = Terrain.Ground;
                             spawners.Add(new SpawnPoint(column, row, WorldConstants.WalkerRadius));
                             break;
                         case 'r':
-                            terrain[row * Width + column] = Terrain.Ground;
                             resupply.Add(new ResupplyPoint(++resupplyId, column, row));
                             break;
                         default:
-                            throw new System.NotImplementedException(String.Format("There's something wrong with the map: I don't know how to handle '{0}' characters.", lines[row][column]));
+                            // meh, just ignore it.
+                            break;
+                            //throw new System.NotImplementedException(String.Format("There's something wrong with the map: I don't know how to handle '{0}' characters.", lines[row][column]));
                     }
                 }
             }
@@ -168,23 +156,6 @@ namespace HvZ.Common {
 
         public Map(string[] lines) {
             ReadMap(lines);
-        }
-
-        public Terrain this[double whereX, double whereY] {
-            get {
-                if (whereX >= Width || whereY >= Height || whereX < 0.0 || whereY < 0.0) {
-                    throw new IndexOutOfRangeException(String.Format("The index [{0}, {1}] is out of bounds for the map with width {2}, height {3}", whereX, whereY, Width, Height));
-                }
-                // well, we know it's in-bounds.
-                //var topLeft = terrain[(int)Math.Floor(whereX) * Width + (int)Math.Floor(whereY)];
-                //var topRight = terrain[(int)Math.Ceiling(whereX) * Width + (int)Math.Floor(whereY)];
-                //var bottomLeft = terrain[(int)Math.Floor(whereX) * Width + (int)Math.Ceiling(whereY)];
-                //var bottomRight = terrain[(int)Math.Ceiling(whereX) * Width + (int)Math.Ceiling(whereY)];
-                var closest = terrain[(int)Math.Round(whereY) * Width + (int)Math.Round(whereX)];
-                //if (topLeft == topRight && bottomLeft == bottomRight && topLeft == bottomLeft) return topLeft; // they all agree, anyway.
-                //if (match(MapItem.Empty, MapItem.Empty, MapItem.Empty, MapItem.Empty)) return 
-                return closest;
-            }
         }
 
         public int Width { get; set; }

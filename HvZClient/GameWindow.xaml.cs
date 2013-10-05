@@ -42,22 +42,22 @@ namespace HvZClient {
         private GameWindow(string name, string role, Map m) {
             InitializeComponent();
             Title = name + " - " + role;
-            ground.Background = ClientWindow.ImageFromMap(m);
+            //ground.Background = ClientWindow.ImageFromMap(m);
         }
 
         public GameWindow(string name, string role, Map m, IZombieAI ai) : this(name, role, m) {
             game = new ClientGame(Dispatcher, name, role, m, ai);
-            game.OnMapChange += (_, __) => placeObjects();
+            game.OnMapChange += (_, __) => PlaceObjects(GUIMap, game.Map);
         }
 
         public GameWindow(string name, string role, Map m, IHumanAI ai) : this(name, role, m) {
             game = new ClientGame(Dispatcher, name, role, m, ai);
-            game.OnMapChange += (_, __) => placeObjects();
+            game.OnMapChange += (_, __) => PlaceObjects(GUIMap, game.Map);
         }
 
-        private void placeWalker(string texture, IWalkerExtended walker) {
+        private static void placeWalker(string texture, IWalkerExtended walker, Canvas c) {
             var e = new Ellipse() { Width = walker.Radius*2, Height = walker.Radius*2 };
-            e.Fill = (ImageBrush)Resources[texture];
+            e.Fill = (ImageBrush)Application.Current.Resources[texture];
             //e.Stroke = Brushes.Gray;
             //e.StrokeThickness = 0.05;
             // this is the direction arc, which shows which way the player is facing.
@@ -112,37 +112,37 @@ namespace HvZClient {
                 }
                 
             };
-            GUIMap.Children.Add(e);
-            GUIMap.Children.Add(dirpath);
-            GUIMap.Children.Add(liferec);
+            c.Children.Add(e);
+            c.Children.Add(dirpath);
+            c.Children.Add(liferec);
         }
 
-        private void placeObstacle(IVisual item) {
+        private static void placeObstacle(IVisual item, Canvas c) {
             var e = new Ellipse() { Width = item.Radius * 2, Height = item.Radius * 2 };
-            e.Fill = (ImageBrush)Resources[item.Texture];
+            e.Fill = (ImageBrush)Application.Current.Resources[item.Texture];
             e.Opacity = 0.65;
             var translate = new TranslateTransform(item.Position.X - item.Radius, item.Position.Y - item.Radius);
             e.RenderTransform = translate;
-            GUIMap.Children.Add(e);
+            c.Children.Add(e);
         }
 
-        private void placeResupply(ResupplyPoint item) {
+        private static void placeResupply(ResupplyPoint item, Canvas c) {
             var e = new Ellipse() { Width = item.Radius * 2, Height = item.Radius * 2 };
-            e.Fill = (ImageBrush)Resources["supply"];
+            e.Fill = (ImageBrush)Application.Current.Resources["supply"];
             e.Stroke = Brushes.Black;
             e.StrokeThickness = 0.1;
             var translate = new TranslateTransform(item.Position.X - item.Radius, item.Position.Y - item.Radius);
             e.RenderTransform = translate;
-            GUIMap.Children.Add(e);
+            c.Children.Add(e);
         }
 
-        private void placeObjects() {
-            GUIMap.Children.Clear();
-            GUIMap.RenderTransform = new ScaleTransform(GUIMap.ActualWidth / game.Width, GUIMap.ActualHeight / game.Height);
-            foreach (var o in game.Map.Obstacles) placeObstacle(o);
-            foreach (var s in game.Map.ResupplyPoints) placeResupply(s);
-            foreach (var h in game.Map.Humans) placeWalker("human", h);
-            foreach (var z in game.Map.Zombies) placeWalker("zombie", z);
+        internal static void PlaceObjects(Canvas c, Map m) {
+            c.Children.Clear();
+            c.RenderTransform = new ScaleTransform(c.ActualWidth / m.Width, c.ActualHeight / m.Height);
+            foreach (var o in m.Obstacles) placeObstacle(o, c);
+            foreach (var s in m.ResupplyPoints) placeResupply(s, c);
+            foreach (var h in m.Humans) placeWalker("human", h, c);
+            foreach (var z in m.Zombies) placeWalker("zombie", z, c);
         }
 
         private void Window_Resized(object sender, SizeChangedEventArgs e) {
@@ -151,7 +151,7 @@ namespace HvZClient {
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
             var messages = new[] {
-                "I wouldn't leave if I were you.  Real work is much worse.",
+                "Are you sure you want to leave?  Real work is much worse.",
                 "You're trying to say you like TV better than me, right?",
                 "Don't leave - there's food around that corner!",
                 "You know, next time you come in here, I'm going to get you.",
@@ -171,7 +171,7 @@ namespace HvZClient {
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e) {
-            placeObjects();
+            PlaceObjects(GUIMap, game.Map);
         }
     }
 }
