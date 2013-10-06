@@ -74,18 +74,15 @@ type internal Command =
 | TakeFood of uint32 * uint32 // who-takes-it * taken-from-where
 | TakeSocks of uint32 * uint32 // who-takes-it * taken-from-where
 | Throw of uint32 * float // walkerId * heading
-| ZombieJoin of string * string // gameId * name
-| HumanJoin of string * string // gameId * name
-| Hello of uint32 // playerId
-| Create of string // mapdata
-| ListStart
-| CreateOK of string // gameId
-| Game of string // gameId
-| ListEnd
-| Human of uint32 * string // walkerId * name /// also functions as JoinOK
-| Zombie of uint32 * string // walkerId * name /// also functions as JoinOK
+| ZombieJoin of string * string * string // b64gameId * correlator-guid * name
+| HumanJoin of string * string * string // b64gameId * correlator-guid * name
+| Create of string * string // game-name * mapdata
+| Games of string[] // b64gameId[]
+| Human of uint32 * string * string // walkerId * correlator-guid * name /// also functions as JoinOK
+| Zombie of uint32 * string * string // walkerId * correlator-guid * name /// also functions as JoinOK
 | Move
-| No of string // reason for rejection
+| GameNo of string // reason for rejection (only sent before joining has occurred, OR for events that affect every player)
+| No of uint32 * string // walkerId * reason for rejection
 with
    override __.ToString () =
       match __ with
@@ -96,10 +93,12 @@ with
       | TakeFood _ -> "take some food from a resupply-point"
       | TakeSocks _ -> "take some socks from a resupply-point"
       | Throw _ -> "throw some socks"
-      | ZombieJoin (_,name) -> sprintf "join the game as a zombie named %s" name
-      | HumanJoin (_,name) -> sprintf "join the game as a human named %s" name
+      | ZombieJoin (_,guid,name) | Zombie (_,guid,name) -> sprintf "join the game as a zombie named %s (guid=%s)" name guid
+      | HumanJoin (_,guid,name) | Human (_,guid,name) -> sprintf "join the game as a human named %s (guid=%s)" name guid
       | Create _ -> "create a game"
-      | _ -> sprintf "%O" __
+      | GameNo reason | No (_, reason) -> reason
+      | Games xs -> sprintf "here is a list of %d different games" xs.Length
+      | Move -> "make a move in the game"
 
 type internal ICommandInterpreter =
    abstract member Forward : walkerId:uint32 -> distance:float -> unit
@@ -109,16 +108,11 @@ type internal ICommandInterpreter =
    abstract member TakeFood : walkerId:uint32 -> resupplyId:uint32 -> unit // who-takes-it -> taken-from-where
    abstract member TakeSocks : walkerId:uint32 -> resupplyId:uint32 -> unit // who-takes-it -> taken-from-where
    abstract member Throw : walkerId:uint32 -> heading:float -> unit // walkerId -> heading
-   abstract member Hello : walkerId:uint32 -> unit // playerId
-   abstract member Create : mapdata:string -> unit // mapdata
-   abstract member ListStart : unit -> unit
-   abstract member CreateOK : gameId:string -> unit // gameId
-   abstract member Game : gameId:string -> unit // gameId
-   abstract member ListEnd : unit -> unit
-   abstract member Human : walkerId:uint32 -> name:string -> unit // walkerId -> name /// also functions as JoinOK
-   abstract member Zombie : walkerId:uint32 -> name:string -> unit // walkerId -> name /// also functions as JoinOK
+   abstract member Human : walkerId:uint32 -> guid:string -> name:string -> unit // walkerId -> name /// also functions as JoinOK
+   abstract member Zombie : walkerId:uint32 -> guid:string -> name:string -> unit // walkerId -> name /// also functions as JoinOK
    abstract member Move : unit -> unit
-   abstract member No : reason:string -> unit // reason for rejection
+   abstract member GameNo : reason:string -> unit // reason for rejection
+   abstract member No : walkerId:uint32 -> reason:string -> unit // walkerId -> reason for rejection
 
 [<Extension>]
 type internal Command with
@@ -130,17 +124,12 @@ type internal Command with
       | TakeFood (wId, fromWhere) -> x.TakeFood wId fromWhere
       | TakeSocks (wId, fromWhere) -> x.TakeSocks wId fromWhere
       | Throw (wId, heading) -> x.Throw wId heading
-      | Hello playerId -> x.Hello playerId
-      | Create mapdata -> x.Create mapdata
-      | CreateOK gameId -> x.CreateOK gameId
-      | Game gameId -> x.Game gameId
       | Bite (wId, target) -> x.Bite wId target
-      | ListStart -> x.ListStart ()
-      | ListEnd -> x.ListEnd ()
-      | Human (walkerId, name) -> x.Human walkerId name
-      | Zombie (walkerId, name) -> x.Zombie walkerId name
+      | Human (walkerId, guid, name) -> x.Human walkerId guid name
+      | Zombie (walkerId, guid, name) -> x.Zombie walkerId guid name
       | Move -> x.Move ()
-      | No why -> x.No why
+      | GameNo why -> x.GameNo why
+      | No (walkerId, why) -> x.No walkerId why
       | _ -> printfn "I shouldn't be receiving %A commands..." cmd // ignore?
 
 type internal ClientStatus =
@@ -185,6 +174,23 @@ module internal Internal =
    open System.Text
    open System.Text.RegularExpressions
 
+   let internal nextStringId =
+      let s = Seq.initInfinite (fun _ -> Array.sub (System.Guid.NewGuid().ToByteArray()) 0 15 |> System.Convert.ToBase64String)
+      let iter = s.GetEnumerator()
+      fun () ->
+         lock (s) (fun () ->
+            ignore <| iter.MoveNext()
+            iter.Current
+         )
+
+   let internal nextUIntId =
+      let v = ref 0
+      fun () ->
+         System.Threading.Interlocked.Increment v |> uint32
+
+   let internal toBase64 (s : string) = System.Text.Encoding.UTF8.GetBytes s |> System.Convert.ToBase64String
+   let internal fromBase64 = System.Convert.FromBase64String >> System.Text.Encoding.UTF8.GetString
+
    let internal toProtocol cmd =
       let s =
          match cmd with
@@ -195,22 +201,24 @@ module internal Internal =
          | TakeFood (wId, fromWhere) -> sprintf "takefood %d %d" wId fromWhere
          | TakeSocks (wId, fromWhere) -> sprintf "takesocks %d %d" wId fromWhere
          | Throw (wId, heading) -> sprintf "throw %d %.2f" wId heading
-         | ZombieJoin (gameId, name) ->
+         | ZombieJoin (gameId, guid, name) ->
             if name = null || name.Length = 0 then failwith "No name supplied for this Zombie"
-            else sprintf "zjoin %s %s" gameId name
-         | HumanJoin (gameId, name) ->
+            if name.Length > 500 then failwith "Name of Zombie is too long"
+            sprintf "zjoin %s %s %s" (toBase64 gameId) guid name
+         | HumanJoin (gameId, guid, name) ->
             if name = null || name.Length = 0 then failwith "No name supplied for this Human"
-            else sprintf "hjoin %s %s" gameId name
-         | Hello playerId -> sprintf "hello %d" playerId
-         | Create mapdata -> sprintf "create %s" mapdata
-         | CreateOK gameId -> sprintf "createok %s" gameId
-         | Game gameId -> sprintf "game %s" gameId
-         | ListStart -> sprintf "begin"
-         | ListEnd -> sprintf "end"
-         | Human (walkerId, name) -> sprintf "human %d %s" walkerId name
-         | Zombie (walkerId, name) -> sprintf "zombie %d %s" walkerId name
+            if name.Length > 500 then failwith "Name of Human is too long"
+            sprintf "hjoin %s %s %s" (toBase64 gameId) guid name
+         | Create (gameName, mapData) -> sprintf "create %s %s" (toBase64 gameName) mapData
+         | Games gameIds ->
+            let s = gameIds |> Array.map toBase64 |> String.concat " "
+            sprintf "game %s" s
+         | Human (walkerId, guid, name) -> sprintf "human %d %s %s" walkerId guid name
+         | Zombie (walkerId, guid, name) -> sprintf "zombie %d %s %s" walkerId guid name
          | Move -> "move"
-         | No why -> sprintf "no %s" why // reason for rejection
+         | GameNo why -> sprintf "gameno %s" why
+         | No (walkerId, why) -> sprintf "no %d %s" walkerId why // reason for rejection
+      let msgId = nextUIntId ()
       let byteCount = Encoding.UTF8.GetByteCount s
       if byteCount > 99999 then
          failwith "Sorry, the data you're sending the server is too large.  I won't send it."
@@ -229,18 +237,15 @@ module internal Internal =
          makeMatcher @"^takefood (\d+) (\d+)$" (fun m -> TakeFood(uint32 m.[1], uint32 m.[2]))
          makeMatcher @"^takesocks (\d+) (\d+)$" (fun m -> TakeSocks(uint32 m.[1], uint32 m.[2]))
          makeMatcher @"^throw (\d+) (\d+\.\d{2})$" (fun m -> Throw(uint32 m.[1], float m.[2]))
-         makeMatcher @"^zjoin (.{20}) (.+)$" (fun m -> ZombieJoin(m.[1], m.[2]))
-         makeMatcher @"^hjoin (.{20}) (.+)$" (fun m -> HumanJoin(m.[1], m.[2]))
-         makeMatcher @"^hello (\d+)$" (fun m -> Hello(uint32 m.[1]))
-         makeMatcher @"^create (.+)$" (fun m -> Create(m.[1]))
-         makeMatcher @"^createok (.{20})$" (fun m -> CreateOK(m.[1]))
-         makeMatcher @"^game (.{20})$" (fun m -> Game(m.[1]))
-         makeMatcher @"^begin$" (fun _ -> ListStart)
-         makeMatcher @"^end$" (fun _ -> ListEnd)
-         makeMatcher @"^human (\d+) (.+)$" (fun m -> Human(uint32 m.[1], m.[2]))
-         makeMatcher @"^zombie (\d+) (.+)$" (fun m -> Zombie(uint32 m.[1], m.[2]))
+         makeMatcher @"^zjoin ([^ ]{1,100}) ([^ ]+) (.{1,500})$" (fun m -> ZombieJoin(fromBase64 m.[1], m.[2], m.[3]))
+         makeMatcher @"^hjoin ([^ ]{1,100}) ([^ ]+) (.{1,500})$" (fun m -> HumanJoin(fromBase64 m.[1], m.[2], m.[3]))
+         makeMatcher @"^create ([^ ]{1,100}) (.{1,99500})$" (fun m -> Create(fromBase64 m.[1], m.[2]))
+         makeMatcher @"^game (.+)$" (fun m -> Games(m.[1].Split(' ') |> Array.map fromBase64))
+         makeMatcher @"^human (\d+) ([^ ]+) (.{1,1000})$" (fun m -> Human(uint32 m.[1], m.[2], m.[3]))
+         makeMatcher @"^zombie (\d+) ([^ ]+) (.{1,1000})$" (fun m -> Zombie(uint32 m.[1], m.[2], m.[3]))
          makeMatcher @"^move$" (fun _ -> Move)
-         makeMatcher @"^no (.+)$" (fun m -> No(m.[1]))
+         makeMatcher @"^gameno (.+)$" (fun m -> GameNo(m.[1]))
+         makeMatcher @"^no (\d+) (.+)$" (fun m -> No(uint32 m.[1], m.[2]))
       |]
       fun txt ->
          matchers |> Array.tryPick (fun (re, f) ->
@@ -250,18 +255,15 @@ module internal Internal =
                   let args = m.Groups |> Seq.cast<Group> |> Seq.map (fun x -> x.Value) |> Seq.toArray
                   Some (f args)
                with
-               | _ -> None // hmm, nope.
+               | e ->
+                  printfn "Exception while decoding message: %A" e
+                  None // hmm, nope.
             else None
          )
 
    let internal writeTo (s : System.IO.Stream) c =
       let arr = toProtocol c
       s.Write (arr, 0, arr.Length)
-
-   let private nextPlayerId =
-      let v = ref 0
-      fun () ->
-         System.Threading.Interlocked.Increment v |> uint32
 
    type private ParseCommandResult =
    | Corrupt
@@ -337,22 +339,19 @@ module internal Internal =
    let internal serverHandleTcp (client : TcpClient) handleRequest =
       let stream = client.GetStream()
       let clientId = string client.Client.RemoteEndPoint
-      let playerId = nextPlayerId ()
-      Hello playerId |> writeTo stream
-      let status = ref OutOfGame
+      let connId = nextStringId ()
       let onClosed = function
          | CorruptStream -> printfn "Corrupt stream from %s quitting." clientId
          | StreamClosed -> printfn "Connection to %s closed" clientId
       let onCommandReceived cmd stream =
-         status := handleRequest playerId !status cmd (fun x -> writeTo stream x)
+         handleRequest connId cmd (fun x -> writeTo stream x)
       let onAbnormalCommand s stream =
-         No (sprintf "I couldn't understand the command you sent (%s)" s) |> writeTo stream
+         GameNo (sprintf "I couldn't understand a command that an AI on this computer sent (%s)" s) |> writeTo stream
       connection client onClosed onCommandReceived onAbnormalCommand
 
    let internal clientHandleTcp (client : TcpClient) onClosed onCommandReceived =
       let stream = client.GetStream()
-      let playerId = nextPlayerId ()
-      let playerId = ref None
+      let connId = nextStringId ()
       let onClosed = function
          | CorruptStream -> failwith "There was an error on the server - ask your lecturer to look into it.  Sorry."
          | StreamClosed -> onClosed () // Goodbye, quite naturally.
@@ -365,29 +364,24 @@ namespace HvZ.Common
 open HvZ.Networking
 open System.Net.Sockets
 
-type internal CommandEventArgs(player : uint32, command : Command) =
+type internal CommandEventArgs(command : Command) =
    inherit System.EventArgs()
-   member __.Player with get () = player
    member __.Command with get () = command
        
 type internal HvZConnection() as this =
-   let mutable status = OutOfGame
-   let mutable playerId = None
    let dataEvent = new Event<System.EventHandler<CommandEventArgs>,CommandEventArgs>()
    let closedEvent = new Event<_>()
    let mutable conn : TcpClient option = None
    let onClosed () = closedEvent.Trigger ()
-   let onCommandReceived cmd stream =
-      match status, playerId, cmd with
-      | _, None, Hello pId -> playerId <- Some pId
-      | _, Some _, Hello _ -> printfn "Why is the server sending me multiple hello-messages??"
-      | _, None, _ -> printfn "Server shouldn't be sending me anything... very weird!"
-      | _, Some pIayerId, cmd ->
-         dataEvent.Trigger (this, new CommandEventArgs(Option.get playerId, cmd))
+   let onCommandReceived cmd stream = 
+      match cmd with
+      | Forward _ | Turn _ | Move -> ()
+      | _ -> eprintfn "Server said: %A" cmd
+      dataEvent.Trigger (this, new CommandEventArgs(cmd))
    let send () =
       match conn with
       | Some conn ->
-         let stream = conn.GetStream()
+         let stream = conn.GetStream() 
          writeTo stream
       | None -> failwith "You can't send messages to a server until you're connected to it."
    member __.ConnectToServer server =
@@ -395,7 +389,6 @@ type internal HvZConnection() as this =
       conn <- Some client
       clientHandleTcp client onClosed onCommandReceived
    member __.Send msg = send () msg
-   member __.IsInGame with get () = match status with OutOfGame -> false | InGame _ -> true
    [<CLIEvent>]
    member __.OnCommandReceived = dataEvent.Publish
    [<CLIEvent>]
@@ -403,9 +396,9 @@ type internal HvZConnection() as this =
    interface System.IDisposable with
       member __.Dispose () =
          match conn with
-         | Some conn -> (conn :> System.IDisposable).Dispose ()
+         | Some conn ->
+            (conn :> System.IDisposable).Dispose ()
          | None -> ()
 
    (* Here be members which hide the nasty details of Command interop *)
    member __.CreateGame mapData = send () (Create mapData)
-   member __.PlayerId with get () = Option.get playerId

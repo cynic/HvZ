@@ -6,10 +6,6 @@ using System.Text;
 using HvZ.AI;
 
 namespace HvZ.Common {
-    enum Role {
-        Invalid, Human, Zombie
-    }
-
     class FailureEventArgs : EventArgs {
         public FailureEventArgs(string reason) {
             Reason = reason;
@@ -23,34 +19,21 @@ namespace HvZ.Common {
      * joining a game, the client has no say.
      */
 
-    class ClientGame : ICommandInterpreter, INotifyPropertyChanged, IHumanPlayer, IZombiePlayer {
+    class ClientGame : ICommandInterpreter, INotifyPropertyChanged, IDisposable {
         private HvZConnection connection = new HvZConnection();
-        private string gameId = null;
 
-        Role role = Role.Invalid;
-        string playerName;
-
-        Map map;
+        readonly Map map;
         public Map Map {
             get { return map; }
-            internal set {
-                map = value;
-                if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Map"));
-            }
         }
         Action requestDecision;
-        Action<string> noAction;
-        Game world;
+        Action<uint, string> noAction;
+        Action<uint, string> playerAdded;
+        readonly Game world;
+        readonly string gameName;
 
         public int Width { get { return map.Width; } }
         public int Height { get { return map.Height; } }
-
-        public bool isInBounds(ITakeSpace item) {
-            return (item.Position.X - item.Radius) >= 0 &&
-                (item.Position.Y - item.Radius) >= 0 &&
-                (item.Position.X + item.Radius) <= Width &&
-                (item.Position.Y + item.Radius) <= Height;
-        }
 
         System.Windows.Threading.Dispatcher dispatcher; // stupid, stupid, stupid WPF.  *sigh*.
 
@@ -58,61 +41,59 @@ namespace HvZ.Common {
         /// Create a new game, using the given map.
         /// </summary>
         /// <param name="map"></param>
-        private ClientGame(System.Windows.Threading.Dispatcher dispatcher, string name, string role, Map map) {
-            connection.OnCommandReceived += connection_OnGameCommand;
-            switch (role) {
-                case "Human": this.role = Role.Human; break;
-                case "Zombie": this.role = Role.Zombie; break;
-                default: throw new Exception("Not a human or a zombie; edit me to tell me what this is.");
-            }
-            this.dispatcher = dispatcher;
-            playerName = name;
-            this.Map = map;
+        public ClientGame(string gameName, Map map) {
+            dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+            this.map = map;
+            this.gameName = gameName;
             world = new Game(map);
             world.OnPlayerAdded += (_, __) => { if (OnMapChange != null) OnMapChange(this, EventArgs.Empty); };
             world.OnPlayerRemoved += (_, __) => { if (OnMapChange != null) OnMapChange(this, EventArgs.Empty); };
             connection.ConnectToServer("localhost");
-            connection.Send(Command.NewCreate(map.RawMapData));
+            connection.Send(Command.NewCreate(gameName, map.RawMapData));
+            // Setup complete.  Now receive the rest of the commands for the game.
+            connection.OnCommandReceived += connection_OnGameCommand;
         }
 
-        public ClientGame(System.Windows.Threading.Dispatcher dispatcher, string name, string role, Map map, AI.IHumanAI humanAI)
-            : this(dispatcher, name, role, map) {
-                requestDecision = () => humanAI.DoSomething(this, new List<IWalker>(map.Zombies), new List<IWalker>(map.Humans.Where(x => x.Id != connection.PlayerId)), new List<ITakeSpace>(map.Obstacles), new List<ResupplyPoint>(map.ResupplyPoints));
-                noAction = humanAI.Failure;
-                world.OnPlayerCollision += (_, e) => { if (e.PlayerId == connection.PlayerId) humanAI.Collision(this, e.CollidedWith); };
+        public void AddZombie(IZombieAI ai) {
+            var guid = Guid.NewGuid().ToString();
+            Console.WriteLine("Using zombie guid={0}", guid);
+            playerAdded += new Action<uint,string>((playerId, corr) => {
+                if (corr != guid) return; // not the zombie we're looking for!
+                var player = new ZombiePlayer(connection, playerId, map);
+                var askAI = new Action(() => {
+                    if (map.walkers.ContainsKey(playerId)) {
+                        ai.DoSomething(player, new List<IWalker>(map.Zombies.Where(x => x.Id != playerId)), new List<IWalker>(map.Humans), new List<ITakeSpace>(map.Obstacles), new List<ResupplyPoint>(map.ResupplyPoints));
+                    }
+                });
+                requestDecision += askAI;
+                world.OnPlayerRemoved += (_, args) => { if (args.PlayerId == playerId) requestDecision -= askAI; };
+                noAction += (id, s) => { if (id == playerId) ai.Failure(s); };
+                world.OnPlayerCollision += (_, e) => { if (e.PlayerId == playerId) ai.Collision(player, e.CollidedWith); };
+            });
+            connection.Send(Command.NewZombieJoin(gameName, guid, ai.Name));
         }
 
-        public ClientGame(System.Windows.Threading.Dispatcher dispatcher, string name, string role, Map map, AI.IZombieAI zombieAI)
-            : this(dispatcher, name, role, map) {
-            requestDecision = () => zombieAI.DoSomething(this, new List<IWalker>(map.Zombies.Where(x => x.Id != connection.PlayerId)), new List<IWalker>(map.Humans), new List<ITakeSpace>(map.Obstacles), new List<ResupplyPoint>(map.ResupplyPoints));
-            noAction = zombieAI.Failure;
-            world.OnPlayerCollision += (_, e) => { if (e.PlayerId == connection.PlayerId) zombieAI.Collision(this, e.CollidedWith); };
+        public void AddHuman(IHumanAI ai) {
+            var guid = Guid.NewGuid().ToString();
+            Console.WriteLine("Using human guid={0}", guid);
+            playerAdded += new Action<uint, string>((playerId, corr) => {
+                if (corr != guid) return; // not the human we're looking for!
+                var player = new HumanPlayer(connection, playerId, map);
+                var askAI = new Action(() => {
+                    if (map.walkers.ContainsKey(playerId)) {
+                        ai.DoSomething(player, new List<IWalker>(map.Zombies), new List<IWalker>(map.Humans.Where(x => x.Id != playerId)), new List<ITakeSpace>(map.Obstacles), new List<ResupplyPoint>(map.ResupplyPoints));
+                    }
+                });
+                requestDecision += askAI;
+                world.OnPlayerRemoved += (_, args) => { if (args.PlayerId == playerId) requestDecision -= askAI; };
+                noAction += (id, s) => { if (id == playerId) ai.Failure(s); };
+                world.OnPlayerCollision += (_, e) => { if (e.PlayerId == playerId) ai.Collision(player, e.CollidedWith); };
+            });
+            connection.Send(Command.NewHumanJoin(gameName, guid, ai.Name));
         }
 
         private void connection_OnGameCommand(object sender, CommandEventArgs e) {
             dispatcher.Invoke(new Action(() => Command.Dispatch(e.Command, this)));
-        }
-
-        public void JoinGameAsHuman(string gameId, string name) {
-            this.gameId = gameId;
-            connection.Send(Command.NewHumanJoin(gameId, name));
-        }
-
-        public void JoinGameAsZombie(string gameId, string name) {
-            this.gameId = gameId;
-            connection.Send(Command.NewZombieJoin(gameId, name));
-        }
-
-        void ICommandInterpreter.Create(string mapdata) {
-            throw new NotImplementedException();
-        }
-
-        void ICommandInterpreter.CreateOK(string gameId) {
-            this.gameId = gameId;
-            switch (role) {
-                case Role.Human: JoinGameAsHuman(gameId, playerName); break;
-                case Role.Zombie: JoinGameAsZombie(gameId, playerName); break;
-            }
         }
 
         void ICommandInterpreter.Eat(uint walkerId) {
@@ -127,16 +108,9 @@ namespace HvZ.Common {
             world.Forward(walkerId, distance);
         }
 
-        void ICommandInterpreter.Game(string gameId) {
-            throw new NotImplementedException();
-        }
-
-        void ICommandInterpreter.Hello(uint walkerId) {
-            throw new NotImplementedException();
-        }
-
-        void ICommandInterpreter.Human(uint walkerId, string name) {
+        void ICommandInterpreter.Human(uint walkerId, string guid, string name) {
             map.AddHuman(walkerId, name);
+            playerAdded(walkerId, guid);
             if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
         }
 
@@ -144,25 +118,15 @@ namespace HvZ.Common {
             world.Turn(walkerId, degrees);
         }
 
-        void ICommandInterpreter.ListEnd() {
-            throw new NotImplementedException();
-        }
-
-        void ICommandInterpreter.ListStart() {
-            throw new NotImplementedException();
-        }
-
         void ICommandInterpreter.Move() {
             // first, do the moves.
             world.Update();
-            // If the player still exists, then then ask the AI to make decisions.
-            if (map.walkers.ContainsKey(connection.PlayerId))
-                requestDecision();
-        }
+            // Ask the AIs to make decisions.
+            requestDecision();
+       }
 
-        void ICommandInterpreter.No(string reason) {
-            //throw new Exception(reason);
-            noAction(reason);
+        void ICommandInterpreter.GameNo(string reason) {
+            throw new Exception(reason);
         }
 
         void ICommandInterpreter.TakeFood(uint walkerId, uint resupplyId) {
@@ -177,77 +141,21 @@ namespace HvZ.Common {
             throw new NotImplementedException();
         }
 
-        void ICommandInterpreter.Zombie(uint walkerId, string name) {
+        void ICommandInterpreter.Zombie(uint walkerId, string guid, string name) {
             map.AddZombie(walkerId, name);
+            playerAdded(walkerId, guid);
             if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
         public event EventHandler OnMapChange;
 
-        void IHumanPlayer.Eat() {
-            connection.Send(Command.NewEat(connection.PlayerId));
+        void ICommandInterpreter.No(uint walkerId, string reason) {
+            noAction(walkerId, reason);
         }
 
-        void IHumanPlayer.GoForward(double distance) {
-            connection.Send(Command.NewForward(connection.PlayerId, distance));
-        }
-
-        void IHumanPlayer.TakeFoodFrom(IIdentified place) {
-            connection.Send(Command.NewTakeFood(connection.PlayerId, place.Id));
-        }
-
-        void IHumanPlayer.TakeSocksFrom(IIdentified place) {
-            connection.Send(Command.NewTakeSocks(connection.PlayerId, place.Id));
-        }
-
-        void IHumanPlayer.Throw(double heading) {
-            connection.Send(Command.NewThrow(connection.PlayerId, heading));
-        }
-
-        void IHumanPlayer.Turn(double degrees) {
-            connection.Send(Command.NewTurn(connection.PlayerId, degrees));
-        }
-
-        void IZombiePlayer.Eat(IIdentified target) {
-            connection.Send(Command.NewBite(connection.PlayerId, target.Id));
-        }
-
-        void IZombiePlayer.GoForward(double distance) {
-            connection.Send(Command.NewForward(connection.PlayerId, distance));
-        }
-
-        void IZombiePlayer.Turn(double degrees) {
-            connection.Send(Command.NewTurn(connection.PlayerId, degrees));
-        }
-
-        Position ITakeSpace.Position { get { return Map.walkers[connection.PlayerId].Position; } }
-        double ITakeSpace.Radius { get { return Map.walkers[connection.PlayerId].Radius; } }
-        double IWalker.Heading { get { return Map.walkers[connection.PlayerId].Heading; } }
-        int IWalker.Lifespan { get { return Map.walkers[connection.PlayerId].Lifespan; } }
-        string IWalker.Name { get { return Map.walkers[connection.PlayerId].Name; } }
-
-        double IHumanPlayer.MapHeight { get { return Map.Height; } }
-        double IHumanPlayer.MapWidth { get { return Map.Width; } }
-        double IZombiePlayer.MapHeight { get { return Map.Height; } }
-        double IZombiePlayer.MapWidth { get { return Map.Width; } }
-
-        int IWalker.MaximumLifespan { get { return Map.walkers[connection.PlayerId].MaximumLifespan; } }
-
-
-        SupplyItem[] IHumanPlayer.Inventory {
-            get { return Map.humans[connection.PlayerId].Items; }
-        }
-
-        public MoveState Movement {
-            get { return Map.walkers[connection.PlayerId].Movement; }
-        }
-
-        public override string ToString() {
-            if (Microsoft.FSharp.Core.FSharpOption<uint>.get_IsNone(connection.playerId)) {
-                return base.ToString();
-            }
-            return map.walkers[connection.PlayerId].ToString();
+        void IDisposable.Dispose() {
+            ((IDisposable)connection).Dispose();
         }
     }
 
@@ -356,6 +264,7 @@ namespace HvZ.Common {
 
         // eating takes up a turn.
         public string Eat(uint walkerId) {
+            if (map.zombies.ContainsKey(walkerId)) return "zombies don't eat food";
             if (!map.humans.ContainsKey(walkerId)) return "your human has been removed from the game";
             var h = map.humans[walkerId];
             bool eaten = false;
@@ -379,6 +288,7 @@ namespace HvZ.Common {
         private string Take(uint walkerId, uint fromWhere, SupplyItem what) {
             var pt = map.ResupplyPoints.FirstOrDefault(x => x.Id == fromWhere);
             if (pt == null) return "the resupply point you've referred to doesn't exist";
+            if (map.zombies.ContainsKey(walkerId)) return "zombies can't use resupply points";
             if (!map.humans.ContainsKey(walkerId)) return "your human has been removed from the game"; // walker isn't a human, or doesn't exist.
             var w = map.humans[walkerId];
             if (!w.IsCloseEnoughToUse(pt)) return "you're still too far away from the resupply point to interact with it"; // too far away to interact with this.

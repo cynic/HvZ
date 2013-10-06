@@ -22,7 +22,7 @@ namespace HvZ {
                 foreach (var s in spawners) yield return s;
             }
         }
-        public IEnumerable<ResupplyPoint> ResupplyPoints { get { return resupply; } }
+        internal IEnumerable<ResupplyPoint> ResupplyPoints { get { return resupply; } }
 
         internal event EventHandler<CollisionEventArgs> OnPlayerCollision;
 
@@ -38,6 +38,16 @@ namespace HvZ {
 
         internal bool IsZombie(uint id) {
             return zombies.ContainsKey(id);
+        }
+
+        internal void CloseSlot() {
+            if (spawners.Count == 0) return; // nothing to do.
+            // WARNING: because of the next line, DO NOT call this while the game is running.
+            // You will break synchronisation between clients, and then you're screwed...
+            var spawner = spawners.PickOne();
+            spawners.Remove(spawner);
+            // replace with an obstacle instead.
+            obstacles.Add(new Obstacle(spawner.Position.X, spawner.Position.Y, spawner.Radius));
         }
 
         internal void SetHeading(uint id, double newHeading) {
@@ -94,6 +104,8 @@ namespace HvZ {
 
         internal bool AddHuman(uint id, string name) {
             if (spawners.Count == 0) return false; // too many already in-game.
+            //Console.Error.WriteLine("Asked to put in {0}={1}", id, name);
+            //Console.Error.WriteLine((new System.Diagnostics.StackTrace()).ToString());
             var spawnIdx = Math.Abs((int)id) % spawners.Count;
             var spawner = spawners[spawnIdx];
             var h = new Human(id, name, this, spawner.Position.X, spawner.Position.Y, 0);

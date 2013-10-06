@@ -84,6 +84,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="GameAPI.cs" />
     <Compile Include="GameWindow.xaml.cs">
       <DependentUpon>GameWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -151,6 +152,7 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\zombox.png" />
+    <Resource Include="Images\ground.png" />
     <Content Include="Maps\Plentiful.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -172,7 +174,9 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy /Y "$(TargetPath)" "$(ProjectDir)..\libs\"
-del "$(SolutionDir)libs\*.pdb"</PostBuildEvent>
+xcopy /Y "$(TargetDir)$(TargetName).pdb" "$(ProjectDir)..\libs\"
+cd "$(SolutionDir)"
+ilmerge /out:HvZ.dll libs\HvZNetworking.dll libs\HvZCommon.dll libs\HvZ.exe</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

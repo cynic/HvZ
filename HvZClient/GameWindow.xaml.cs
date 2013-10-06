@@ -24,24 +24,15 @@ namespace HvZ.Client {
     }
     /// <summary>Interaction logic for MainWindow.xaml</summary>
     partial class GameWindow : Window {
-        ClientGame game;
+        internal ClientGame game;
         // WPF uses retained-mode graphics, not immediate-mode.  See http://msdn.microsoft.com/en-us/library/ms748373.aspx#visual_rendering_behavior .  No need to simulate immediate-mode.
         // A better plan might be to do most of this stuff in XAML, using DataTemplates http://msdn.microsoft.com/en-us/library/ms742521.aspx
         // Let's see if I can get away with implementing INotifyPropertyChanged.  Necessary, but such boilerplate in C#...
 
-        private GameWindow(string name, string role, Map m) {
+        public GameWindow() {
             InitializeComponent();
-            Title = name + " - " + role;
-            //ground.Background = ClientWindow.ImageFromMap(m);
-        }
-
-        public GameWindow(string name, string role, Map m, IZombieAI ai) : this(name, role, m) {
-            game = new ClientGame(Dispatcher, name, role, m, ai);
-            game.OnMapChange += (_, __) => PlaceObjects(GUIMap, game.Map);
-        }
-
-        public GameWindow(string name, string role, Map m, IHumanAI ai) : this(name, role, m) {
-            game = new ClientGame(Dispatcher, name, role, m, ai);
+            Title = (string)Application.Current.Resources["gameName"];
+            game = (ClientGame)Application.Current.Resources["clientGame"];
             game.OnMapChange += (_, __) => PlaceObjects(GUIMap, game.Map);
         }
 
@@ -110,7 +101,7 @@ namespace HvZ.Client {
         private static void placeObstacle(IVisual item, Canvas c) {
             var e = new Ellipse() { Width = item.Radius * 2, Height = item.Radius * 2 };
             e.Fill = (ImageBrush)Application.Current.Resources[item.Texture];
-            e.Opacity = 0.65;
+            //e.Opacity = 0.65;
             var translate = new TranslateTransform(item.Position.X - item.Radius, item.Position.Y - item.Radius);
             e.RenderTransform = translate;
             c.Children.Add(e);
@@ -150,8 +141,8 @@ namespace HvZ.Client {
                 "Just leave.  When you come back, I'll be waiting with a bat."
             };
             if (MessageBox.Show(messages.PickOne(), "Leave Game", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes) {
-                //Game.theGame.EndGame();
-                Owner.Focus();
+                ((IDisposable)game).Dispose();
+                Application.Current.Shutdown(0);
             } else {
                 e.Cancel = true;
             }

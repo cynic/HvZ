@@ -5,19 +5,24 @@ using System.Text;
 using HvZ.Common;
 
 namespace HvZ.AI {
-    public interface IHumanAI {
+    public interface AI {
         void Failure(string reason);
+        string Name { get; }
+    }
+
+    public interface IHumanAI : AI {
         void Collision(IHumanPlayer player, ITakeSpace other);
         void DoSomething(IHumanPlayer player, List<IWalker> zombies, List<IWalker> humans, List<ITakeSpace> obstacles, List<ResupplyPoint> resupply);
     }
 
-    public interface IZombieAI {
-        void Failure(string reason);
+    public interface IZombieAI : AI {
         void Collision(IZombiePlayer player, ITakeSpace other);
         void DoSomething(IZombiePlayer player, List<IWalker> zombies, List<IWalker> humans, List<ITakeSpace> obstacles, List<ResupplyPoint> resupply);
     }
 
     public class RandomWalker : IHumanAI, IZombieAI {
+        public string Name { get { return "Joker"; } }
+
         Random rng = new Random();
 
         void IHumanAI.DoSomething(IHumanPlayer player, List<IWalker> zombies, List<IWalker> humans, List<ITakeSpace> obstacles, List<ResupplyPoint> resupply) {
@@ -48,6 +53,12 @@ namespace HvZ.AI {
     }
 
     public class GreedyHuman : IHumanAI {
+        public string Name {
+            get {
+                return "Hoggish Greedly";
+            }
+        }
+
         public void Failure(string what) {
 
         }
