@@ -29,10 +29,9 @@ namespace HvZ.Client {
         // A better plan might be to do most of this stuff in XAML, using DataTemplates http://msdn.microsoft.com/en-us/library/ms742521.aspx
         // Let's see if I can get away with implementing INotifyPropertyChanged.  Necessary, but such boilerplate in C#...
 
-        public GameWindow() {
+        public GameWindow(ClientGame theGame) {
             InitializeComponent();
-            Title = (string)Application.Current.Resources["gameName"];
-            game = (ClientGame)Application.Current.Resources["clientGame"];
+            game = theGame;
             game.OnMapChange += (_, __) => PlaceObjects(GUIMap, game.Map);
         }
 
@@ -141,7 +140,7 @@ namespace HvZ.Client {
                 "Just leave.  When you come back, I'll be waiting with a bat."
             };
             if (MessageBox.Show(messages.PickOne(), "Leave Game", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes) {
-                ((IDisposable)game).Dispose();
+                game.Dispose();
                 Application.Current.Shutdown(0);
             } else {
                 e.Cancel = true;

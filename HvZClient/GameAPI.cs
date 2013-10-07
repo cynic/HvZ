@@ -9,7 +9,7 @@ using HvZ.Common;
 namespace HvZ {
     public class Game {
         private string gameName;
-        private Map m;
+        private Map gameMap;
         private int slots_left;
         private List<IZombieAI> zAI = new List<IZombieAI>();
         private List<IHumanAI> hAI = new List<IHumanAI>();
@@ -17,31 +17,29 @@ namespace HvZ {
         /// <summary>
         /// Called to create a new game with the given name and map
         /// </summary>
-        /// <param name="gameName">A unique name for this game</param>
+        /// <param name="name">A unique name for this game</param>
         /// <param name="map">The map to play this game on</param>
-        public Game(string gameName, Map map) {
-            this.gameName = gameName;
-            m = map;
-            slots_left = m.spawners.Count;
+        public Game(string name, Map map) {
+            gameName = name;
+            gameMap = map;
+            slots_left = gameMap.spawners.Count;
         }
 
         public void Start() {
-            var app = new App();
-            app.InitializeComponent();
             // yes, I'm aware of how horrible this is.
-            app.Resources["gameName"] = gameName;
-            app.Resources["clientGame"] = new ClientGame(gameName, m);
-            GameWindow g = new GameWindow(); // ... which uses the Resources I've just set up...
-            foreach (var z in zAI) g.game.AddZombie(z);
-            foreach (var h in hAI) g.game.AddHuman(h);
-            app.Run();
+            //Horrible does not even begin to describe this. It also did not work.
+            GameWindow g = new GameWindow(new ClientGame(gameName, gameMap));
+            g.Title = gameName;
+            g.Show();
+            foreach (IZombieAI z in zAI) g.game.AddZombie(z);
+            foreach (IHumanAI h in hAI) g.game.AddHuman(h);
         }
 
         public int Slots { get { return slots_left; } }
 
         public void CloseSlot() {
             if (slots_left == 0) return;
-            m.CloseSlot();
+            gameMap.CloseSlot();
             slots_left--;
         }
 
