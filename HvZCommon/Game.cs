@@ -19,17 +19,17 @@ namespace HvZ.Common {
      * joining a game, the client has no say.
      */
 
-    class ClientGame : ICommandInterpreter, INotifyPropertyChanged, IDisposable {
+    class ClientGame : ICommandInterpreter, IDisposable {
         private HvZConnection connection = new HvZConnection();
 
-        readonly Map map;
+        readonly Map map = new Map();
         public Map Map {
             get { return map; }
         }
         Action requestDecision;
         Action<uint, string> noAction;
         Action<uint, string> playerAdded;
-        readonly Game world;
+        Game world;
         readonly string gameName;
 
         public int Width { get { return map.Width; } }
@@ -41,17 +41,20 @@ namespace HvZ.Common {
         /// Create a new game, using the given map.
         /// </summary>
         /// <param name="map"></param>
-        public ClientGame(string gameName, Map map) {
+        public ClientGame(string gameName) {
             dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
-            this.map = map;
             this.gameName = gameName;
+            connection.ConnectToServer("localhost");
+            // Setup complete.  Now receive the rest of the commands for the game.
+            connection.OnCommandReceived += connection_OnGameCommand;
+        }
+
+        public void CreateGame(Map m) {
+            map.PopulateFromSerializedData(m.GetSerializedData());
             world = new Game(map);
             world.OnPlayerAdded += (_, __) => { if (OnMapChange != null) OnMapChange(this, EventArgs.Empty); };
             world.OnPlayerRemoved += (_, __) => { if (OnMapChange != null) OnMapChange(this, EventArgs.Empty); };
-            connection.ConnectToServer("localhost");
-            connection.Send(Command.NewCreate(gameName, map.RawMapData));
-            // Setup complete.  Now receive the rest of the commands for the game.
-            connection.OnCommandReceived += connection_OnGameCommand;
+            connection.Send(Command.NewCreate(gameName, map.GetSerializedData()));
         }
 
         public void AddZombie(IZombieAI ai) {
@@ -108,8 +111,8 @@ namespace HvZ.Common {
             world.Forward(walkerId, distance);
         }
 
-        void ICommandInterpreter.Human(uint walkerId, string guid, string name) {
-            map.AddHuman(walkerId, name);
+        void ICommandInterpreter.JoinOK(uint walkerId, string guid, string mapData) {
+            map.PopulateFromSerializedData(mapData);
             playerAdded(walkerId, guid);
             if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
         }
@@ -122,7 +125,8 @@ namespace HvZ.Common {
             // first, do the moves.
             world.Update();
             // Ask the AIs to make decisions.
-            requestDecision();
+            if (requestDecision != null)
+                requestDecision();
        }
 
         void ICommandInterpreter.GameNo(string reason) {
@@ -141,13 +145,6 @@ namespace HvZ.Common {
             throw new NotImplementedException();
         }
 
-        void ICommandInterpreter.Zombie(uint walkerId, string guid, string name) {
-            map.AddZombie(walkerId, name);
-            playerAdded(walkerId, guid);
-            if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
         public event EventHandler OnMapChange;
 
         void ICommandInterpreter.No(uint walkerId, string reason) {

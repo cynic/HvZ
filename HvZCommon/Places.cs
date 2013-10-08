@@ -13,7 +13,7 @@ namespace HvZ {
         // There can be a maximum of 6 items at a ResupplyPoint.
         uint t = 0; // turn-tracking.
         uint w = 0; // tracks what was generated last.
-        List<SupplyItem> stored = new List<SupplyItem>(WorldConstants.ResupplyPointCapacity);
+        internal List<SupplyItem> stored = new List<SupplyItem>(WorldConstants.ResupplyPointCapacity);
 
         public Position Position { get; private set; }
         public double Radius { get; private set; }

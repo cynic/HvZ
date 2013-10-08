@@ -13,6 +13,8 @@ namespace HvZ {
         internal List<SpawnPoint> spawners = new List<SpawnPoint>();
         internal List<Obstacle> obstacles = new List<Obstacle>();
         internal List<ResupplyPoint> resupply = new List<ResupplyPoint>();
+        public int Width { get; private set; }
+        public int Height { get; private set; }
 
         internal IEnumerable<Human> Humans { get { return humans.Values; } }
         internal IEnumerable<Zombie> Zombies { get { return zombies.Values; } }
@@ -25,8 +27,6 @@ namespace HvZ {
         internal IEnumerable<ResupplyPoint> ResupplyPoints { get { return resupply; } }
 
         internal event EventHandler<CollisionEventArgs> OnPlayerCollision;
-
-        internal string RawMapData { get; private set; }
 
         internal IWalker Walker(uint id) {
             return walkers[id]; // this will throw if the id isn't found.  That's fine; if it happens, fix the bug.
@@ -159,19 +159,114 @@ namespace HvZ {
                     }
                 }
             }
-            // save the map data.
-            RawMapData = String.Join("\n", lines);
         }
 
         public Map(string filename) {
             ReadMap(File.ReadAllLines(filename));
         }
 
-        internal Map(string[] lines) {
-            ReadMap(lines);
+        internal string GetSerializedData() {
+            var sb = new StringBuilder();
+            sb.AppendFormat("wh:{0},{1}|", Width, Height);
+            foreach (var z in zombies.Values)
+                sb.AppendFormat("z:{0},{1},{2},{3},{4},{5}|", z.Id, z.Position.X, z.Position.Y, z.Lifespan, z.Heading, HvZ.Networking.Internal.toBase64(z.Name));
+            foreach (var h in humans.Values) {
+                sb.AppendFormat("h:{0},{1},{2},{3},{4},", h.Id, h.Position.X, h.Position.Y, h.Lifespan, h.Heading);
+                foreach (var i in h.Items) sb.Append(i == SupplyItem.Food ? 'f' : 's');
+                sb.AppendFormat(",{0}|",HvZ.Networking.Internal.toBase64(h.Name));
+            }
+            foreach (var s in spawners)
+                sb.AppendFormat("sp:{0},{1},{2}|", s.Position.X, s.Position.Y, s.Radius);
+            foreach (var o in obstacles)
+                sb.AppendFormat("o:{0},{1},{2}|", o.Position.X, o.Position.Y, o.Radius);
+            foreach (var r in resupply) {
+                sb.AppendFormat("r:{0},{1},{2},", r.Id, r.Position.X, r.Position.Y);
+                foreach (var i in r.Available) sb.Append(i == SupplyItem.Food ? 'f' : 's');
+                sb.Append('|');
+            }
+            return sb.ToString();
         }
 
-        public int Width { get; set; }
-        public int Height { get; set; }
+        internal void PopulateFromSerializedData(string serialized) {
+            var dataItems = serialized.Split('|')
+                .Where(x => x.Length > 0)
+                .Select(x => x.Split(':'))
+                .Select(x => new { Key=x[0], Values=x[1].Split(',') });
+            // clear everything.
+            zombies.Clear();
+            humans.Clear();
+            walkers.Clear();
+            spawners.Clear();
+            obstacles.Clear();
+            resupply.Clear();
+            // parse-back functions.  Not the most secure in the world, but time is pressing...
+            Func<string,string,Position> parsePos = (a,b) => new Position(Double.Parse(a), Double.Parse(b));
+            Action<string[]> Z = xs => {
+                var id = UInt32.Parse(xs[0]);
+                var x = Double.Parse(xs[1]);
+                var y = Double.Parse(xs[2]);
+                var life = Int32.Parse(xs[3]);
+                var head = Double.Parse(xs[4]);
+                var name = HvZ.Networking.Internal.fromBase64(xs[5]);
+                var z = new Zombie(id, name, this, x, y, head);
+                zombies.Add(id, z);
+                walkers.Add(id, z);
+            };
+            Func<string,SupplyItem[]> parseItems = s => s.Select(x => x == 'f' ? SupplyItem.Food : SupplyItem.Sock).ToArray();
+            Action<string[]> H = xs => {
+                var id = UInt32.Parse(xs[0]);
+                var x = Double.Parse(xs[1]);
+                var y = Double.Parse(xs[2]);
+                var life = Int32.Parse(xs[3]);
+                var head = Double.Parse(xs[4]);
+                var items = parseItems(xs[5]);
+                var name = HvZ.Networking.Internal.fromBase64(xs[6]);
+                var h = new Human(id, name, this, x, y, head);
+                foreach (var i in items) h.AddItem(i);
+                humans.Add(id, h);
+                walkers.Add(id, h);
+            };
+            Action<string[]> SP = xs => {
+                var x = Double.Parse(xs[0]);
+                var y = Double.Parse(xs[1]);
+                var r = Double.Parse(xs[2]);
+                spawners.Add(new SpawnPoint(x, y, r));
+            };
+            Action<string[]> O = xs => {
+                var x = Double.Parse(xs[0]);
+                var y = Double.Parse(xs[1]);
+                var r = Double.Parse(xs[2]);
+                obstacles.Add(new Obstacle(x, y, r));
+            };
+            Action<string[]> R = xs => {
+                var id = UInt32.Parse(xs[0]);
+                var x = Int32.Parse(xs[1]);
+                var y = Int32.Parse(xs[2]);
+                var supply = parseItems(xs[3]);
+                var r = new ResupplyPoint(id, x, y);
+                r.stored.AddRange(supply);
+                resupply.Add(r);
+            };
+            Action<string[]> WH = xs => {
+                Width = Int32.Parse(xs[0]);
+                Height = Int32.Parse(xs[1]);
+            };
+            // quick loop to process each item
+            foreach (var di in dataItems) {
+                switch (di.Key) {
+                    case "z": Z(di.Values); break;
+                    case "h": H(di.Values); break;
+                    case "sp": SP(di.Values); break;
+                    case "o": O(di.Values); break;
+                    case "r": R(di.Values); break;
+                    case "wh": WH(di.Values); break;
+                    default: throw new Exception(String.Format("Map is corrupt? I don't know what the '{0}' key means.", di.Key));
+                }
+            }
+        }
+
+        internal Map() {
+            // completely empty.
+        }
     }
 }

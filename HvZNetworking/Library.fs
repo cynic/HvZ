@@ -74,12 +74,11 @@ type internal Command =
 | TakeFood of uint32 * uint32 // who-takes-it * taken-from-where
 | TakeSocks of uint32 * uint32 // who-takes-it * taken-from-where
 | Throw of uint32 * float // walkerId * heading
-| ZombieJoin of string * string * string // b64gameId * correlator-guid * name
-| HumanJoin of string * string * string // b64gameId * correlator-guid * name
+| ZombieJoin of string * string * string // b64gameId * correlator-guid * name * mapData
+| HumanJoin of string * string * string  // b64gameId * correlator-guid * name * mapData
 | Create of string * string // game-name * mapdata
 | Games of string[] // b64gameId[]
-| Human of uint32 * string * string // walkerId * correlator-guid * name /// also functions as JoinOK
-| Zombie of uint32 * string * string // walkerId * correlator-guid * name /// also functions as JoinOK
+| JoinOK of uint32 * string * string // walkerId * correlator-guid * mapData
 | Move
 | GameNo of string // reason for rejection (only sent before joining has occurred, OR for events that affect every player)
 | No of uint32 * string // walkerId * reason for rejection
@@ -93,8 +92,9 @@ with
       | TakeFood _ -> "take some food from a resupply-point"
       | TakeSocks _ -> "take some socks from a resupply-point"
       | Throw _ -> "throw some socks"
-      | ZombieJoin (_,guid,name) | Zombie (_,guid,name) -> sprintf "join the game as a zombie named %s (guid=%s)" name guid
-      | HumanJoin (_,guid,name) | Human (_,guid,name) -> sprintf "join the game as a human named %s (guid=%s)" name guid
+      | ZombieJoin (_,guid,name) -> sprintf "join the game as a zombie named %s (guid=%s)" name guid
+      | HumanJoin (_,guid,name) -> sprintf "join the game as a human named %s (guid=%s)" name guid
+      | JoinOK _ -> sprintf "accept a request to join the game"
       | Create _ -> "create a game"
       | GameNo reason | No (_, reason) -> reason
       | Games xs -> sprintf "here is a list of %d different games" xs.Length
@@ -108,8 +108,7 @@ type internal ICommandInterpreter =
    abstract member TakeFood : walkerId:uint32 -> resupplyId:uint32 -> unit // who-takes-it -> taken-from-where
    abstract member TakeSocks : walkerId:uint32 -> resupplyId:uint32 -> unit // who-takes-it -> taken-from-where
    abstract member Throw : walkerId:uint32 -> heading:float -> unit // walkerId -> heading
-   abstract member Human : walkerId:uint32 -> guid:string -> name:string -> unit // walkerId -> name /// also functions as JoinOK
-   abstract member Zombie : walkerId:uint32 -> guid:string -> name:string -> unit // walkerId -> name /// also functions as JoinOK
+   abstract member JoinOK : walkerId:uint32 -> guid:string -> mapData:string -> unit
    abstract member Move : unit -> unit
    abstract member GameNo : reason:string -> unit // reason for rejection
    abstract member No : walkerId:uint32 -> reason:string -> unit // walkerId -> reason for rejection
@@ -125,8 +124,7 @@ type internal Command with
       | TakeSocks (wId, fromWhere) -> x.TakeSocks wId fromWhere
       | Throw (wId, heading) -> x.Throw wId heading
       | Bite (wId, target) -> x.Bite wId target
-      | Human (walkerId, guid, name) -> x.Human walkerId guid name
-      | Zombie (walkerId, guid, name) -> x.Zombie walkerId guid name
+      | JoinOK (walkerId, guid, mapData) -> x.JoinOK walkerId guid mapData
       | Move -> x.Move ()
       | GameNo why -> x.GameNo why
       | No (walkerId, why) -> x.No walkerId why
@@ -189,7 +187,7 @@ module internal Internal =
          System.Threading.Interlocked.Increment v |> uint32
 
    let internal toBase64 (s : string) = System.Text.Encoding.UTF8.GetBytes s |> System.Convert.ToBase64String
-   let internal fromBase64 = System.Convert.FromBase64String >> System.Text.Encoding.UTF8.GetString
+   let internal fromBase64 (s : string) = System.Convert.FromBase64String s |> System.Text.Encoding.UTF8.GetString
 
    let internal toProtocol cmd =
       let s =
@@ -213,8 +211,7 @@ module internal Internal =
          | Games gameIds ->
             let s = gameIds |> Array.map toBase64 |> String.concat " "
             sprintf "game %s" s
-         | Human (walkerId, guid, name) -> sprintf "human %d %s %s" walkerId guid name
-         | Zombie (walkerId, guid, name) -> sprintf "zombie %d %s %s" walkerId guid name
+         | JoinOK (walkerId, guid, mapData) -> sprintf "joinok %d %s %s" walkerId guid mapData
          | Move -> "move"
          | GameNo why -> sprintf "gameno %s" why
          | No (walkerId, why) -> sprintf "no %d %s" walkerId why // reason for rejection
@@ -241,8 +238,7 @@ module internal Internal =
          makeMatcher @"^hjoin ([^ ]{1,100}) ([^ ]+) (.{1,500})$" (fun m -> HumanJoin(fromBase64 m.[1], m.[2], m.[3]))
          makeMatcher @"^create ([^ ]{1,100}) (.{1,99500})$" (fun m -> Create(fromBase64 m.[1], m.[2]))
          makeMatcher @"^game (.+)$" (fun m -> Games(m.[1].Split(' ') |> Array.map fromBase64))
-         makeMatcher @"^human (\d+) ([^ ]+) (.{1,1000})$" (fun m -> Human(uint32 m.[1], m.[2], m.[3]))
-         makeMatcher @"^zombie (\d+) ([^ ]+) (.{1,1000})$" (fun m -> Zombie(uint32 m.[1], m.[2], m.[3]))
+         makeMatcher @"^joinok (\d+) ([^ ]+) (.+)$" (fun m -> JoinOK(uint32 m.[1], m.[2], m.[3]))
          makeMatcher @"^move$" (fun _ -> Move)
          makeMatcher @"^gameno (.+)$" (fun m -> GameNo(m.[1]))
          makeMatcher @"^no (\d+) (.+)$" (fun m -> No(uint32 m.[1], m.[2]))

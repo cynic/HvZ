@@ -22,7 +22,7 @@ namespace HvZ.Common {
         internal const int HumanLifespan = 600;
         internal const int ZombieLifespan = 600;
         // Number of small steps within a single turn.  Improves resolution of movement, at the cost of some CPU time.
-        internal const int StepsPerTurn = 25;
+        internal const int StepsPerTurn = 15;
         // Determines food/weapon generation at ResupplyPoints.  An item is generated every /n/ turns, where n = ResupplyDelay.
         internal const int ResupplyDelay = 3;
         internal const int ResupplyPointCapacity = 6;

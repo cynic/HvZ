@@ -56,13 +56,13 @@ module Internal =
          ) |> ignore
 *)
       MailboxProcessor.Start(fun inbox ->
-         let doAdd addFunc connId playerId send command =
+         let doAdd addFunc connId playerId guid send =
             if addFunc () then
                //playerSends.Add (playerId, send)
                match connToPlayers.TryGetValue connId with
                | true, (v,_) -> v.Add playerId
                | _ -> connToPlayers.[connId] <- (new System.Collections.Generic.List<_>([playerId]), send)
-               sendAll command
+               sendAll (JoinOK (playerId, guid, map.GetSerializedData()))
             else
                send (GameNo "There aren't any slots left for players on this map.")
          let rec loop (lastMoveTime : System.DateTime) =
@@ -103,13 +103,11 @@ module Internal =
                         | HumanJoin (x, guid, name) when x = gameId ->
                            let playerId = nextUIntId ()
                            eprintfn "human playerId for %s = %d" guid playerId
-                           if map.spawners.Count = 0 then send (GameNo (sprintf "Can't add human player %s: this game is full, sorry." name))
-                           else doAdd (fun () -> map.AddHuman(playerId, name)) connId playerId send (Human (playerId, guid, name))
+                           doAdd (fun () -> map.AddHuman(playerId, name)) connId playerId guid send
                         | ZombieJoin (x, guid, name) when x = gameId ->
                            let playerId = nextUIntId ()
                            eprintfn "zombie playerId for %s = %d" guid playerId
-                           if map.spawners.Count = 0 then send (GameNo (sprintf "Can't add zombie player %s: this game is full, sorry." name))
-                           else doAdd (fun () -> map.AddZombie(playerId, name)) connId playerId send (Zombie (playerId, guid, name))
+                           doAdd (fun () -> map.AddZombie(playerId, name)) connId playerId guid send
                         | _ ->
                            send (GameNo (sprintf "%O is something that I tell clients.  Clients don't get to tell it to me." cmd))
                         return! loop lastMoveTime
@@ -124,12 +122,12 @@ module Internal =
                | Some (connId, HumanJoin(x, guid, name), send) when x = gameId ->
                   let playerId = nextUIntId ()
                   eprintfn "human playerId for %s = %d" guid playerId
-                  doAdd (fun () -> map.AddHuman(playerId, name)) connId playerId send (Human (playerId, guid, name))
+                  doAdd (fun () -> map.AddHuman(playerId, name)) connId playerId guid send
                   return! loop System.DateTime.Now
                | Some (connId, ZombieJoin(x, guid, name), send) when x = gameId ->
                   let playerId = nextUIntId ()
                   eprintfn "zombie playerId for %s = %d" guid playerId
-                  doAdd (fun () -> map.AddZombie(playerId, name)) connId playerId send (Zombie (playerId, guid, name))
+                  doAdd (fun () -> map.AddZombie(playerId, name)) connId playerId guid send
                   return! loop System.DateTime.Now
                | Some (_, _, send) ->
                   send (GameNo "There are no players in the game yet, so no commands can be issued to players yet.")
@@ -146,7 +144,7 @@ module Internal =
             async {
                let! input = inbox.Receive()
                match input with
-               | connId, Create(gameName, map), send ->
+               | connId, Create(gameName, mapData), send ->
                   if gamesList.ContainsKey gameName then
                      send (GameNo "There's already a game with this name.  Choose a different name.")
                   else
@@ -157,7 +155,8 @@ module Internal =
                         if connToGame.[connId] = gameName then
                            connToGame.Remove connId |> ignore                        
                      try
-                        let map = HvZ.Map(map.Split [|'\n';'\r'|])
+                        let map = HvZ.Map()
+                        map.PopulateFromSerializedData(mapData)
                         let processor = newGame gameName map gameOver
                         processor.Error
                         |> Event.add (fun exc ->
