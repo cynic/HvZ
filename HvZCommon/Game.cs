@@ -151,7 +151,7 @@ namespace HvZ.Common {
             noAction(walkerId, reason);
         }
 
-        public void Dispose() {
+        void IDisposable.Dispose() {
             ((IDisposable)connection).Dispose();
         }
     }
