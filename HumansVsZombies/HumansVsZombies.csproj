@@ -35,7 +35,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="HvZ">
-      <HintPath>..\..\HvZ\HvZ.dll</HintPath>
+      <HintPath>..\HvZ.dll</HintPath>
     </Reference>
     <Reference Include="PresentationFramework" />
     <Reference Include="System" />
