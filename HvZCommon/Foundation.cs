@@ -14,7 +14,7 @@ namespace HvZ.Common {
         internal const double WalkerRadius = 0.95; // shared by Human, Zombie, and Box
         // terrain covered per turn
         internal const double HumanSpeed = 0.45;
-        internal const double ZombieSpeed = 0.4;
+        internal const double ZombieSpeed = 0.5;
         // degrees rotated per turn
         internal const double HumanTurnRate = 20.0;
         internal const double ZombieTurnRate = 20.0;
