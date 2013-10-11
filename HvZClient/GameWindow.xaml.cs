@@ -135,21 +135,8 @@ namespace HvZ.Client {
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
-            var messages = new[] {
-                "Are you sure you want to leave?  Real work is much worse.",
-                "You're trying to say you like TV better than me, right?",
-                "You know, next time you play, I'm going to get you.",
-                "You want to leave?  Go ahead, see if I care.",
-                "Get out of here and go back to your boring programs.",
-                "Look, bud.  You leave now and you forfeit your body count.",
-                "Just leave.  When you come back, I'll be waiting with a bat."
-            };
-            if (MessageBox.Show(messages.PickOne(), "Leave Game", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes) {
-                ((IDisposable)game).Dispose();
-                Application.Current.Shutdown(0);
-            } else {
-                e.Cancel = true;
-            }
+            ((IDisposable)game).Dispose();
+            Application.Current.Shutdown(0);
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e) {
