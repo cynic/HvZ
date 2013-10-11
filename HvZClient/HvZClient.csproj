@@ -176,7 +176,9 @@
     <PostBuildEvent>xcopy /Y "$(TargetPath)" "$(ProjectDir)..\libs\"
 xcopy /Y "$(TargetDir)$(TargetName).pdb" "$(ProjectDir)..\libs\"
 cd "$(SolutionDir)"
-ilmerge /out:HvZ.dll libs\HvZNetworking.dll libs\HvZCommon.dll libs\HvZ.exe</PostBuildEvent>
+ilmerge /out:HvZ.dll libs\HvZNetworking.dll libs\HvZCommon.dll libs\HvZ.exe
+copy HvZ.dll HumansVsZombies\HumansVsZombies
+echo "All done."</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
