@@ -5,11 +5,11 @@
         Icon="icon.ico"
         SizeChanged="Window_Resized" Closing="Window_Closing" Loaded="Window_Loaded">
     <Grid Name="ground">
-        <Canvas Name="GUIMap" />
-        <Canvas Opacity="0.3">
+        <Canvas>
             <Canvas.Background>
                 <ImageBrush ImageSource="images/ground.png" TileMode="Tile" Stretch="None" Viewport="0,0,128,128" ViewportUnits="Absolute" />
             </Canvas.Background>
         </Canvas>
+        <Canvas Name="GUIMap" />
     </Grid>
 </Window>
