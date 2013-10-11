@@ -102,6 +102,10 @@ namespace HvZ.Client {
             var e = new Ellipse() { Width = item.Radius * 2, Height = item.Radius * 2 };
             e.Fill = (ImageBrush)Application.Current.Resources[item.Texture];
             //e.Opacity = 0.65;
+            if (item.Radius <= 0.45) {
+                e.Stroke = Brushes.Black;
+                e.StrokeThickness = 0.1;
+            }
             var translate = new TranslateTransform(item.Position.X - item.Radius, item.Position.Y - item.Radius);
             e.RenderTransform = translate;
             c.Children.Add(e);
@@ -120,7 +124,7 @@ namespace HvZ.Client {
         internal static void PlaceObjects(Canvas c, Map m) {
             c.Children.Clear();
             c.RenderTransform = new ScaleTransform(c.ActualWidth / m.Width, c.ActualHeight / m.Height);
-            foreach (var o in m.Obstacles) placeObstacle(o, c);
+            foreach (var o in m.Obstacles.OrderBy(x => x.Radius)) placeObstacle(o, c);
             foreach (var s in m.ResupplyPoints) placeResupply(s, c);
             foreach (var h in m.Humans) placeWalker("human", h, c);
             foreach (var z in m.Zombies) placeWalker("zombie", z, c);
