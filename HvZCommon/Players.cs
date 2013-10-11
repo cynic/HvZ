@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using HvZ.AI;
 
 namespace HvZ.Common {
     class HumanPlayer : IHumanPlayer {

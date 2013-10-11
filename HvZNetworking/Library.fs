@@ -134,8 +134,7 @@ type internal ClientStatus =
 | InGame of string // gameId
 | OutOfGame
 
-namespace HvZ.AI
-open HvZ
+namespace HvZ
 open HvZ.Common
 
 type IHumanPlayer =

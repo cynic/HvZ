@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
-using HvZ.AI;
 
 namespace HvZ.Common {
     class FailureEventArgs : EventArgs {

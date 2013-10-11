@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using HvZ.Common;
 
-namespace HvZ.AI {
+namespace HvZ {
     public interface AI {
         void Failure(string reason);
         string Name { get; }
