@@ -234,11 +234,22 @@ namespace HvZ.Common {
                 foreach (var h in map.Humans) if (h.Lifespan > 0) --h.Lifespan;
                 foreach (var z in map.Zombies) if (z.Lifespan > 0) --z.Lifespan;
                 // now do whatever is required on the turn.
+                HashSet<uint> exclude = new HashSet<uint>();
                 for (int i = 0; i < WorldConstants.StepsPerTurn; ++i) {
                     // permute order.
                     foreach (var key in ongoing.Keys.OrderBy(_ => rng.Next())) {
+                        if (exclude.Contains(key))
+                            continue;
                         // execute action.
-                        ongoing[key]();
+                        try {
+                            if (!ongoing[key]()) {
+                                exclude.Add(key);
+                                break;
+                            }
+                        } catch (Exception ex) {
+                            Console.WriteLine(String.Format("Exception occurred for AI {0} ... fix it!\n{1}", map.walkers[key].Name, ex));
+                            exclude.Add(key);
+                        }
                     }
                 }
                 // now ask the resupplypoints to replenish their stock, if they can.
@@ -281,12 +292,13 @@ namespace HvZ.Common {
             var distXPerStep = distPerStep * Math.Sin(walker.Heading.ToRadians());
             var distYPerStep = -distPerStep * Math.Cos(walker.Heading.ToRadians());
             map.SetMovementState(walkerId, MoveState.Moving);
-            Action act = () => {
+            Func<bool> act = () => {
                 if (distRemaining > 0.0) {
                     distRemaining -= Math.Min(distPerStep, distRemaining);
-                    map.SetPosition(walkerId, walker.Position.X + distXPerStep, walker.Position.Y + distYPerStep);
+                    return map.SetPosition(walkerId, walker.Position.X + distXPerStep, walker.Position.Y + distYPerStep);
                 } else {
                     map.SetMovementState(walkerId, MoveState.Stopped);
+                    return false; // don't need to do this .StepsPerTurn times
                 }
             };
             ongoing[walkerId] = act;
@@ -299,15 +311,17 @@ namespace HvZ.Common {
             var walker = map.Walker(walkerId);
             bool leftTurn = degrees < 0;
             map.SetMovementState(walkerId, MoveState.Moving);
-            Action act = () => {
+            Func<bool> act = () => {
                 if (turnRemaining > 0.0) {
                     double thisStep = Math.Min(turnRemaining, turnPerStep);
                     var newHeading = leftTurn ? walker.Heading - thisStep : walker.Heading + thisStep;
-                    map.SetHeading(walkerId, newHeading);
                     turnRemaining = Math.Round(turnRemaining - thisStep, 5);
+                    map.SetHeading(walkerId, newHeading);
                 } else {
                     map.SetMovementState(walkerId, MoveState.Stopped);
+                    return false;
                 }
+                return true;
             };
             ongoing[walkerId] = act;
             return null;
@@ -321,11 +335,12 @@ namespace HvZ.Common {
             bool eaten = false;
             if (!h.Items.Contains(SupplyItem.Food)) return "you don't have any food in your inventory.";
             map.SetMovementState(walkerId, MoveState.Stopped);
-            Action act = () => {
-                if (eaten) return; // done.
+            Func<bool> act = () => {
+                if (eaten) return false; // done.
                 h.RemoveItem(SupplyItem.Food);
                 h.Lifespan = h.MaximumLifespan;
                 eaten = true;
+                return false;
             };
             ongoing[walkerId] = act;
             return null;
@@ -354,16 +369,17 @@ namespace HvZ.Common {
             if (map.zombies.ContainsKey(walkerId)) return "zombies can't use resupply points";
             if (!map.humans.ContainsKey(walkerId)) return "your human has been removed from the game"; // walker isn't a human, or doesn't exist.
             var w = map.humans[walkerId];
-            if (!w.IsCloseEnoughToUse(pt)) return "you're still too far away from the resupply point to interact with it"; // too far away to interact with this.
+            if (!w.IsCloseEnoughToInteractWith(pt)) return "you're still too far away from the resupply point to interact with it"; // too far away to interact with this.
             if (!pt.Available.Any(x => x == what)) return "the item you wanted to take isn't at this resupply point"; // the desired item doesn't exist here.
             if (w.InventoryIsFull) return "your inventory is already full";
             bool taken = false;
             map.SetMovementState(walkerId, MoveState.Stopped);
-            Action act = () => {
-                if (taken) return;
+            Func<bool> act = () => {
+                if (taken) return false;
                 w.AddItem(what);
                 pt.Remove(what);
                 taken = true;
+                return false;
             };
             ongoing[walkerId] = act;
             return null;
