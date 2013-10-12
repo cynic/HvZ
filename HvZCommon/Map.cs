@@ -26,7 +26,9 @@ namespace HvZ {
         }
         internal IEnumerable<ResupplyPoint> ResupplyPoints { get { return resupply; } }
 
-        internal event EventHandler<CollisionEventArgs> OnPlayerCollision;
+        internal event EventHandler<CollisionEventArgs> OnEntityCollision;
+        internal event EventHandler<EdgeCollisionEventArgs> OnEdgeCollision;
+        internal event EventHandler OnMapChange;
 
         internal IWalker Walker(uint id) {
             return walkers[id]; // this will throw if the id isn't found.  That's fine; if it happens, fix the bug.
@@ -66,11 +68,16 @@ namespace HvZ {
             }
         }
 
-        internal void SetPosition(uint id, double x, double y) {
+        internal bool SetPosition(uint id, double x, double y) {
             var walker = walkers[id];
             var pos = walker.Position;
             var oldX = pos.X;
             var oldY = pos.Y;
+            var edge = Edge.None;
+            if (x < walkers[id].Radius) edge |= Edge.Left;
+            if (x > Width - walkers[id].Radius) edge |= Edge.Right;
+            if (y < walkers[id].Radius) edge |= Edge.Top;
+            if (y > Height - walkers[id].Radius) edge |= Edge.Bottom;
             var newX = Math.Max(walker.Radius, Math.Min(Width - walkers[id].Radius, x));
             var newY = Math.Max(walker.Radius, Math.Min(Height - walkers[id].Radius, y));
             // double-check against walkers.
@@ -78,20 +85,28 @@ namespace HvZ {
                 if (kvp.Key == id) continue;
                 if (kvp.Value.Intersects(newX, newY, walker.Radius)) {
                     SetMovementState(id, MoveState.Stopped);
-                    if (OnPlayerCollision != null) OnPlayerCollision(this, new CollisionEventArgs() { CollidedWith = kvp.Value, PlayerId = id });
-                    return;
+                    var isSameWalkerKind = walker.GetType().Equals(kvp.Value.GetType());
+                    // only call when zombies bump into zombies, or humans bump into humans.
+                    // Don't call when zombies bump into humans, or humans bump into zombies.
+                    // This feature was a class request.
+                    if (isSameWalkerKind && OnEntityCollision != null) OnEntityCollision(this, new CollisionEventArgs() { CollidedWith = kvp.Value, PlayerId = id });
+                    return false;
                 }
             }
             // double-check against obstacles.
             foreach (var o in Obstacles) { // capital-O Obstacles.  Includes spawnpoints.
                 if (o.Intersects(newX, newY, walker.Radius)) {
                     SetMovementState(id, MoveState.Stopped);
-                    if (OnPlayerCollision != null) OnPlayerCollision(this, new CollisionEventArgs() { CollidedWith = o, PlayerId = id });
-                    return;
+                    if (OnEntityCollision != null) OnEntityCollision(this, new CollisionEventArgs() { CollidedWith = o, PlayerId = id });
+                    return false;
                 }
             }
             pos.X = newX;
             pos.Y = newY;
+            if (edge != Edge.None && OnEdgeCollision != null) {
+                OnEdgeCollision(this, new EdgeCollisionEventArgs() { PlayerId = id, Edge = edge });
+            }
+            return true;
         }
 
         internal void Kill(uint id) {

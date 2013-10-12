@@ -70,7 +70,8 @@ namespace HvZ.Common {
                 requestDecision += askAI;
                 world.OnPlayerRemoved += (_, args) => { if (args.PlayerId == playerId) requestDecision -= askAI; };
                 noAction += (id, s) => { if (id == playerId) ai.Failure(s); };
-                world.OnPlayerCollision += (_, e) => { if (e.PlayerId == playerId) ai.Collision(player, e.CollidedWith); };
+                world.OnEntityCollision += (_, e) => { if (e.PlayerId == playerId) ai.Collision(player, e.CollidedWith); };
+                world.OnEdgeCollision += (_, e) => { if (e.PlayerId == playerId) ai.Collision(player, e.Edge); };
             });
             connection.Send(Command.NewZombieJoin(gameName, guid, ai.Name));
         }
@@ -89,7 +90,8 @@ namespace HvZ.Common {
                 requestDecision += askAI;
                 world.OnPlayerRemoved += (_, args) => { if (args.PlayerId == playerId) requestDecision -= askAI; };
                 noAction += (id, s) => { if (id == playerId) ai.Failure(s); };
-                world.OnPlayerCollision += (_, e) => { if (e.PlayerId == playerId) ai.Collision(player, e.CollidedWith); };
+                world.OnEntityCollision += (_, e) => { if (e.PlayerId == playerId) ai.Collision(player, e.CollidedWith); };
+                world.OnEdgeCollision += (_, e) => { if (e.PlayerId == playerId) ai.Collision(player, e.Edge); };
             });
             connection.Send(Command.NewHumanJoin(gameName, guid, ai.Name));
         }
@@ -165,6 +167,10 @@ namespace HvZ.Common {
         public uint PlayerId { get; set; }
         public ITakeSpace CollidedWith { get; set; }
     }
+    internal class EdgeCollisionEventArgs : EventArgs {
+        public uint PlayerId { get; set; }
+        public Edge Edge { get; set; }
+    }
 
     class Game {
         /* Assumptions:
@@ -180,12 +186,14 @@ namespace HvZ.Common {
         private Dictionary<uint, Action> ongoing = new Dictionary<uint, Action>();
         public event EventHandler<PlayerAddedEventArgs> OnPlayerAdded;
         public event EventHandler<PlayerRemovedEventArgs> OnPlayerRemoved;
-        public event EventHandler<CollisionEventArgs> OnPlayerCollision;
+        public event EventHandler<CollisionEventArgs> OnEntityCollision;
+        public event EventHandler<EdgeCollisionEventArgs> OnEdgeCollision;
         public event EventHandler OnTurnEnded;
 
         public Game(Map m) {
             map = m;
-            map.OnPlayerCollision += (_, e) => { if (OnPlayerCollision != null) OnPlayerCollision(this, e); };
+            map.OnEntityCollision += (_, e) => { if (OnEntityCollision != null) OnEntityCollision(this, e); };
+            map.OnEdgeCollision += (_, e) => { if (OnEdgeCollision != null) OnEdgeCollision(this, e); };
         }
 
         public void Update() {
