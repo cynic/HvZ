@@ -122,22 +122,32 @@ namespace HumansVsZombies
             switch (edge)
             {
                 case Edge.Top:
+                    angle = player.AngleToHeading(180);
                     break;
                 case Edge.Bottom:
+                    angle = player.AngleToHeading(0);
                     break;
                 case Edge.Left:
+                    angle = player.AngleToHeading(270);
                     break;
                 case Edge.Right:
+                    angle = player.AngleToHeading(90);
                     break;
                 case Edge.TopAndLeft:
+                    angle = player.AngleToHeading(90+45);
                     break;
                 case Edge.TopAndRight:
+                    angle = player.AngleToHeading(180+45);
                     break;
                 case Edge.BottomAndLeft:
+                    angle = player.AngleToHeading(45);
                     break;
                 case Edge.BottomAndRight:
+                    angle = player.AngleToHeading(270+45);
                     break;
             }
+            Console.WriteLine("I'll turn {0} degrees to get away from this edge.", angle);
+            player.Turn(angle);
         }
     }
 }
