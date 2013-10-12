@@ -16,7 +16,6 @@ module Internal =
       let connToPlayers = System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<_> * _>()
       myGame.OnPlayerRemoved
       |> Event.add (fun args ->
-         //playerSends.RemoveAll(Predicate(fun (id,_) -> id = args.PlayerId)) |> ignore
          connToPlayers.Values
          |> Seq.iter (fun (v,_) -> v.Remove args.PlayerId |> ignore)
          // if there are any 'empty' connections, remove them now.
@@ -24,40 +23,20 @@ module Internal =
          |> Seq.toArray
          |> Seq.iter (fun k -> if (fst connToPlayers.[k]).Count = 0 then ignore <| connToPlayers.Remove k)
       )
+      let timeDelay = ref 5000
       let sendAll cmd =
          connToPlayers
          |> Seq.choose (fun kvp ->
             let _,x = kvp.Value
-            try
-               x cmd
-               None
-            with
-            | e -> Some kvp.Key
+            if x cmd then None
+            else Some kvp.Key
          )
          |> Seq.toArray
          |> Seq.iter (fun k -> connToPlayers.Remove k |> ignore)
-(*
-         playerSends.RemoveAll (fun (playerId,x) ->
-            try
-               x cmd
-               false
-            with
-            | e -> 
-               printfn "Client connection errored, removing it: %A" e
-               match connToPlayers |> Seq.tryFind (fun kvp -> kvp.Value.Contains playerId) with
-               | Some kvp ->
-                  let connId = kvp.Key
-                  let players = kvp.Value
-                  printfn "This entails removing the following players: %A" players
-                  connToPlayers.Remove connId |> ignore
-               | None ->
-                  printfn "Investigate: this client connection wasn't associated with any players??"
-               true
-         ) |> ignore
-*)
       MailboxProcessor.Start(fun inbox ->
          let doAdd addFunc connId playerId guid send =
             if addFunc () then
+               timeDelay := 1000
                //playerSends.Add (playerId, send)
                match connToPlayers.TryGetValue connId with
                | true, (v,_) -> v.Add playerId
@@ -90,54 +69,62 @@ module Internal =
                         sendAll Move // have to send before moving.  A player might die during the update, which would remove the player from playerSends.
                         myGame.Update ()
                         return! loop System.DateTime.Now
-                     | Some (connId, cmd, send) ->
+                     | Some (connId, cmd, send : Command -> bool) ->
                         let checkOwnPlayer wId f =
-                           if not ((fst connToPlayers.[connId]).Contains wId) then
-                              //send (No "You can only control your own walker, not anyone else's.")
-                              printfn "Received a command for walker %d from connection %s, but that connection is not associated with that walker." wId connId
-                              () // just ignore the command.
-                           else
-                              match f () with // yes, I know I'm killing the traditional C# semantics.
-                              | null -> sendAll cmd
-                              | error -> send (No (wId, sprintf "You asked me to %O, but I couldn't because %s" cmd error))
+                           match connToPlayers.TryGetValue connId with
+                           | true, (l,_) ->
+                              if not (l.Contains wId) then
+                                 //send (No "You can only control your own walker, not anyone else's.")
+                                 printfn "Received a command for walker %d from connection %s, but that connection is not associated with that walker." wId connId
+                                 () // just ignore the command.
+                              else
+                                 match f () with // yes, I know I'm killing the traditional C# semantics.
+                                 | null -> sendAll cmd
+                                 | error ->
+                                    if not <| send (No (wId, sprintf "You asked me to %O, but I couldn't because %s" cmd error)) then
+                                       connToPlayers.Remove connId |> ignore
+                           | _ -> () // this connection has already been dropped.
                         match cmd with
                         | Forward (wId, dist) -> checkOwnPlayer wId (fun () -> myGame.Forward(wId, dist))
                         | Turn (wId, degrees) -> checkOwnPlayer wId (fun () -> myGame.Turn(wId, degrees))
+                        | Bite (wId, target) -> checkOwnPlayer wId (fun () -> myGame.Bite(wId, target))
                         | Eat wId -> checkOwnPlayer wId (fun () -> myGame.Eat(wId))
                         | TakeFood (wId, fromWhere) -> checkOwnPlayer wId (fun () -> myGame.TakeFood(wId, fromWhere))
                         | TakeSocks (wId, fromWhere) -> checkOwnPlayer wId (fun () -> myGame.TakeSocks(wId, fromWhere))
                         | Throw (wId, heading) -> checkOwnPlayer wId (fun () -> myGame.Throw(wId, heading))
                         | HumanJoin (x, guid, name) when x = gameId ->
                            let playerId = nextUIntId ()
-                           eprintfn "human playerId for %s = %d" guid playerId
+                           //eprintfn "human playerId for %s = %d" guid playerId
                            doAdd (fun () -> map.AddHuman(playerId, name)) connId playerId guid send
                         | ZombieJoin (x, guid, name) when x = gameId ->
                            let playerId = nextUIntId ()
-                           eprintfn "zombie playerId for %s = %d" guid playerId
+                           //eprintfn "zombie playerId for %s = %d" guid playerId
                            doAdd (fun () -> map.AddZombie(playerId, name)) connId playerId guid send
                         | _ ->
-                           send (GameNo (sprintf "%O is something that I tell clients.  Clients don't get to tell it to me." cmd))
+                           if not <| send (GameNo (sprintf "%O is something that I tell clients.  Clients don't get to tell it to me." cmd)) then
+                              connToPlayers.Remove connId |> ignore
                         return! loop lastMoveTime
             }
          and waitForPlayers () =
             async {
-               let! input = inbox.TryReceive(5000)
+               let! input = inbox.TryReceive(!timeDelay)
                match input with
                | None ->
                   printfn "There are no players left in %s; the game is declared to be over!" gameId
                   onGameOver () // that's it -- no players in here for 5s -- game ended!
                | Some (connId, HumanJoin(x, guid, name), send) when x = gameId ->
                   let playerId = nextUIntId ()
-                  eprintfn "human playerId for %s = %d" guid playerId
+                  //eprintfn "human playerId for %s = %d" guid playerId
                   doAdd (fun () -> map.AddHuman(playerId, name)) connId playerId guid send
                   return! loop System.DateTime.Now
                | Some (connId, ZombieJoin(x, guid, name), send) when x = gameId ->
                   let playerId = nextUIntId ()
-                  eprintfn "zombie playerId for %s = %d" guid playerId
+                  //eprintfn "zombie playerId for %s = %d" guid playerId
                   doAdd (fun () -> map.AddZombie(playerId, name)) connId playerId guid send
                   return! loop System.DateTime.Now
-               | Some (_, _, send) ->
-                  send (GameNo "There are no players in the game yet, so no commands can be issued to players yet.")
+               | Some (connId, _, send) ->
+                  if not <| send (GameNo "There are no players in the game yet, so no commands can be issued to players yet.") then
+                     connToPlayers.Remove connId |> ignore
                   return! waitForPlayers ()
             }
          waitForPlayers ()
@@ -151,9 +138,9 @@ module Internal =
             async {
                let! input = inbox.Receive()
                match input with
-               | connId, Create(gameName, mapData), send ->
+               | connId, Create(gameName, mapData), (send : Command -> bool) ->
                   if gamesList.ContainsKey gameName then
-                     send (GameNo "There's already a game with this name.  Choose a different name.")
+                     send (GameNo "There's already a game with this name.  Choose a different name.") |> ignore
                   else
                      printfn "Creating a new game, name=%s" gameName
                      let gameOver () =
@@ -173,22 +160,22 @@ module Internal =
                         gamesList.Add(gameName, processor)
                         connToGame.Add(connId, gameName)
                      with
-                     | e -> send (GameNo e.Message)
+                     | e -> send (GameNo e.Message) |> ignore
                   return! loop ()
                | connId, ((HumanJoin (gameId, _, _)) as cmd), send | connId, ((ZombieJoin (gameId, _, _)) as cmd), send ->
                   match gamesList.TryGetValue gameId with
                   | true, v ->
                      connToGame.[connId] <- gameId
                      v.Post (connId, cmd, send)
-                  | _ -> send (GameNo "That game doesn't exist (maybe it's just ended?)")
+                  | _ -> send (GameNo "That game doesn't exist (maybe it's just ended?)") |> ignore
                   return! loop ()
                | connId, cmd, send ->
                   match connToGame.TryGetValue connId with
                   | true, gameName ->
                      match gamesList.TryGetValue gameName with
                      | true, v -> v.Post (connId, cmd, send)
-                     | _ -> send (GameNo "That game doesn't exist (maybe it's just ended?).")
-                  | _ -> send (GameNo "You need to create or join a game before sending any commands.")
+                     | _ -> send (GameNo "That game doesn't exist (maybe it's just ended?).") |> ignore
+                  | _ -> send (GameNo "You need to create or join a game before sending any commands.") |> ignore
                   return! loop ()
             }
          loop ()
@@ -196,8 +183,8 @@ module Internal =
 
 let internal handleRequest connId cmd send =
       match cmd with
-      | Forward _ | Turn _ -> ()
-      | _ -> eprintfn "Received request: %O" cmd
+      | Forward _ | Turn _ -> () // eprintfn "Received request: %O" cmd
+      | _ -> () // eprintfn "Received request: %O" cmd
       Internal.gamesProcessor.Post (connId, cmd, send)
 
 [<EntryPoint>]
@@ -207,8 +194,31 @@ let main argv =
    try
       listener.Server.LingerState <- LingerOption(false, 1)
       listener.Start()
+      let myAddress =
+         let host = Dns.GetHostName() |> Dns.GetHostEntry
+         let rec getExternalIP (addrList : IPAddress list) ipv6 =
+            match addrList with
+            | [] ->
+               match ipv6 with
+               | Some addr -> addr
+               | None -> "127.0.0.1"
+            | x::xs ->
+               if x.AddressFamily <> AddressFamily.InterNetwork && x.AddressFamily <> AddressFamily.InterNetworkV6 then
+                  getExternalIP xs ipv6
+               elif string x = "127.0.0.1" || string x = "::1" || (string x).StartsWith "fe80::" then
+                  getExternalIP xs ipv6
+               elif x.AddressFamily = AddressFamily.InterNetworkV6 then
+                  getExternalIP xs (Some <| string x) // if we hit an ipv6, well, take note of it, but prefer ipv4
+               else
+                  string x // p
+         getExternalIP (List.ofSeq host.AddressList) None
       async {
-         printfn "Server up, listening on 2310"
+         printfn "Server up, listening on port 2310"
+         printfn "To connect to this server from your code, use something like"
+         printfn "   Game g = new Game(\"%s\");" myAddress
+         printfn "instead of"
+         printfn "   Game g = new Game();"
+         printfn "Press Ctrl-C or close this window to stop the server."
          while true do
             let! client = Async.FromBeginEnd(listener.BeginAcceptTcpClient, listener.EndAcceptTcpClient)
             HvZ.Networking.Internal.serverHandleTcp client handleRequest |> ignore

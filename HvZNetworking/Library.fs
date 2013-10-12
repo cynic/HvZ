@@ -45,6 +45,7 @@ type MoveState =
 
 type IWalker =
    inherit ITakeSpace
+   inherit IIdentified
    /// <summary>heading is in degrees, 0 is directly upwards</summary>
    abstract member Heading : float with get
    abstract member Name : string with get
@@ -154,7 +155,7 @@ type IZombiePlayer =
    inherit IWalker
    abstract member GoForward: distance:float -> unit
    abstract member Turn: degrees:float -> unit
-   abstract member Eat: target:IIdentified -> unit
+   abstract member Bite: target:IIdentified -> unit
    abstract member MapWidth : float with get
    abstract member MapHeight : float with get
    abstract member Movement : MoveState with get
@@ -258,7 +259,11 @@ module internal Internal =
 
    let internal writeTo (s : System.IO.Stream) c =
       let arr = toProtocol c
-      s.Write (arr, 0, arr.Length)
+      try
+         s.Write (arr, 0, arr.Length)
+         true
+      with
+      | _ -> false
 
    type private ParseCommandResult =
    | Corrupt
@@ -309,7 +314,7 @@ module internal Internal =
                                     | Some cmd -> onCommandReceived cmd stream
                                     | None -> onAbnormalCommand s stream
                                  with
-                                 | e -> printfn "Got an error in client code: %A" e
+                                 | e -> printfn "Got an error in client code: %s" e.Message
                                  //printfn "parse-local Offset %d, remaining %d, expected %d" offset remaining expectedLen
                                  parseCommands (offset+expectedLen+5) (remaining-(expectedLen+5))
                            else // continue receiving.
@@ -341,7 +346,7 @@ module internal Internal =
       let onCommandReceived cmd stream =
          handleRequest connId cmd (fun x -> writeTo stream x)
       let onAbnormalCommand s stream =
-         GameNo (sprintf "I couldn't understand a command that an AI on this computer sent (%s)" s) |> writeTo stream
+         GameNo (sprintf "I couldn't understand a command that an AI on this computer sent (%s)" s) |> writeTo stream |> ignore
       connection client onClosed onCommandReceived onAbnormalCommand
 
    let internal clientHandleTcp (client : TcpClient) onClosed onCommandReceived =
@@ -371,19 +376,28 @@ type internal HvZConnection() as this =
    let onCommandReceived cmd stream = 
       match cmd with
       | Forward _ | Turn _ | Move -> ()
-      | _ -> eprintfn "Server said: %A" cmd
+      | _ -> () // eprintfn "Server said: %A" cmd
       dataEvent.Trigger (this, new CommandEventArgs(cmd))
-   let send () =
+   let send msg =
       match conn with
       | Some conn ->
-         let stream = conn.GetStream() 
-         writeTo stream
+         let stream =
+            try
+               Some (writeTo <| conn.GetStream())
+            with
+            | _ ->
+               eprintf "_"
+               None
+         stream |> Option.iter (fun f ->
+            if not <| f msg then
+               conn.Close()
+         )
       | None -> failwith "You can't send messages to a server until you're connected to it."
    member __.ConnectToServer server =
       let client = new TcpClient(server, 2310, LingerState = LingerOption(false, 0))
       conn <- Some client
       clientHandleTcp client onClosed onCommandReceived
-   member __.Send msg = send () msg
+   member __.Send msg = send msg
    [<CLIEvent>]
    member __.OnCommandReceived = dataEvent.Publish
    [<CLIEvent>]
@@ -396,4 +410,4 @@ type internal HvZConnection() as this =
          | None -> ()
 
    (* Here be members which hide the nasty details of Command interop *)
-   member __.CreateGame mapData = send () (Create mapData)
+   member __.CreateGame mapData = send (Create mapData)
