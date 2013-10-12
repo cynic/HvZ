@@ -127,7 +127,7 @@ namespace HvZ.Common {
         }
 
         void ICommandInterpreter.Bite(uint walkerId, uint target) {
-            throw new NotImplementedException();
+            world.Bite(walkerId, target);
         }
 
         void ICommandInterpreter.Forward(uint walkerId, double distance) {
@@ -332,7 +332,19 @@ namespace HvZ.Common {
         }
 
         public string Bite(uint walkerId, uint target) {
-            return "blah";
+            if (map.humans.ContainsKey(walkerId)) return "humans are too polite to bite things";
+            if (!map.zombies.ContainsKey(walkerId)) return "your zombie has died before you could bite";
+            if (map.zombies.ContainsKey(target)) return "you can't bite another zombie.";
+            if (!map.humans.ContainsKey(target)) return "that human has already died.";
+            var biter = map.walkers[walkerId];
+            var bitee = map.walkers[target];
+            if (!biter.IsCloseEnoughToInteractWith(bitee)) return "you're not close enough to bite that human.";
+            ongoing.Remove(target);
+            map.Kill(target);
+            if (OnPlayerRemoved != null)
+                OnPlayerRemoved(this, new PlayerRemovedEventArgs() { PlayerId = target });
+            map.zombies[walkerId].Lifespan = WorldConstants.ZombieLifespan;
+            return null;
         }
         
         // taking something takes up a turn
