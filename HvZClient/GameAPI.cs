@@ -46,7 +46,7 @@ namespace HvZ {
             if (!CNG_called) Join_called = true;
         }
 
-        public void Start() {
+        public void Display() {
             app.Run();
         }
 
