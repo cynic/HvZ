@@ -5,6 +5,8 @@ using System.Text;
 
 namespace HvZ.Common {
     class HumanPlayer : IHumanPlayer {
+        uint IIdentified.Id { get { return playerId; } }
+
         readonly HvZConnection connection;
         readonly uint playerId;
         readonly Map map;
@@ -36,8 +38,14 @@ namespace HvZ.Common {
         }
 
         // these are common to humans & zombies.  C&P them?
-        public void Turn(double degrees) { connection.Send(Command.NewTurn(playerId, degrees)); }
-        public void GoForward(double distance) { connection.Send(Command.NewForward(playerId, distance)); }
+        public void Turn(double degrees) {
+            map.SetMovementState(playerId, MoveState.Moving);
+            connection.Send(Command.NewTurn(playerId, degrees));
+        }
+        public void GoForward(double distance) {
+            map.SetMovementState(playerId, MoveState.Moving);
+            connection.Send(Command.NewForward(playerId, distance));
+        }
         public Position Position { get { return map.walkers[playerId].Position; } }
         public double Radius { get { return map.walkers[playerId].Radius; } }
         public double Heading { get { return map.walkers[playerId].Heading; } }
@@ -53,6 +61,8 @@ namespace HvZ.Common {
     }
 
     class ZombiePlayer : IZombiePlayer {
+        uint IIdentified.Id { get { return playerId; } }
+
         readonly HvZConnection connection;
         readonly uint playerId;
         readonly Map map;
@@ -63,13 +73,19 @@ namespace HvZ.Common {
             map = m;
         }
 
-        public void Eat(IIdentified target) {
-            throw new NotImplementedException();
+        public void Bite(IIdentified target) {
+            connection.Send(Command.NewBite(playerId, target.Id));
         }
 
         // these are common to humans & zombies.  C&P them?
-        public void Turn(double degrees) { connection.Send(Command.NewTurn(playerId, degrees)); }
-        public void GoForward(double distance) { connection.Send(Command.NewForward(playerId, distance)); }
+        public void Turn(double degrees) {
+            map.SetMovementState(playerId, MoveState.Moving);
+            connection.Send(Command.NewTurn(playerId, degrees));
+        }
+        public void GoForward(double distance) {
+            map.SetMovementState(playerId, MoveState.Moving);
+            connection.Send(Command.NewForward(playerId, distance));
+        }
         public Position Position { get { return map.walkers[playerId].Position; } }
         public double Radius { get { return map.walkers[playerId].Radius; } }
         public double Heading { get { return map.walkers[playerId].Heading; } }
