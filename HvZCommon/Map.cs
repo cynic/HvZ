@@ -42,16 +42,6 @@ namespace HvZ {
             return zombies.ContainsKey(id);
         }
 
-        internal void CloseSlot() {
-            if (spawners.Count == 0) return; // nothing to do.
-            // WARNING: because of the next line, DO NOT call this while the game is running.
-            // You will break synchronisation between clients, and then you're screwed...
-            var spawner = spawners.PickOne();
-            spawners.Remove(spawner);
-            // replace with an obstacle instead.
-            obstacles.Add(new Obstacle(spawner.Position.X, spawner.Position.Y, spawner.Radius));
-        }
-
         internal void SetHeading(uint id, double newHeading) {
             if (humans.ContainsKey(id)) {
                 humans[id].Heading = newHeading;
