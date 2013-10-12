@@ -64,12 +64,19 @@ module Internal =
                | _ -> connToPlayers.[connId] <- (new System.Collections.Generic.List<_>([playerId]), send)
                sendAll (JoinOK (playerId, guid, map.GetSerializedData()))
             else
-               send (GameNo "There aren't any slots left for players on this map.")
+               if not <| send (GameNo "There aren't any slots left for players on this map.") then
+                  connToPlayers.Remove connId |> ignore
+         let gameEnded = ref false
+         myGame.OnGameEnded
+         |> Event.add (fun _ -> gameEnded := true)
          let rec loop (lastMoveTime : System.DateTime) =
             async {
                //if playerSends.Count = 0 then
                if connToPlayers.Count = 0 then
                   return! waitForPlayers ()
+               elif !gameEnded then
+                  printfn "Game %s has ended." gameId
+                  onGameOver ()
                else
                   let delay = int (System.DateTime.Now-lastMoveTime).TotalMilliseconds
                   if delay < 0 then

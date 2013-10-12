@@ -33,6 +33,9 @@ namespace HvZ.Client {
             Title = (string)Application.Current.Resources["gameName"];
             game = (ClientGame)Application.Current.Resources["clientGame"];
             game.OnMapChange += (_, __) => PlaceObjects(GUIMap, game.Map);
+            game.HumansWin += (_, __) => MessageBox.Show("Humans have survived, and all zombies are dead.  Humans win!", "Victory for Humans!");
+            game.ZombiesWin += (_, __) => MessageBox.Show("Zombies have killed all the humans.  Zombies win!", "Victory for Zombies!");
+            game.HumansWin += (_, __) => MessageBox.Show("Tragically, neither zombies nor humans survived.", "It's a draw.");
         }
 
         private static void placeWalker(string texture, IWalkerExtended walker, Canvas c) {

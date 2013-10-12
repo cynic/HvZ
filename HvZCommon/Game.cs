@@ -36,6 +36,10 @@ namespace HvZ.Common {
 
         System.Windows.Threading.Dispatcher dispatcher; // stupid, stupid, stupid WPF.  *sigh*.
 
+        public event EventHandler HumansWin;
+        public event EventHandler ZombiesWin;
+        public event EventHandler Draw;
+
         /// <summary>
         /// Create a new game, using the given map.
         /// </summary>
@@ -44,15 +48,33 @@ namespace HvZ.Common {
             dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
             this.gameName = gameName;
             connection.ConnectToServer("localhost");
+            world = new Game(map);
+            map.OnMapChange += (_, __) => { if (OnMapChange != null) OnMapChange(this, EventArgs.Empty); };
+            world.OnGameEnded += (_, args) => {
+                switch (args.Result) {
+                    case GameResult.HumansWin:
+                        if (HumansWin != null)
+                            HumansWin(this, EventArgs.Empty);
+                        break;
+                    case GameResult.ZombiesWin:
+                        if (ZombiesWin != null)
+                            ZombiesWin(this, EventArgs.Empty);
+                        break;
+                    case GameResult.Draw:
+                        if (Draw != null)
+                            Draw(this, EventArgs.Empty);
+                        break;
+                    default:
+                        break;
+                }
+            };
+            world.OnPlayerRemoved += (_, __) => { if (OnMapChange != null) OnMapChange(this, EventArgs.Empty); };
             // Setup complete.  Now receive the rest of the commands for the game.
             connection.OnCommandReceived += connection_OnGameCommand;
         }
 
         public void CreateGame(Map m) {
             map.PopulateFromSerializedData(m.GetSerializedData());
-            world = new Game(map);
-            world.OnPlayerAdded += (_, __) => { if (OnMapChange != null) OnMapChange(this, EventArgs.Empty); };
-            world.OnPlayerRemoved += (_, __) => { if (OnMapChange != null) OnMapChange(this, EventArgs.Empty); };
             connection.Send(Command.NewCreate(gameName, map.GetSerializedData()));
         }
 
@@ -157,8 +179,8 @@ namespace HvZ.Common {
         }
     }
 
-    internal class PlayerAddedEventArgs : EventArgs {
-        public uint PlayerId { get; set; }
+    internal class GameResultEventArgs : EventArgs {
+        public GameResult Result { get; set; }
     }
     internal class PlayerRemovedEventArgs : EventArgs {
         public uint PlayerId { get; set; }
@@ -172,6 +194,10 @@ namespace HvZ.Common {
         public Edge Edge { get; set; }
     }
 
+    enum GameResult {
+        None, ZombiesWin, HumansWin, Draw
+    }
+
     class Game {
         /* Assumptions:
          * - Humans move at 0.45 per turn.
@@ -179,12 +205,13 @@ namespace HvZ.Common {
          * - Turn-rate for humans and zombies is 20 degrees per turn.
          */
         private Random rng = new Random(12345); // fixed seed, deliberately non-static.
+        bool realGameStarted; // true if and only if both zombies & humans were once in the game.
+        bool realGameEnded; // true if and only if both zombies & humans were once in the game, and now only one side is left.
+        internal GameResult GameResult { get; private set; }
 
         private Map map;
-        //private Dictionary<uint, Human> humans = new Dictionary<uint, Human>();
-        //private Dictionary<uint, Zombie> zombies = new Dictionary<uint, Zombie>();
-        private Dictionary<uint, Action> ongoing = new Dictionary<uint, Action>();
-        public event EventHandler<PlayerAddedEventArgs> OnPlayerAdded;
+        private Dictionary<uint, Func<bool>> ongoing = new Dictionary<uint, Func<bool>>();
+        public event EventHandler<GameResultEventArgs> OnGameEnded;
         public event EventHandler<PlayerRemovedEventArgs> OnPlayerRemoved;
         public event EventHandler<CollisionEventArgs> OnEntityCollision;
         public event EventHandler<EdgeCollisionEventArgs> OnEdgeCollision;
@@ -197,6 +224,11 @@ namespace HvZ.Common {
         }
 
         public void Update() {
+            if (realGameStarted == false) {
+                realGameStarted = map.humans.Count > 0 && map.zombies.Count > 0;
+            }
+            if (realGameEnded)
+                return; // nothing to do!
             try {
                 // ensure that all walkers are a bit closer to death.
                 foreach (var h in map.Humans) if (h.Lifespan > 0) --h.Lifespan;
@@ -220,6 +252,21 @@ namespace HvZ.Common {
                     map.Kill(w.Key);
                     if (OnPlayerRemoved != null)
                         OnPlayerRemoved(this, new PlayerRemovedEventArgs() { PlayerId = w.Key });
+                }
+                // if the 'real' game has started, check for whether the game has ended.
+                var humansLeft = map.humans.Count;
+                var zombiesLeft = map.zombies.Count;
+                if (realGameStarted && (humansLeft == 0 || zombiesLeft == 0)) {
+                    if (humansLeft == 0 && zombiesLeft == 0) {
+                        GameResult = Common.GameResult.Draw;
+                    } else if (humansLeft > 0) {
+                        GameResult = Common.GameResult.HumansWin;
+                    } else { // zombiesLeft > 0
+                        GameResult = Common.GameResult.ZombiesWin;
+                    }
+                    realGameEnded = true;
+                    if (OnGameEnded != null)
+                        OnGameEnded(this, new GameResultEventArgs() { Result = this.GameResult });
                 }
                 if (OnTurnEnded != null) OnTurnEnded(this, EventArgs.Empty);
             } catch (Exception e) {
