@@ -44,10 +44,9 @@ namespace HvZ.Common {
         /// Create a new game, using the given map.
         /// </summary>
         /// <param name="map"></param>
-        public ClientGame(string gameName) {
+        public ClientGame(string gameName, string server) {
             dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
             this.gameName = gameName;
-            connection.ConnectToServer("localhost");
             world = new Game(map);
             map.OnMapChange += (_, __) => { if (OnMapChange != null) OnMapChange(this, EventArgs.Empty); };
             world.OnGameEnded += (_, args) => {
@@ -69,6 +68,7 @@ namespace HvZ.Common {
                 }
             };
             world.OnPlayerRemoved += (_, __) => { if (OnMapChange != null) OnMapChange(this, EventArgs.Empty); };
+            connection.ConnectToServer(server);
             // Setup complete.  Now receive the rest of the commands for the game.
             connection.OnCommandReceived += connection_OnGameCommand;
         }
