@@ -51,6 +51,8 @@ namespace HvZ {
         }
 
         internal void SetMovementState(uint id, MoveState newState) {
+            //Console.WriteLine("Setting the movement state of {0} to {1}", id, newState);
+            //Console.WriteLine(new System.Diagnostics.StackTrace());
             if (humans.ContainsKey(id)) {
                 humans[id].Movement = newState;
             } else {
@@ -171,6 +173,8 @@ namespace HvZ {
         }
 
         internal string GetSerializedData() {
+            // sorry, spanish people.  Maybe I'll fix this up some year.
+            System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
             var sb = new StringBuilder();
             sb.AppendFormat("wh:{0},{1}|", Width, Height);
             foreach (var z in zombies.Values)
@@ -193,6 +197,8 @@ namespace HvZ {
         }
 
         internal void PopulateFromSerializedData(string serialized) {
+            // sorry, spanish people.  Maybe I'll fix this up some year.
+            System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
             var dataItems = serialized.Split('|')
                 .Where(x => x.Length > 0)
                 .Select(x => x.Split(':'))
@@ -268,6 +274,7 @@ namespace HvZ {
                     default: throw new Exception(String.Format("Map is corrupt? I don't know what the '{0}' key means.", di.Key));
                 }
             }
+            if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
         }
 
         internal Map() {
