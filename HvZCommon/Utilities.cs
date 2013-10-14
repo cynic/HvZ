@@ -122,7 +122,7 @@ namespace HvZ {
 
         internal static double MinimumAngle(this double x) {
             if (x == 0.0) return x;
-            if (Math.Abs(x) < 0.01) return 0.01 * Math.Sign(x);
+            if (Math.Abs(x) < 0.0001) return 0.0001 * Math.Sign(x);
             return x;
         }
 

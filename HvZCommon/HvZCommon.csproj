@@ -48,6 +48,7 @@
     <Compile Include="Foundation.cs" />
     <Compile Include="Game.cs" />
     <Compile Include="Map.cs" />
+    <Compile Include="Missile.cs" />
     <Compile Include="Obstacle.cs" />
     <Compile Include="Places.cs" />
     <Compile Include="Players.cs" />

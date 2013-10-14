@@ -8,37 +8,9 @@
         <ImageBrush x:Key="spawnpoint" ImageSource="Images/box.png" />
         <ImageBrush x:Key="obstacle" ImageSource="Images/obstacle.png" />
         <ImageBrush x:Key="supply" ImageSource="Images/supplyP.png" />
-        <ControlTemplate x:Key="ButtonTemplate" TargetType="{x:Type Button}">
-            <ContentPresenter>
-                <ContentPresenter.Content>
-                    <Grid x:Name="backColor" Background="Black">
-                        <Image x:Name="box"  HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5">
-                            <Image.Source>
-                                <CroppedBitmap Source="Images/butt.png" SourceRect="88,0,44,44" />
-                            </Image.Source>
-                        </Image>
-                        <Label Margin="35,0,0,0" Content="{TemplateBinding Content}" FontWeight="Bold" Foreground="White" VerticalContentAlignment="Center" />
-                    </Grid>
-                </ContentPresenter.Content>
-            </ContentPresenter>
-        </ControlTemplate>
-        <ControlTemplate x:Key="InsideButtonTemplateNoImage" TargetType="{x:Type Button}">
-            <ContentPresenter>
-                <ContentPresenter.Content>
-                    <Grid x:Name="backColor" Background="SkyBlue" Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
-                        <Label x:Name="text" Content="{TemplateBinding Content}" FontWeight="Bold" Foreground="White" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
-                    </Grid>
-                </ContentPresenter.Content>
-            </ContentPresenter>
-            <ControlTemplate.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter TargetName="backColor" Property="Background" Value="DarkBlue" />
-                </Trigger>
-                <Trigger Property="IsEnabled" Value="False">
-                    <Setter TargetName="backColor" Property="Background" Value="Beige" />
-                    <Setter TargetName="text" Property="FontWeight" Value="Normal" />
-                </Trigger>
-            </ControlTemplate.Triggers>
-        </ControlTemplate>
+        <RadialGradientBrush x:Key="missile" GradientOrigin=".5,.8" RadiusX="0.6">
+            <GradientStop Color="#002255" Offset="1" />
+            <GradientStop Color="#00eeff" Offset="0" />
+        </RadialGradientBrush>
     </Application.Resources>
 </Application>

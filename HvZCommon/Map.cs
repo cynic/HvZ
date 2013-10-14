@@ -10,6 +10,7 @@ namespace HvZ {
         internal Dictionary<uint, Zombie> zombies = new Dictionary<uint, Zombie>();
         internal Dictionary<uint, Human> humans = new Dictionary<uint, Human>();
         internal Dictionary<uint, IWalkerExtended> walkers = new Dictionary<uint, IWalkerExtended>();
+        internal List<Missile> missiles = new List<Missile>();
         internal List<SpawnPoint> spawners = new List<SpawnPoint>();
         internal List<Obstacle> obstacles = new List<Obstacle>();
         internal List<ResupplyPoint> resupply = new List<ResupplyPoint>();
@@ -24,6 +25,7 @@ namespace HvZ {
                 foreach (var s in spawners) yield return s;
             }
         }
+        internal IEnumerable<IVisual> Missiles { get { return missiles; } }
         internal IEnumerable<ResupplyPoint> ResupplyPoints { get { return resupply; } }
 
         internal event EventHandler<CollisionEventArgs> OnEntityCollision;
@@ -107,6 +109,11 @@ namespace HvZ {
             var w = walkers[id];
             walkers.Remove(id);
             spawners.Add(new SpawnPoint(w.Position.X, w.Position.Y, WorldConstants.WalkerRadius));
+        }
+
+        internal void AddMissile(Missile m) {
+            missiles.Add(m);
+            if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
         }
 
         internal bool AddHuman(uint id, string name) {
@@ -193,6 +200,8 @@ namespace HvZ {
                 foreach (var i in r.Available) sb.Append(i == SupplyItem.Food ? 'f' : 's');
                 sb.Append('|');
             }
+            foreach (var m in missiles)
+                sb.AppendFormat("m:{0},{1},{2},{3},{4}|", m.Id, m.Lifespan, m.Position.X, m.Position.Y, m.Heading);
             return sb.ToString();
         }
 
@@ -210,6 +219,7 @@ namespace HvZ {
             spawners.Clear();
             obstacles.Clear();
             resupply.Clear();
+            missiles.Clear();
             // parse-back functions.  Not the most secure in the world, but time is pressing...
             Func<string,string,Position> parsePos = (a,b) => new Position(Double.Parse(a), Double.Parse(b));
             Action<string[]> Z = xs => {
@@ -258,6 +268,15 @@ namespace HvZ {
                 r.stored.AddRange(supply);
                 resupply.Add(r);
             };
+            Action<string[]> M = xs => {
+                var id = xs[0];
+                var lifespan = Int32.Parse(xs[1]);
+                var x = Double.Parse(xs[2]);
+                var y = Double.Parse(xs[3]);
+                var h = Double.Parse(xs[4]);
+                var m = new Missile(id, lifespan, x, y, h);
+                missiles.Add(m);
+            };
             Action<string[]> WH = xs => {
                 Width = Int32.Parse(xs[0]);
                 Height = Int32.Parse(xs[1]);
@@ -271,6 +290,7 @@ namespace HvZ {
                     case "o": O(di.Values); break;
                     case "r": R(di.Values); break;
                     case "wh": WH(di.Values); break;
+                    case "m": M(di.Values); break;
                     default: throw new Exception(String.Format("Map is corrupt? I don't know what the '{0}' key means.", di.Key));
                 }
             }
@@ -279,6 +299,52 @@ namespace HvZ {
 
         internal Map() {
             // completely empty.
+        }
+
+        internal void MoveMissile(Missile missile) {
+            missile = missiles.FirstOrDefault(m => m.Id == missile.Id);
+            if (missile == null)
+                return; // missile already destroyed, perhaps by collision with another missile.
+            missile.Move();
+            // hrmmmmm.  There may be an off-by-one in the lifespan calculation because of the lifespan check below...?
+            // I wonder if I should care more.
+            if (missile.Position.X < 0 || missile.Position.Y < 0 || missile.Position.X > Width || missile.Position.Y > Height || missile.Lifespan == 0) {
+                missiles.Remove(missile); // out of sight, out of mind.
+                if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
+                return;
+            }
+            // double-check against walkers.
+            foreach (var kvp in walkers) {
+                if (kvp.Value.Intersects(missile)) {
+                    // kill the missile, in any case.
+                    missiles.Remove(missile);
+                    if (IsZombie(kvp.Key)) {
+                        // stun it.
+                    } else {
+                        // leave the human unaffected.  No friendly fire.
+                    }
+                    if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
+                    return;
+                }
+            }
+            // double-check against obstacles.
+            foreach (var o in Obstacles) { // capital-O Obstacles.  Includes spawnpoints.
+                if (o.Intersects(missile)) {
+                    missiles.Remove(missile); // g'bye, missile.
+                    if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
+                    return;
+                }
+            }
+            // and now check if it runs into any other missiles.  If so, destroy them both.
+            foreach (var mx in missiles) {
+                if (mx.Id == missile.Id) continue; // don't check for intersection against myself...
+                if (missile.Intersects(mx)) {
+                    missiles.Remove(missile);
+                    missiles.Remove(mx);
+                    if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
+                    return;
+                }
+            }
         }
     }
 }

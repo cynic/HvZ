@@ -91,7 +91,7 @@ module Internal =
                         | Eat wId -> checkOwnPlayer wId (fun () -> myGame.Eat(wId))
                         | TakeFood (wId, fromWhere) -> checkOwnPlayer wId (fun () -> myGame.TakeFood(wId, fromWhere))
                         | TakeSocks (wId, fromWhere) -> checkOwnPlayer wId (fun () -> myGame.TakeSocks(wId, fromWhere))
-                        | Throw (wId, heading) -> checkOwnPlayer wId (fun () -> myGame.Throw(wId, heading))
+                        | Throw (missileId, wId, heading) -> checkOwnPlayer wId (fun () -> myGame.Throw(missileId, wId, heading))
                         | HumanJoin (x, guid, name) when x = gameId ->
                            let playerId = nextUIntId ()
                            //eprintfn "human playerId for %s = %d" guid playerId
@@ -190,7 +190,8 @@ let internal handleRequest connId cmd send =
 [<EntryPoint>]
 let main argv = 
    Console.Title <- "HvZ Server"
-   let listener = TcpListener(IPAddress.Any, 2310)
+   let port = 2311
+   let listener = TcpListener(IPAddress.Any, port)
    try
       listener.Server.LingerState <- LingerOption(false, 1)
       listener.Start()
@@ -213,9 +214,9 @@ let main argv =
                   string x // p
          getExternalIP (List.ofSeq host.AddressList) None
       async {
-         printfn "Server up, listening on port 2310"
+         printfn "Server up, listening on port %d" port
          printfn "To connect to this server from your code, use something like"
-         printfn "   Game g = new Game(\"%s\");" myAddress
+         printfn "   Game g = new Game(\"%s\", %d);" myAddress port
          printfn "instead of"
          printfn "   Game g = new Game();"
          printfn "Press Ctrl-C or close this window to stop the server."

@@ -6,10 +6,6 @@ using System.Threading.Tasks;
 using System.ComponentModel;
 
 namespace HvZ.Common {
-    interface IVisual : ITakeSpace {
-        string Texture { get; }
-    }
-
     static class WorldConstants {
         internal const double WalkerRadius = 0.95; // shared by Human, Zombie, and Box
         // terrain covered per turn
@@ -30,5 +26,12 @@ namespace HvZ.Common {
         internal const double InteractionDistance = 0.25;
         // Maximum number of items that can be carried by a human.
         internal const int MaximumItemsCarried = 6;
+        // How many turns missiles last
+        internal const int MissileLifespan = 20;
+        // How much terrain a missile covers per turn
+        internal const double MissileSpeed = 0.65;
+        internal const double MissileRadius = 0.1;
+        // When a missile hits, how many turns is the target stunned for?
+        internal const int StunLength = 15;
     }
 }

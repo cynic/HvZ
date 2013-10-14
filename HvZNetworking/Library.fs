@@ -42,12 +42,24 @@ type ITakeSpace =
 type MoveState =
 | Stopped = 0
 | Moving = 1
+| Stunned = 2
 
-type IWalker =
+type IDirected =
    inherit ITakeSpace
-   inherit IIdentified
    /// <summary>heading is in degrees, 0 is directly upwards</summary>
    abstract member Heading : float with get
+
+type IVisual =
+   inherit ITakeSpace
+   abstract member Texture : string with get
+
+type IDirectedVisual =
+   inherit IDirected
+   inherit IVisual
+
+type IWalker =
+   inherit IDirected
+   inherit IIdentified
    abstract member Name : string with get
    abstract member Lifespan : int with get
    abstract member MaximumLifespan : int with get
@@ -74,7 +86,7 @@ type internal Command =
 | Bite of uint32 * uint32 // biter * bitten
 | TakeFood of uint32 * uint32 // who-takes-it * taken-from-where
 | TakeSocks of uint32 * uint32 // who-takes-it * taken-from-where
-| Throw of uint32 * float // walkerId * heading
+| Throw of string * uint32 * float // missileId * walkerId * heading
 | ZombieJoin of string * string * string // b64gameId * correlator-guid * name * mapData
 | HumanJoin of string * string * string  // b64gameId * correlator-guid * name * mapData
 | Create of string * string // game-name * mapdata
@@ -108,7 +120,7 @@ type internal ICommandInterpreter =
    abstract member Bite : walkerId:uint32 -> target:uint32 -> unit
    abstract member TakeFood : walkerId:uint32 -> resupplyId:uint32 -> unit // who-takes-it -> taken-from-where
    abstract member TakeSocks : walkerId:uint32 -> resupplyId:uint32 -> unit // who-takes-it -> taken-from-where
-   abstract member Throw : walkerId:uint32 -> heading:float -> unit // walkerId -> heading
+   abstract member Throw : missileId:string -> walkerId:uint32 -> heading:float -> unit // walkerId -> heading
    abstract member JoinOK : walkerId:uint32 -> guid:string -> mapData:string -> unit
    abstract member Move : unit -> unit
    abstract member GameNo : reason:string -> unit // reason for rejection
@@ -123,7 +135,7 @@ type internal Command with
       | Eat wId -> x.Eat wId
       | TakeFood (wId, fromWhere) -> x.TakeFood wId fromWhere
       | TakeSocks (wId, fromWhere) -> x.TakeSocks wId fromWhere
-      | Throw (wId, heading) -> x.Throw wId heading
+      | Throw (missileId, wId, heading) -> x.Throw missileId wId heading
       | Bite (wId, target) -> x.Bite wId target
       | JoinOK (walkerId, guid, mapData) -> x.JoinOK walkerId guid mapData
       | Move -> x.Move ()
@@ -192,13 +204,13 @@ module internal Internal =
    let internal toProtocol cmd =
       let s =
          match cmd with
-         | Forward (wId, dist) -> sprintf "forward %d %.2f" wId dist
-         | Turn (wId, degrees) -> sprintf "turn %d %.2f" wId degrees
+         | Forward (wId, dist) -> sprintf "forward %d %.4f" wId dist
+         | Turn (wId, degrees) -> sprintf "turn %d %.4f" wId degrees
          | Eat wId -> sprintf "eat %d" wId
          | Bite (wId, target) -> sprintf "bite %d %d" wId target
          | TakeFood (wId, fromWhere) -> sprintf "takefood %d %d" wId fromWhere
          | TakeSocks (wId, fromWhere) -> sprintf "takesocks %d %d" wId fromWhere
-         | Throw (wId, heading) -> sprintf "throw %d %.2f" wId heading
+         | Throw (missileId, wId, heading) -> sprintf "throw %s %d %.4f" missileId wId heading
          | ZombieJoin (gameId, guid, name) ->
             if name = null || name.Length = 0 then failwith "No name supplied for this Zombie"
             if name.Length > 500 then failwith "Name of Zombie is too long"
@@ -227,13 +239,13 @@ module internal Internal =
          let re = Regex(reString, RegexOptions.Compiled ||| RegexOptions.IgnoreCase ||| RegexOptions.Singleline)
          re, f
       let matchers = [|
-         makeMatcher @"^forward (\d+) (\d{0,6}\.\d{2})$" (fun m -> Forward(uint32 m.[1], float m.[2]))
-         makeMatcher @"^turn (\d+) (-?\d{0,5}\.\d{2})$" (fun m -> Turn(uint32 m.[1], float m.[2]))
+         makeMatcher @"^forward (\d+) (\d{0,6}\.\d{2,4})$" (fun m -> Forward(uint32 m.[1], float m.[2]))
+         makeMatcher @"^turn (\d+) (-?\d{0,5}\.\d{2,4})$" (fun m -> Turn(uint32 m.[1], float m.[2]))
          makeMatcher @"^eat (\d+)$" (fun m -> Eat(uint32 m.[1]))
          makeMatcher @"^bite (\d+) (\d+)$" (fun m -> Bite(uint32 m.[1], uint32 m.[2]))
          makeMatcher @"^takefood (\d+) (\d+)$" (fun m -> TakeFood(uint32 m.[1], uint32 m.[2]))
          makeMatcher @"^takesocks (\d+) (\d+)$" (fun m -> TakeSocks(uint32 m.[1], uint32 m.[2]))
-         makeMatcher @"^throw (\d+) (\d+\.\d{2})$" (fun m -> Throw(uint32 m.[1], float m.[2]))
+         makeMatcher @"^throw ([^ ]+) (\d+) (\d+\.\d{2,4})$" (fun m -> Throw(m.[1], uint32 m.[2], float m.[3]))
          makeMatcher @"^zjoin ([^ ]{1,100}) ([^ ]+) (.{1,500})$" (fun m -> ZombieJoin(fromBase64 m.[1], m.[2], m.[3]))
          makeMatcher @"^hjoin ([^ ]{1,100}) ([^ ]+) (.{1,500})$" (fun m -> HumanJoin(fromBase64 m.[1], m.[2], m.[3]))
          makeMatcher @"^create ([^ ]{1,100}) (.{1,99500})$" (fun m -> Create(fromBase64 m.[1], m.[2]))
@@ -393,8 +405,8 @@ type internal HvZConnection() as this =
                conn.Close()
          )
       | None -> failwith "You can't send messages to a server until you're connected to it."
-   member __.ConnectToServer server =
-      let client = new TcpClient(server, 2310, LingerState = LingerOption(false, 0))
+   member __.ConnectToServer server port =
+      let client = new TcpClient(server, port, LingerState = LingerOption(false, 0))
       conn <- Some client
       clientHandleTcp client onClosed onCommandReceived
    member __.Send msg = send msg

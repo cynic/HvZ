@@ -44,7 +44,7 @@ namespace HvZ.Common {
         /// Create a new game, using the given map.
         /// </summary>
         /// <param name="map"></param>
-        public ClientGame(string gameName, string server) {
+        public ClientGame(string gameName, string server, int port) {
             dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
             this.gameName = gameName;
             world = new Game(map);
@@ -68,7 +68,7 @@ namespace HvZ.Common {
                 }
             };
             world.OnPlayerRemoved += (_, __) => { if (OnMapChange != null) OnMapChange(this, EventArgs.Empty); };
-            connection.ConnectToServer(server);
+            connection.ConnectToServer(server, port);
             // Setup complete.  Now receive the rest of the commands for the game.
             connection.OnCommandReceived += connection_OnGameCommand;
         }
@@ -80,13 +80,19 @@ namespace HvZ.Common {
 
         public void AddZombie(IZombieAI ai) {
             var guid = Guid.NewGuid().ToString();
-            Console.WriteLine("Using zombie guid={0}", guid);
+            //Console.WriteLine("Using zombie guid={0}", guid);
             playerAdded += new Action<uint,string>((playerId, corr) => {
                 if (corr != guid) return; // not the zombie we're looking for!
                 var player = new ZombiePlayer(connection, playerId, map);
+                //bool availableToDecide = true;
                 var askAI = new Action(() => {
-                    if (map.walkers.ContainsKey(playerId)) {
-                        ai.DoSomething(player, new List<IWalker>(map.Zombies.Where(x => x.Id != playerId)), new List<IWalker>(map.Humans), new List<ITakeSpace>(map.Obstacles), new List<ResupplyPoint>(map.ResupplyPoints));
+                    if (map.walkers.ContainsKey(playerId)/* && availableToDecide*/) {
+                        //availableToDecide = false;
+                        //try {
+                            ai.DoSomething(player, new List<IWalker>(map.Zombies.Where(x => x.Id != playerId)), new List<IWalker>(map.Humans), new List<ITakeSpace>(map.Obstacles), new List<ResupplyPoint>(map.ResupplyPoints));
+                        //} finally {
+                            //availableToDecide = true;
+                        //}
                     }
                 });
                 requestDecision += askAI;
@@ -100,13 +106,19 @@ namespace HvZ.Common {
 
         public void AddHuman(IHumanAI ai) {
             var guid = Guid.NewGuid().ToString();
-            Console.WriteLine("Using human guid={0}", guid);
+            //Console.WriteLine("Using human guid={0}", guid);
             playerAdded += new Action<uint, string>((playerId, corr) => {
                 if (corr != guid) return; // not the human we're looking for!
                 var player = new HumanPlayer(connection, playerId, map);
+                //bool availableToDecide = true;
                 var askAI = new Action(() => {
-                    if (map.walkers.ContainsKey(playerId)) {
-                        ai.DoSomething(player, new List<IWalker>(map.Zombies), new List<IWalker>(map.Humans.Where(x => x.Id != playerId)), new List<ITakeSpace>(map.Obstacles), new List<ResupplyPoint>(map.ResupplyPoints));
+                    if (map.walkers.ContainsKey(playerId) /*&& availableToDecide*/) {
+                        //availableToDecide = false;
+                        //try {
+                            ai.DoSomething(player, new List<IWalker>(map.Zombies), new List<IWalker>(map.Humans.Where(x => x.Id != playerId)), new List<ITakeSpace>(map.Obstacles), new List<ResupplyPoint>(map.ResupplyPoints));
+                        //} finally {
+                            //availableToDecide = true;
+                        //}
                     }
                 });
                 requestDecision += askAI;
@@ -164,8 +176,8 @@ namespace HvZ.Common {
             world.TakeSocks(walkerId, resupplyId);
         }
 
-        void ICommandInterpreter.Throw(uint walkerId, double heading) {
-            throw new NotImplementedException();
+        void ICommandInterpreter.Throw(string missileId, uint walkerId, double heading) {
+            world.Throw(missileId, walkerId, heading);
         }
 
         public event EventHandler OnMapChange;
@@ -254,6 +266,16 @@ namespace HvZ.Common {
                 }
                 // now ask the resupplypoints to replenish their stock, if they can.
                 foreach (var r in map.ResupplyPoints) r.Update();
+                // now move any missiles on the map.  Done in a separate step to allow Matrix-like sidesteps ;) ... we'll see how that works out in practice, I guess.
+                for (int i = 0; i < WorldConstants.StepsPerTurn; ++i) {
+                    foreach (var missile in map.missiles.ToArray()) {
+                        map.MoveMissile(missile);
+                    }
+                }
+                // decrease missile lifespan.
+                foreach (var missile in map.missiles.ToArray()) {
+                    --missile.Lifespan;
+                }
                 // now check for death-by-timeout.
                 // We do this now because it's possible for a walker to do something on the turn that they're about to die on (e.g. eat food or bite a victim).
                 foreach (var w in map.walkers.ToArray()) {
@@ -354,11 +376,19 @@ namespace HvZ.Common {
             var biter = map.walkers[walkerId];
             var bitee = map.walkers[target];
             if (!biter.IsCloseEnoughToInteractWith(bitee)) return "you're not close enough to bite that human.";
-            ongoing.Remove(target);
-            map.Kill(target);
-            if (OnPlayerRemoved != null)
-                OnPlayerRemoved(this, new PlayerRemovedEventArgs() { PlayerId = target });
-            map.zombies[walkerId].Lifespan = WorldConstants.ZombieLifespan;
+            bool bitten = false;
+            map.SetMovementState(walkerId, MoveState.Stopped);
+            Func<bool> act = () => {
+                if (bitten) return false; // done.
+                ongoing.Remove(target);
+                map.Kill(target);
+                map.zombies[walkerId].Lifespan = WorldConstants.ZombieLifespan;
+                bitten = true;
+                if (OnPlayerRemoved != null)
+                    OnPlayerRemoved(this, new PlayerRemovedEventArgs() { PlayerId = target });
+                return false;
+            };
+            ongoing[walkerId] = act;
             return null;
         }
         
@@ -390,8 +420,26 @@ namespace HvZ.Common {
         public string TakeSocks(uint walkerId, uint fromWhere) {
             return Take(walkerId, fromWhere, SupplyItem.Sock);
         }
-        public string Throw(uint walkerId, double heading) {
-            return "bleh";
+        public string Throw(string missileId, uint walkerId, double heading) {
+            if (map.zombies.ContainsKey(walkerId)) return "zombies don't throw socks";
+            if (!map.humans.ContainsKey(walkerId)) return "your human has been removed from the game";
+            var h = map.humans[walkerId];
+            if (!h.Items.Contains(SupplyItem.Sock))  return "you don't have any socks in your inventory.";
+            bool thrown = false;
+            map.SetMovementState(walkerId, MoveState.Stopped);
+            Func<bool> act = () => {
+                if (thrown) return false; // done.
+                h.RemoveItem(SupplyItem.Sock);
+                h.Lifespan = h.MaximumLifespan;
+                var d = WorldConstants.WalkerRadius + WorldConstants.MissileRadius;
+                var missileX = d * Math.Sin(heading.ToRadians());
+                var missileY = d * Math.Cos(heading.ToRadians());
+                map.AddMissile(new Missile(missileId, WorldConstants.MissileLifespan, h.Position.X + missileX, h.Position.Y - missileY, heading));
+                thrown = true;
+                return false;
+            };
+            ongoing[walkerId] = act;
+            return null;
         }
     }
 }

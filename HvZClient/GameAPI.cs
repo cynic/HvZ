@@ -11,12 +11,14 @@ namespace HvZ {
         GameWindow g;
         App app;
         readonly string server;
+        readonly int port;
         private bool CNG_called, Join_called;
         private List<IZombieAI> zAI = new List<IZombieAI>();
         private List<IHumanAI> hAI = new List<IHumanAI>();
 
-        public Game(string server = "146.231.122.45") {
+        public Game(string server = "146.231.122.45", int port = 2310) {
             this.server = server;
+            this.port = port;
             app = new App();
             app.InitializeComponent();
         }
@@ -24,7 +26,7 @@ namespace HvZ {
         private void initializeGameWindow(string gameName) {
             app.Resources["gameName"] = gameName;
             try {
-                clientGame = new ClientGame(gameName, server);
+                clientGame = new ClientGame(gameName, server, port);
             } catch (System.Net.Sockets.SocketException) {
                 throw new Exception("The game server has crashed (I can't connect to it, anyway...)! Find your lecturer and tell him. He'll restart it for you.");
             }

@@ -18,9 +18,6 @@ using System.Windows.Threading;
 using HvZ.Common;
 
 namespace HvZ.Client {
-    enum Role {
-        Invalid, Human, Zombie
-    }
     /// <summary>Interaction logic for MainWindow.xaml</summary>
     partial class GameWindow : Window {
         internal ClientGame game;
@@ -36,6 +33,32 @@ namespace HvZ.Client {
             game.HumansWin += (_, __) => MessageBox.Show("Humans have survived, and all zombies are dead.  Humans win!", "Victory for Humans!");
             game.ZombiesWin += (_, __) => MessageBox.Show("Zombies have killed all the humans.  Zombies win!", "Victory for Zombies!");
             game.HumansWin += (_, __) => MessageBox.Show("Tragically, neither zombies nor humans survived.", "It's a draw.");
+        }
+
+        private static void placeMissile(IDirectedVisual missile, Canvas c) {
+            var e = new Ellipse() { Width = missile.Radius * 2 + 0.2, Height = missile.Radius * 2 + 0.2 };
+            e.Fill = (Brush)Application.Current.Resources[missile.Texture];
+            //e.Stroke = Brushes.;
+            //e.StrokeThickness = 0.1;
+            var group = new TransformGroup();
+            var translate = new TranslateTransform(missile.Position.X - missile.Radius, missile.Position.Y - missile.Radius);
+            var rotate = new RotateTransform(missile.Heading, missile.Radius, missile.Radius);
+            group.Children.Add(rotate);
+            group.Children.Add(translate);
+            e.RenderTransform = group;
+            ((System.ComponentModel.INotifyPropertyChanged)missile.Position).PropertyChanged += (_, args) => {
+                switch (args.PropertyName) {
+                    case "X":
+                        translate.X = missile.Position.X - missile.Radius;
+                        break;
+                    case "Y":
+                        translate.Y = missile.Position.Y - missile.Radius;
+                        break;
+                    default:
+                        throw new Exception("Unhandled property name from Position");
+                }
+            };
+            c.Children.Add(e);
         }
 
         private static void placeWalker(string texture, IWalkerExtended walker, Canvas c) {
@@ -130,6 +153,7 @@ namespace HvZ.Client {
             foreach (var s in m.ResupplyPoints) placeResupply(s, c);
             foreach (var h in m.Humans) placeWalker("human", h, c);
             foreach (var z in m.Zombies) placeWalker("zombie", z, c);
+            foreach (var mx in m.missiles) placeMissile(mx, c);
         }
 
         private void Window_Resized(object sender, SizeChangedEventArgs e) {

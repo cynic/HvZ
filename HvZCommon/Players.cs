@@ -34,7 +34,7 @@ namespace HvZ.Common {
         }
 
         public void Throw(double heading) {
-            connection.Send(Command.NewThrow(playerId, heading));
+            connection.Send(Command.NewThrow(Guid.NewGuid().ToString("N"), playerId, heading));
         }
 
         // these are common to humans & zombies.  C&P them?
