@@ -71,6 +71,8 @@ namespace HvZ.Common {
             Radius = WorldConstants.WalkerRadius;
         }
 
+        bool IWalker.IsStunned { get { return false; } }
+
         public event PropertyChangedEventHandler PropertyChanged;
     }
 
@@ -79,7 +81,28 @@ namespace HvZ.Common {
             return String.Format("Zombie {0}, {1}, at {2} heading {3}", Name, Movement, Position, Heading);
         }
 
+        int stunRemaining = 0;
+        internal int StunRemaining {
+            get {
+                return stunRemaining;
+            }
+            set {
+                stunRemaining = value;
+                if (PropertyChanged != null)
+                    PropertyChanged(this, new PropertyChangedEventArgs("StunRemaining"));
+            }
+        }
+
         private Map map;
+
+        public bool IsStunned { get { return stunRemaining > 0; } }
+
+        internal void Stun() {
+            if (IsStunned)
+                return; // stun doesn't stack.
+            Movement = MoveState.Stopped;
+            stunRemaining = WorldConstants.StunLength;
+        }
 
         double heading;
         public double Heading {

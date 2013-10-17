@@ -25,14 +25,26 @@ namespace HvZ.Client {
         // A better plan might be to do most of this stuff in XAML, using DataTemplates http://msdn.microsoft.com/en-us/library/ms742521.aspx
         // Let's see if I can get away with implementing INotifyPropertyChanged.  Necessary, but such boilerplate in C#...
 
+        string MakeScoreboard() {
+            var sb = new StringBuilder();
+            foreach (var kvp in game.scoreboard) {
+                if (game.Map.walkers.ContainsKey(kvp.Key)) {
+                    sb.AppendFormat("{0} - still alive!\n", kvp.Value.Item1);
+                } else {
+                    sb.AppendFormat("{0} - survived for {1:F2} seconds\n", kvp.Value.Item1, TimeSpan.FromTicks(kvp.Value.Item2).TotalSeconds);
+                }
+            }
+            return sb.ToString();
+        }
+
         public GameWindow() {
             InitializeComponent();
             Title = (string)Application.Current.Resources["gameName"];
             game = (ClientGame)Application.Current.Resources["clientGame"];
             game.OnMapChange += (_, __) => PlaceObjects(GUIMap, game.Map);
-            game.HumansWin += (_, __) => MessageBox.Show("Humans have survived, and all zombies are dead.  Humans win!", "Victory for Humans!");
-            game.ZombiesWin += (_, __) => MessageBox.Show("Zombies have killed all the humans.  Zombies win!", "Victory for Zombies!");
-            game.HumansWin += (_, __) => MessageBox.Show("Tragically, neither zombies nor humans survived.", "It's a draw.");
+            game.HumansWin += (_, __) => MessageBox.Show("Humans have survived, and all zombies are dead.  Humans win!\n" + MakeScoreboard(), "Victory for Humans!");
+            game.ZombiesWin += (_, __) => MessageBox.Show("Zombies have killed all the humans.  Zombies win!\n" + MakeScoreboard(), "Victory for Zombies!");
+            game.Draw += (_, __) => MessageBox.Show("Tragically, neither zombies nor humans survived.\n" + MakeScoreboard(), "It's a draw.");
         }
 
         private static void placeMissile(IDirectedVisual missile, Canvas c) {
@@ -65,7 +77,7 @@ namespace HvZ.Client {
             var e = new Ellipse() { Width = walker.Radius*2, Height = walker.Radius*2 };
             e.Fill = (ImageBrush)Application.Current.Resources[texture];
             //e.Stroke = Brushes.Gray;
-            //e.StrokeThickness = 0.05;
+            e.StrokeThickness = 0.2;
             // this is the direction arc, which shows which way the player is facing.
             var frontStrokeThickness = 0.25;
             var dirpath = new Path() { Stroke = Brushes.HotPink, StrokeThickness = frontStrokeThickness, StrokeEndLineCap = PenLineCap.Round, StrokeStartLineCap = PenLineCap.Round, Opacity=0.6 };
@@ -113,6 +125,13 @@ namespace HvZ.Client {
                         var amount = (double)walker.Lifespan / (double)walker.MaximumLifespan;
                         green.Offset = amount-0.01;
                         red.Offset = amount;
+                        break;
+                    case "StunRemaining":
+                        if (((Zombie)walker).IsStunned) {
+                            e.Stroke = Brushes.Yellow;
+                        } else {
+                            e.Stroke = null;
+                        }
                         break;
                     default: throw new Exception("Unhandled property name from Walker");
                 }

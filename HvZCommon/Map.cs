@@ -79,11 +79,11 @@ namespace HvZ {
                 if (kvp.Key == id) continue;
                 if (kvp.Value.Intersects(newX, newY, walker.Radius)) {
                     SetMovementState(id, MoveState.Stopped);
-                    var isSameWalkerKind = walker.GetType().Equals(kvp.Value.GetType());
-                    // only call when zombies bump into zombies, or humans bump into humans.
-                    // Don't call when zombies bump into humans, or humans bump into zombies.
+                    // Exception: don't call when zombies bump into humans.
                     // This feature was a class request.
-                    if (isSameWalkerKind && OnEntityCollision != null) OnEntityCollision(this, new CollisionEventArgs() { CollidedWith = kvp.Value, PlayerId = id });
+                    if (walker is Zombie && kvp.Value is Human) {
+                        // ignore.
+                    } else if (OnEntityCollision != null) OnEntityCollision(this, new CollisionEventArgs() { CollidedWith = kvp.Value, PlayerId = id });
                     return false;
                 }
             }
@@ -319,10 +319,8 @@ namespace HvZ {
                     // kill the missile, in any case.
                     missiles.Remove(missile);
                     if (IsZombie(kvp.Key)) {
-                        // stun it.
-                    } else {
-                        // leave the human unaffected.  No friendly fire.
-                    }
+                        ((Zombie)kvp.Value).Stun(); // stun it.  (I know, I'm stunned too.)
+                    } // otherwise, if it's a human, leave it unaffected.  No friendly fire.
                     if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
                     return;
                 }

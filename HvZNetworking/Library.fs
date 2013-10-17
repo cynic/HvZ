@@ -42,7 +42,6 @@ type ITakeSpace =
 type MoveState =
 | Stopped = 0
 | Moving = 1
-| Stunned = 2
 
 type IDirected =
    inherit ITakeSpace
@@ -64,6 +63,7 @@ type IWalker =
    abstract member Lifespan : int with get
    abstract member MaximumLifespan : int with get
    abstract member Movement : MoveState with get
+   abstract member IsStunned : bool with get
 
 namespace HvZ.Common
 open HvZ
@@ -161,6 +161,8 @@ type IHumanPlayer =
    abstract member MapWidth : float with get
    abstract member MapHeight : float with get
    abstract member Inventory : SupplyItem[] with get
+   abstract member InventorySlotsLeft : int with get
+   abstract member IsInSockRange : other:ITakeSpace -> bool
    abstract member Movement : MoveState with get
 
 type IZombiePlayer =

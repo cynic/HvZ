@@ -17,6 +17,16 @@ namespace HvZ.Common {
             map = m;
         }
 
+        public int InventorySlotsLeft { get { return WorldConstants.MaximumItemsCarried - map.humans[playerId].Items.Length; } }
+
+        public bool IsInSockRange(ITakeSpace other) {
+            var dist = other.DistanceFrom(this);
+            var sockRange = (WorldConstants.MissileLifespan - 1) * WorldConstants.MissileSpeed;
+            return dist <= sockRange;
+        }
+
+        bool IWalker.IsStunned { get { return false; } }
+
         public void Eat() {
             connection.Send(Command.NewEat(playerId));
         }
@@ -34,7 +44,7 @@ namespace HvZ.Common {
         }
 
         public void Throw(double heading) {
-            connection.Send(Command.NewThrow(Guid.NewGuid().ToString("N"), playerId, heading));
+            connection.Send(Command.NewThrow(Guid.NewGuid().ToString("N"), playerId, heading.PositiveAngle()));
         }
 
         // these are common to humans & zombies.  C&P them?
@@ -76,6 +86,8 @@ namespace HvZ.Common {
         public void Bite(IIdentified target) {
             connection.Send(Command.NewBite(playerId, target.Id));
         }
+
+        public bool IsStunned { get { return map.zombies[playerId].IsStunned; } }
 
         // these are common to humans & zombies.  C&P them?
         public void Turn(double degrees) {

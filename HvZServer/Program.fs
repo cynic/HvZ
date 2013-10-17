@@ -190,7 +190,7 @@ let internal handleRequest connId cmd send =
 [<EntryPoint>]
 let main argv = 
    Console.Title <- "HvZ Server"
-   let port = 2311
+   let port = 2310
    let listener = TcpListener(IPAddress.Any, port)
    try
       listener.Server.LingerState <- LingerOption(false, 1)

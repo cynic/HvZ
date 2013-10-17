@@ -21,6 +21,8 @@ namespace HvZ.Common {
     class ClientGame : ICommandInterpreter, IDisposable {
         private HvZConnection connection = new HvZConnection();
 
+        internal Dictionary<uint, Tuple<string, long>> scoreboard = new Dictionary<uint, Tuple<string, long>>();
+
         readonly Map map = new Map();
         public Map Map {
             get { return map; }
@@ -80,23 +82,22 @@ namespace HvZ.Common {
 
         public void AddZombie(IZombieAI ai) {
             var guid = Guid.NewGuid().ToString();
-            //Console.WriteLine("Using zombie guid={0}", guid);
             playerAdded += new Action<uint,string>((playerId, corr) => {
                 if (corr != guid) return; // not the zombie we're looking for!
                 var player = new ZombiePlayer(connection, playerId, map);
-                //bool availableToDecide = true;
                 var askAI = new Action(() => {
-                    if (map.walkers.ContainsKey(playerId)/* && availableToDecide*/) {
-                        //availableToDecide = false;
-                        //try {
+                    if (map.zombies.ContainsKey(playerId)) {
+                        if (!map.zombies[playerId].IsStunned) {
                             ai.DoSomething(player, new List<IWalker>(map.Zombies.Where(x => x.Id != playerId)), new List<IWalker>(map.Humans), new List<ITakeSpace>(map.Obstacles), new List<ResupplyPoint>(map.ResupplyPoints));
-                        //} finally {
-                            //availableToDecide = true;
-                        //}
+                        }
                     }
                 });
                 requestDecision += askAI;
-                world.OnPlayerRemoved += (_, args) => { if (args.PlayerId == playerId) requestDecision -= askAI; };
+                world.OnPlayerRemoved += (_, args) => {
+                    if (args.PlayerId != playerId) return;
+                    requestDecision -= askAI;
+                    scoreboard[playerId] = Tuple.Create(scoreboard[playerId].Item1, (DateTime.Now - DateTime.FromBinary(scoreboard[playerId].Item2)).Ticks);
+                };
                 noAction += (id, s) => { if (id == playerId) ai.Failure(s); };
                 world.OnEntityCollision += (_, e) => { if (e.PlayerId == playerId) ai.Collision(player, e.CollidedWith); };
                 world.OnEdgeCollision += (_, e) => { if (e.PlayerId == playerId) ai.Collision(player, e.Edge); };
@@ -106,23 +107,20 @@ namespace HvZ.Common {
 
         public void AddHuman(IHumanAI ai) {
             var guid = Guid.NewGuid().ToString();
-            //Console.WriteLine("Using human guid={0}", guid);
             playerAdded += new Action<uint, string>((playerId, corr) => {
                 if (corr != guid) return; // not the human we're looking for!
                 var player = new HumanPlayer(connection, playerId, map);
-                //bool availableToDecide = true;
                 var askAI = new Action(() => {
-                    if (map.walkers.ContainsKey(playerId) /*&& availableToDecide*/) {
-                        //availableToDecide = false;
-                        //try {
-                            ai.DoSomething(player, new List<IWalker>(map.Zombies), new List<IWalker>(map.Humans.Where(x => x.Id != playerId)), new List<ITakeSpace>(map.Obstacles), new List<ResupplyPoint>(map.ResupplyPoints));
-                        //} finally {
-                            //availableToDecide = true;
-                        //}
+                    if (map.humans.ContainsKey(playerId)) {
+                        ai.DoSomething(player, new List<IWalker>(map.Zombies), new List<IWalker>(map.Humans.Where(x => x.Id != playerId)), new List<ITakeSpace>(map.Obstacles), new List<ResupplyPoint>(map.ResupplyPoints));
                     }
                 });
                 requestDecision += askAI;
-                world.OnPlayerRemoved += (_, args) => { if (args.PlayerId == playerId) requestDecision -= askAI; };
+                world.OnPlayerRemoved += (_, args) => {
+                    if (args.PlayerId != playerId) return;
+                    requestDecision -= askAI;
+                    scoreboard[playerId] = Tuple.Create(scoreboard[playerId].Item1, (DateTime.Now - DateTime.FromBinary(scoreboard[playerId].Item2)).Ticks);
+                };
                 noAction += (id, s) => { if (id == playerId) ai.Failure(s); };
                 world.OnEntityCollision += (_, e) => { if (e.PlayerId == playerId) ai.Collision(player, e.CollidedWith); };
                 world.OnEdgeCollision += (_, e) => { if (e.PlayerId == playerId) ai.Collision(player, e.Edge); };
@@ -149,6 +147,7 @@ namespace HvZ.Common {
         void ICommandInterpreter.JoinOK(uint walkerId, string guid, string mapData) {
             map.PopulateFromSerializedData(mapData);
             playerAdded(walkerId, guid);
+            scoreboard[walkerId] = Tuple.Create(map.walkers[walkerId].Name, DateTime.Now.ToBinary());
             if (OnMapChange != null) OnMapChange(this, EventArgs.Empty);
         }
 
@@ -211,11 +210,6 @@ namespace HvZ.Common {
     }
 
     class Game {
-        /* Assumptions:
-         * - Humans move at 0.45 per turn.
-         * - Zombies move at 0.4 per turn.
-         * - Turn-rate for humans and zombies is 20 degrees per turn.
-         */
         private Random rng = new Random(12345); // fixed seed, deliberately non-static.
         bool realGameStarted; // true if and only if both zombies & humans were once in the game.
         bool realGameEnded; // true if and only if both zombies & humans were once in the game, and now only one side is left.
@@ -244,9 +238,16 @@ namespace HvZ.Common {
             try {
                 // ensure that all walkers are a bit closer to death.
                 foreach (var h in map.Humans) if (h.Lifespan > 0) --h.Lifespan;
-                foreach (var z in map.Zombies) if (z.Lifespan > 0) --z.Lifespan;
-                // now do whatever is required on the turn.
                 HashSet<uint> exclude = new HashSet<uint>();
+                foreach (var z in map.Zombies) {
+                    if (z.Lifespan > 0)
+                        --z.Lifespan;
+                    if (z.IsStunned) {
+                        --z.StunRemaining;
+                        if (z.IsStunned) exclude.Add(z.Id);
+                    }
+                }
+                // now do whatever is required on the turn.
                 for (int i = 0; i < WorldConstants.StepsPerTurn; ++i) {
                     // permute order.
                     foreach (var key in ongoing.Keys.OrderBy(_ => rng.Next())) {
@@ -283,8 +284,9 @@ namespace HvZ.Common {
                     // otherwise ... DEATH!
                     ongoing.Remove(w.Key);
                     map.Kill(w.Key);
-                    if (OnPlayerRemoved != null)
+                    if (OnPlayerRemoved != null) {
                         OnPlayerRemoved(this, new PlayerRemovedEventArgs() { PlayerId = w.Key });
+                    }
                 }
                 // if the 'real' game has started, check for whether the game has ended.
                 var humansLeft = map.humans.Count;
