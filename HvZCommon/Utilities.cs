@@ -58,8 +58,13 @@ namespace HvZ {
 
         /// <summary>Calculates straight line distance between two things on the map</summary>
         public static double DistanceFrom(this ITakeSpace a, ITakeSpace b) {
-            double distX = a.Position.X - b.Position.X;
-            double distY = a.Position.Y - b.Position.Y;
+            return DistanceFrom(a, b.Position.X, b.Position.Y);
+        }
+
+        /// <summary>Calculates straight line distance to a point on the map</summary>
+        public static double DistanceFrom(this ITakeSpace a, double x, double y) {
+            double distX = a.Position.X - x;
+            double distY = a.Position.Y - y;
             return Math.Sqrt(distX * distX + distY * distY);
         }
 
@@ -78,6 +83,20 @@ namespace HvZ {
             double curHeading = (90.0 - a.Heading).ToRadians(); // relative to the x-axis
             Vector vHeading = new Vector(-Math.Cos(curHeading), Math.Sin(curHeading));
             Vector vTarget = new Vector(-Math.Cos(desired), Math.Sin(desired));
+            return Vector.AngleBetween(vHeading, vTarget).MinimumAngle();
+        }
+
+        /// <summary>
+        /// Returns the angle to turn to face particular coordinates.
+        /// </summary>
+        public static double AngleToCoordinates(this IWalker a, double x, double y) {
+            double distToTarget = a.DistanceFrom(x, y);
+            double curHeading = (90.0 - a.Heading).ToRadians(); // relative to the x-axis
+            double xC = a.Position.X + distToTarget * Math.Cos(curHeading);
+            double yC = a.Position.Y + -distToTarget * Math.Sin(curHeading);
+            // let the built-in vector math sort it all out :-).
+            Vector vHeading = new Vector(a.Position.X - xC, a.Position.Y - yC);
+            Vector vTarget = new Vector(a.Position.X - x, a.Position.Y - y);
             return Vector.AngleBetween(vHeading, vTarget).MinimumAngle();
         }
 
