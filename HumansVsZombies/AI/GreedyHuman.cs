@@ -58,7 +58,12 @@ namespace HumansVsZombies
                 //Console.WriteLine("No resupply points?  There's nothing for a greedy human to do, then :-(.  Will just sit and starve here...");
                 return; // do nothing!
             }
-            var supplyPoint = resupply.OrderBy(x => x.DistanceFrom(player)).Where(x => !visited.Contains(x.Id)).First();
+            ResupplyPoint supplyPoint = null;
+            foreach (ResupplyPoint r in resupply) {
+                if ((supplyPoint == null || player.DistanceFrom(supplyPoint) > player.DistanceFrom(r)) && !visited.Contains(r.Id)) {
+                    supplyPoint = r;
+                }
+            }
             // am I there already?
             if (supplyPoint.Intersects(player) && supplyPoint.Available.Length > 0)
             {
@@ -94,7 +99,7 @@ namespace HumansVsZombies
         public void Collision(IHumanPlayer player, ITakeSpace other)
         {
             if (player.Movement == MoveState.Moving) return; // nothing to do?
-            var angle = player.AngleAvoiding(other);
+            double angle = player.AngleAvoiding(other);
             player.Turn(angle);
             //Console.WriteLine("Turning {0} degrees to avoid obstacle.", angle);
             hasCollidedLastTurn = true;

@@ -15,7 +15,7 @@ namespace HumansVsZombies
 
         public void Collision(IZombiePlayer player, ITakeSpace other)
         {
-            var angle = player.AngleAvoiding(other);
+            double angle = player.AngleAvoiding(other);
             if (Math.Abs(angle) < 0.05)
             {
                 // Turn directly the other way, and move off.
@@ -31,12 +31,18 @@ namespace HumansVsZombies
         IWalker GetNewTarget(IZombiePlayer player, List<IWalker> humans)
         {
             if (ThinkOutLoud) Console.WriteLine("Choosing new target.  Humans are:");
-            foreach (var h in humans)
+            foreach (IWalker h in humans)
             {
                 if (ThinkOutLoud) Console.WriteLine(" - {0}", h);
             }
-            var closest = humans.OrderBy(x => x.DistanceFrom(player)).First();
-            if (ThinkOutLoud) Console.WriteLine("Chosen: {0}", target);
+            IWalker closest = null;
+            foreach (IWalker h in humans) {
+                if (closest == null || player.DistanceFrom(h) < player.DistanceFrom(closest))
+                {
+                    closest = h;
+                }
+            }
+            if (ThinkOutLoud) Console.WriteLine("Chosen: {0}", closest);
             return closest;
         }
 
@@ -48,19 +54,32 @@ namespace HumansVsZombies
                 return; // no humans? Then I have nothing to do.
             }
             // opportunity knocks but once: if I'm in-range of any humans -- whether they're my target or not -- bite 'em!
-            foreach (var h in humans.Where(x => player.IsCloseEnoughToInteractWith(x)))
+            foreach (IWalker h in humans)
             {
+                if (!player.IsCloseEnoughToInteractWith(h)) continue;
                 if (ThinkOutLoud) Console.WriteLine("Opportunity knocks!  Biting {0}", h);
                 player.Bite(h);
                 return;
             }
-            if (target == null || !humans.Exists(x => x.Id == target.Id))
+            bool targetStillExists = false;
+            if (target != null)
+            {
+                foreach (IWalker h in humans)
+                {
+                    if (h.Id == target.Id)
+                    {
+                        targetStillExists = true;
+                        break;
+                    }
+                }
+            }
+            if (target == null || !targetStillExists)
             { // find a new target.
                 target = GetNewTarget(player, humans);
             }
             // change targets if anyone comes quite close to me.
-            var possibleNewTarget = humans.Where(x => player.DistanceFrom(x) < player.DistanceFrom(target) / 2).FirstOrDefault();
-            if (possibleNewTarget != null)
+            IWalker possibleNewTarget = GetNewTarget(player, humans);
+            if (possibleNewTarget != null && possibleNewTarget.Id != target.Id && player.DistanceFrom(possibleNewTarget) < player.DistanceFrom(target) / 2)
             {
                 if (ThinkOutLoud) Console.WriteLine("Switching target from {0} to {1}", target, possibleNewTarget);
                 target = possibleNewTarget;
@@ -70,7 +89,7 @@ namespace HumansVsZombies
             if (player.Movement == MoveState.Moving) return; // punt! until we stop moving.
             if (collided)
             {
-                var dist = rand.Next(4, (int)Math.Max(6.0, Math.Min(player.MapWidth, player.MapHeight) / 6));
+                double dist = rand.Next(4, (int)Math.Max(6.0, Math.Min(player.MapWidth, player.MapHeight) / 6));
                 if (ThinkOutLoud) Console.WriteLine("Recovering from collision; going forward {0} units.", dist);
                 player.GoForward(dist);
                 collided = false;
@@ -82,10 +101,10 @@ namespace HumansVsZombies
 
         private void Chase(IZombiePlayer player)
         {
-            var angle = player.AngleTo(target);
+            double angle = player.AngleTo(target);
             if (Math.Abs(angle) < 25.0)
             {
-                var dist = player.DistanceFrom(target);
+                double dist = player.DistanceFrom(target);
                 if (dist < 7.0)
                 {
                     if (ThinkOutLoud) Console.WriteLine("Going forward {0} units, hopefully this will get me close enough to bite {1}", dist, target);
@@ -128,10 +147,10 @@ namespace HumansVsZombies
                     angle = player.AngleToHeading(0);
                     break;
                 case Edge.Left:
-                    angle = player.AngleToHeading(270);
+                    angle = player.AngleToHeading(90);
                     break;
                 case Edge.Right:
-                    angle = player.AngleToHeading(90);
+                    angle = player.AngleToHeading(270);
                     break;
                 case Edge.TopAndLeft:
                     angle = player.AngleToHeading(90+45);
