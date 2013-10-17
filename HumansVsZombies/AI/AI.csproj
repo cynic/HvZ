@@ -8,7 +8,7 @@
     <ProjectGuid>{AD5E0837-8040-4BF6-AAE2-81D0C794A450}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>AI</RootNamespace>
+    <RootNamespace>HumansVsZombies</RootNamespace>
     <AssemblyName>AI</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
