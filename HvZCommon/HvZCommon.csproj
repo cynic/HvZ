@@ -53,6 +53,7 @@
     <Compile Include="Places.cs" />
     <Compile Include="Players.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Taltos.cs" />
     <Compile Include="Utilities.cs" />
     <Compile Include="Walker.cs" />
   </ItemGroup>
